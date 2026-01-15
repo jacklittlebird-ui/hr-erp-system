@@ -13,6 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fontsource/baloo-bhaijaan-2": "^5.2.7",
     "@fontsource/cairo": "^5.2.7",
     "@fontsource/inter": "^5.2.8",
     "@hookform/resolvers": "^3.10.0",
