@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        arabic: ['Cairo', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -56,6 +60,30 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+        },
+        stat: {
+          coral: "hsl(var(--stat-coral))",
+          "coral-bg": "hsl(var(--stat-coral-bg))",
+          blue: "hsl(var(--stat-blue))",
+          "blue-bg": "hsl(var(--stat-blue-bg))",
+          purple: "hsl(var(--stat-purple))",
+          "purple-bg": "hsl(var(--stat-purple-bg))",
+          teal: "hsl(var(--stat-teal))",
+          "teal-bg": "hsl(var(--stat-teal-bg))",
+          green: "hsl(var(--stat-green))",
+          "green-bg": "hsl(var(--stat-green-bg))",
+          yellow: "hsl(var(--stat-yellow))",
+          "yellow-bg": "hsl(var(--stat-yellow-bg))",
+          pink: "hsl(var(--stat-pink))",
+          "pink-bg": "hsl(var(--stat-pink-bg))",
+        },
+        chart: {
+          1: "hsl(var(--chart-1))",
+          2: "hsl(var(--chart-2))",
+          3: "hsl(var(--chart-3))",
+          4: "hsl(var(--chart-4))",
+          5: "hsl(var(--chart-5))",
+          6: "hsl(var(--chart-6))",
         },
       },
       borderRadius: {
