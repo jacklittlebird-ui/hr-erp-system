@@ -7,6 +7,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import Leaves from "./pages/Leaves";
+import Attendance from "./pages/Attendance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/employees" element={<Employees />} />
             <Route path="/leaves" element={<Leaves />} />
+            <Route path="/attendance" element={<Attendance />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
