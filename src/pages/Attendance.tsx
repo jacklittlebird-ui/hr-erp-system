@@ -6,7 +6,11 @@ import { CheckInOut } from '@/components/attendance/CheckInOut';
 import { AttendanceList } from '@/components/attendance/AttendanceList';
 import { LateArrivals } from '@/components/attendance/LateArrivals';
 import { AttendanceReports } from '@/components/attendance/AttendanceReports';
-import { Clock, List, AlertTriangle, BarChart3 } from 'lucide-react';
+import { ShiftManagement } from '@/components/attendance/ShiftManagement';
+import { AttendanceRules } from '@/components/attendance/AttendanceRules';
+import { LocationManagement } from '@/components/attendance/LocationManagement';
+import { EmployeeAssignment } from '@/components/attendance/EmployeeAssignment';
+import { Clock, List, AlertTriangle, BarChart3, Calendar, Settings2, MapPin, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface AttendanceRecord {
@@ -212,18 +216,18 @@ const Attendance = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={cn("grid w-full grid-cols-4 mb-6", isRTL && "direction-rtl")}>
+          <TabsList className={cn("grid w-full grid-cols-8 mb-6", isRTL && "direction-rtl")}>
             <TabsTrigger value="checkin" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('attendance.tabs.checkInOut')}</span>
+              <span className="hidden lg:inline">{t('attendance.tabs.checkInOut')}</span>
             </TabsTrigger>
             <TabsTrigger value="list" className="flex items-center gap-2">
               <List className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('attendance.tabs.records')}</span>
+              <span className="hidden lg:inline">{t('attendance.tabs.records')}</span>
             </TabsTrigger>
             <TabsTrigger value="late" className="flex items-center gap-2 relative">
               <AlertTriangle className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('attendance.tabs.lateArrivals')}</span>
+              <span className="hidden lg:inline">{t('attendance.tabs.lateArrivals')}</span>
               {lateCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-warning text-warning-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {lateCount}
@@ -232,7 +236,23 @@ const Attendance = () => {
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('attendance.tabs.reports')}</span>
+              <span className="hidden lg:inline">{t('attendance.tabs.reports')}</span>
+            </TabsTrigger>
+            <TabsTrigger value="shifts" className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden lg:inline">{t('attendance.tabs.shifts')}</span>
+            </TabsTrigger>
+            <TabsTrigger value="rules" className="flex items-center gap-2">
+              <Settings2 className="w-4 h-4" />
+              <span className="hidden lg:inline">{t('attendance.tabs.rules')}</span>
+            </TabsTrigger>
+            <TabsTrigger value="locations" className="flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              <span className="hidden lg:inline">{t('attendance.tabs.locations')}</span>
+            </TabsTrigger>
+            <TabsTrigger value="assignment" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span className="hidden lg:inline">{t('attendance.tabs.assignment')}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -254,6 +274,22 @@ const Attendance = () => {
 
           <TabsContent value="reports">
             <AttendanceReports records={attendanceRecords} />
+          </TabsContent>
+
+          <TabsContent value="shifts">
+            <ShiftManagement />
+          </TabsContent>
+
+          <TabsContent value="rules">
+            <AttendanceRules />
+          </TabsContent>
+
+          <TabsContent value="locations">
+            <LocationManagement />
+          </TabsContent>
+
+          <TabsContent value="assignment">
+            <EmployeeAssignment />
           </TabsContent>
         </Tabs>
       </div>
