@@ -1,0 +1,480 @@
+import { useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { 
+  Clock, Plus, Edit2, Trash2, Settings2, Building2, 
+  Plane, Timer, AlertCircle, CheckCircle2, Users
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { 
+  AttendanceRule, ScheduleType, 
+  sampleAttendanceRules, sampleLocations 
+} from '@/types/attendance';
+
+export const AttendanceRules = () => {
+  const { t, isRTL, language } = useLanguage();
+  const [rules, setRules] = useState<AttendanceRule[]>(sampleAttendanceRules);
+  const [locations] = useState(sampleLocations);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<ScheduleType>('fixed');
+  
+  // New rule form state
+  const [newRule, setNewRule] = useState<Partial<AttendanceRule>>({
+    name: '',
+    nameAr: '',
+    description: '',
+    descriptionAr: '',
+    scheduleType: 'fixed',
+    isActive: true,
+    weekendDays: [5, 6],
+    workingDaysPerWeek: 5,
+    maxOvertimeHoursDaily: 4,
+    maxOvertimeHoursWeekly: 20,
+    fixedSchedule: {
+      startTime: '08:00',
+      endTime: '18:00',
+      gracePeriodMinutes: 15,
+      earlyDepartureMinutes: 15,
+    },
+  });
+
+  const getScheduleIcon = (type: ScheduleType) => {
+    switch (type) {
+      case 'fixed':
+        return <Building2 className="w-5 h-5" />;
+      case 'flexible':
+        return <Timer className="w-5 h-5" />;
+      case 'shift':
+        return <Plane className="w-5 h-5" />;
+    }
+  };
+
+  const getScheduleColor = (type: ScheduleType) => {
+    switch (type) {
+      case 'fixed':
+        return 'bg-blue-500';
+      case 'flexible':
+        return 'bg-green-500';
+      case 'shift':
+        return 'bg-purple-500';
+    }
+  };
+
+  const handleDeleteRule = (ruleId: string) => {
+    setRules(rules.filter(r => r.id !== ruleId));
+  };
+
+  const handleToggleActive = (ruleId: string) => {
+    setRules(rules.map(r => 
+      r.id === ruleId ? { ...r, isActive: !r.isActive } : r
+    ));
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
+        <div>
+          <h2 className="text-xl font-semibold">{t('attendance.rules.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('attendance.rules.subtitle')}</p>
+        </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className={cn("gap-2", isRTL && "flex-row-reverse")}>
+              <Plus className="w-4 h-4" />
+              {t('attendance.rules.addRule')}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{t('attendance.rules.addRule')}</DialogTitle>
+            </DialogHeader>
+            <Tabs value={selectedType} onValueChange={(v) => setSelectedType(v as ScheduleType)}>
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="fixed" className="gap-2">
+                  <Building2 className="w-4 h-4" />
+                  {t('attendance.rules.fixed')}
+                </TabsTrigger>
+                <TabsTrigger value="flexible" className="gap-2">
+                  <Timer className="w-4 h-4" />
+                  {t('attendance.rules.flexible')}
+                </TabsTrigger>
+                <TabsTrigger value="shift" className="gap-2">
+                  <Plane className="w-4 h-4" />
+                  {t('attendance.rules.shift')}
+                </TabsTrigger>
+              </TabsList>
+              
+              {/* Common Fields */}
+              <div className="space-y-4 mb-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>{t('attendance.rules.nameEn')}</Label>
+                    <Input 
+                      value={newRule.name}
+                      onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
+                      placeholder="Rule Name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t('attendance.rules.nameAr')}</Label>
+                    <Input 
+                      value={newRule.nameAr}
+                      onChange={(e) => setNewRule({ ...newRule, nameAr: e.target.value })}
+                      placeholder="اسم القاعدة"
+                      dir="rtl"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('attendance.rules.description')}</Label>
+                  <Input 
+                    value={newRule.description}
+                    onChange={(e) => setNewRule({ ...newRule, description: e.target.value })}
+                    placeholder="Brief description"
+                  />
+                </div>
+              </div>
+              
+              <TabsContent value="fixed" className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{t('attendance.rules.fixedSettings')}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t('attendance.rules.startTime')}</Label>
+                        <Input 
+                          type="time"
+                          value={newRule.fixedSchedule?.startTime}
+                          onChange={(e) => setNewRule({ 
+                            ...newRule, 
+                            fixedSchedule: { ...newRule.fixedSchedule!, startTime: e.target.value }
+                          })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t('attendance.rules.endTime')}</Label>
+                        <Input 
+                          type="time"
+                          value={newRule.fixedSchedule?.endTime}
+                          onChange={(e) => setNewRule({ 
+                            ...newRule, 
+                            fixedSchedule: { ...newRule.fixedSchedule!, endTime: e.target.value }
+                          })}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t('attendance.rules.gracePeriod')}</Label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            type="number"
+                            value={newRule.fixedSchedule?.gracePeriodMinutes}
+                            onChange={(e) => setNewRule({ 
+                              ...newRule, 
+                              fixedSchedule: { ...newRule.fixedSchedule!, gracePeriodMinutes: Number(e.target.value) }
+                            })}
+                            min={0}
+                            max={60}
+                          />
+                          <span className="text-sm text-muted-foreground">{t('attendance.rules.minutes')}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t('attendance.rules.earlyLeave')}</Label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            type="number"
+                            value={newRule.fixedSchedule?.earlyDepartureMinutes}
+                            onChange={(e) => setNewRule({ 
+                              ...newRule, 
+                              fixedSchedule: { ...newRule.fixedSchedule!, earlyDepartureMinutes: Number(e.target.value) }
+                            })}
+                            min={0}
+                            max={60}
+                          />
+                          <span className="text-sm text-muted-foreground">{t('attendance.rules.minutes')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="flexible" className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{t('attendance.rules.flexibleSettings')}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t('attendance.rules.arrivalStart')}</Label>
+                        <Input type="time" defaultValue="09:00" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t('attendance.rules.arrivalEnd')}</Label>
+                        <Input type="time" defaultValue="09:30" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t('attendance.rules.minWorkHours')}</Label>
+                      <Input type="number" defaultValue={8} min={4} max={12} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t('attendance.rules.coreStart')}</Label>
+                        <Input type="time" defaultValue="10:00" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t('attendance.rules.coreEnd')}</Label>
+                        <Input type="time" defaultValue="16:00" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="shift" className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{t('attendance.rules.shiftSettings')}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>{t('attendance.rules.shiftTemplate')}</Label>
+                      <Select defaultValue="template-3shift">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="template-3shift">
+                            {t('attendance.rules.threeShift')}
+                          </SelectItem>
+                          <SelectItem value="template-4shift">
+                            {t('attendance.rules.fourShift')}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label>{t('attendance.rules.allowSwap')}</Label>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label>{t('attendance.rules.nightAllowance')}</Label>
+                      <Switch defaultChecked />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+            
+            {/* Common Settings */}
+            <Card className="mt-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">{t('attendance.rules.commonSettings')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>{t('attendance.rules.maxDailyOT')}</Label>
+                    <Input type="number" defaultValue={4} min={0} max={8} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t('attendance.rules.maxWeeklyOT')}</Label>
+                    <Input type="number" defaultValue={20} min={0} max={40} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Button className="w-full mt-4">
+              {t('attendance.rules.save')}
+            </Button>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+              <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <Building2 className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{rules.filter(r => r.scheduleType === 'fixed').length}</p>
+                <p className="text-sm text-muted-foreground">{t('attendance.rules.fixedRules')}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+              <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/30">
+                <Timer className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{rules.filter(r => r.scheduleType === 'flexible').length}</p>
+                <p className="text-sm text-muted-foreground">{t('attendance.rules.flexibleRules')}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+              <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                <Plane className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{rules.filter(r => r.scheduleType === 'shift').length}</p>
+                <p className="text-sm text-muted-foreground">{t('attendance.rules.shiftRules')}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+              <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                <Users className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">156</p>
+                <p className="text-sm text-muted-foreground">{t('attendance.rules.assignedEmployees')}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Rules List */}
+      <div className="space-y-4">
+        {rules.map((rule) => (
+          <Card key={rule.id} className={cn("relative", !rule.isActive && "opacity-60")}>
+            <div className={cn("absolute top-0 left-0 w-1 h-full rounded-l-lg", getScheduleColor(rule.scheduleType))} />
+            <CardHeader>
+              <div className={cn("flex justify-between items-start", isRTL && "flex-row-reverse")}>
+                <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+                  <div className={cn("p-2 rounded-lg", 
+                    rule.scheduleType === 'fixed' && "bg-blue-100 dark:bg-blue-900/30",
+                    rule.scheduleType === 'flexible' && "bg-green-100 dark:bg-green-900/30",
+                    rule.scheduleType === 'shift' && "bg-purple-100 dark:bg-purple-900/30"
+                  )}>
+                    {getScheduleIcon(rule.scheduleType)}
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">
+                      {language === 'ar' ? rule.nameAr : rule.name}
+                    </CardTitle>
+                    <CardDescription>
+                      {language === 'ar' ? rule.descriptionAr : rule.description}
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                  <Switch 
+                    checked={rule.isActive}
+                    onCheckedChange={() => handleToggleActive(rule.id)}
+                  />
+                  <Button variant="ghost" size="icon">
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="text-destructive"
+                    onClick={() => handleDeleteRule(rule.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="single" collapsible>
+                <AccordionItem value="details" className="border-none">
+                  <AccordionTrigger className="py-2">
+                    <span className="text-sm">{t('attendance.rules.viewDetails')}</span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                      {rule.scheduleType === 'fixed' && rule.fixedSchedule && (
+                        <>
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">{t('attendance.rules.workingHours')}</p>
+                            <p className="font-medium">
+                              {rule.fixedSchedule.startTime} - {rule.fixedSchedule.endTime}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">{t('attendance.rules.gracePeriod')}</p>
+                            <p className="font-medium">{rule.fixedSchedule.gracePeriodMinutes} min</p>
+                          </div>
+                        </>
+                      )}
+                      {rule.scheduleType === 'flexible' && rule.flexibleSchedule && (
+                        <>
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">{t('attendance.rules.arrivalWindow')}</p>
+                            <p className="font-medium">
+                              {rule.flexibleSchedule.arrivalWindowStart} - {rule.flexibleSchedule.arrivalWindowEnd}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">{t('attendance.rules.minWorkHours')}</p>
+                            <p className="font-medium">{rule.flexibleSchedule.minimumWorkHours}h</p>
+                          </div>
+                        </>
+                      )}
+                      {rule.scheduleType === 'shift' && rule.shiftSchedule && (
+                        <>
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">{t('attendance.rules.shiftSwap')}</p>
+                            <Badge variant={rule.shiftSchedule.allowShiftSwap ? "default" : "secondary"}>
+                              {rule.shiftSchedule.allowShiftSwap ? t('attendance.rules.allowed') : t('attendance.rules.notAllowed')}
+                            </Badge>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">{t('attendance.rules.nightAllowance')}</p>
+                            <Badge variant={rule.shiftSchedule.nightShiftAllowance ? "default" : "secondary"}>
+                              {rule.shiftSchedule.nightShiftAllowance ? t('attendance.rules.yes') : t('attendance.rules.no')}
+                            </Badge>
+                          </div>
+                        </>
+                      )}
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">{t('attendance.rules.maxDailyOT')}</p>
+                        <p className="font-medium">{rule.maxOvertimeHoursDaily}h</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">{t('attendance.rules.workDays')}</p>
+                        <p className="font-medium">{rule.workingDaysPerWeek} {t('attendance.rules.daysPerWeek')}</p>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+};
