@@ -158,18 +158,18 @@ const Attendance = () => {
     ...generateWeeklyData(),
   ]);
 
-  const handleCheckIn = (employeeId: string) => {
+  const handleCheckIn = (employeeId: string, employeeName: string, employeeNameAr: string, department: string) => {
     const now = new Date();
     const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     const dateString = now.toISOString().split('T')[0];
     const isLate = now.getHours() >= 9;
 
     const newRecord: AttendanceRecord = {
-      id: String(attendanceRecords.length + 1),
+      id: String(Date.now()),
       employeeId,
-      employeeName: 'Current User',
-      employeeNameAr: 'المستخدم الحالي',
-      department: 'IT',
+      employeeName,
+      employeeNameAr,
+      department,
       date: dateString,
       checkIn: timeString,
       checkOut: null,
