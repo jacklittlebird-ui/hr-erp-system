@@ -139,8 +139,8 @@ export const AttendanceList = ({ records }: AttendanceListProps) => {
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedRecords.slice(0, 20).map((record) => (
-                  <TableRow key={record.id}>
+                sortedRecords.slice(0, 20).map((record, index) => (
+                  <TableRow key={`${record.id}-${record.date}-${index}`}>
                     <TableCell>{record.date}</TableCell>
                     <TableCell className="font-medium">
                       {language === 'ar' ? record.employeeNameAr : record.employeeName}

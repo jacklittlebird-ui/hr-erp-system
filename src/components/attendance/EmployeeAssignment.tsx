@@ -101,11 +101,21 @@ const sampleAssignments: (EmployeeAttendanceAssignment & { employee: EmployeeDat
 
 export const EmployeeAssignment = () => {
   const { t, isRTL, language } = useLanguage();
-  const [assignments] = useState(sampleAssignments);
+  const [assignments, setAssignments] = useState(sampleAssignments);
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState<string>('all');
   const [ruleFilter, setRuleFilter] = useState<string>('all');
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<string | null>(null);
+  
+  // Form state for new/edit assignment
+  const [formData, setFormData] = useState({
+    employeeId: '',
+    attendanceRuleId: '',
+    locationId: '',
+    shiftId: '',
+    effectiveFrom: new Date().toISOString().split('T')[0],
+  });
 
   const rules = sampleAttendanceRules;
   const locations = sampleLocations;
@@ -135,6 +145,76 @@ export const EmployeeAssignment = () => {
     }
   };
 
+  const handleSaveAssignment = () => {
+    if (!formData.employeeId || !formData.attendanceRuleId || !formData.locationId) {
+      return;
+    }
+
+    const employee = sampleEmployees.find(e => e.id === formData.employeeId);
+    if (!employee) return;
+
+    if (editingAssignment) {
+      // Update existing
+      setAssignments(prev => prev.map(a => 
+        a.id === editingAssignment 
+          ? {
+              ...a,
+              attendanceRuleId: formData.attendanceRuleId,
+              locationId: formData.locationId,
+              shiftId: formData.shiftId || undefined,
+              effectiveFrom: formData.effectiveFrom,
+            }
+          : a
+      ));
+    } else {
+      // Add new
+      const newAssignment = {
+        id: `assign-${Date.now()}`,
+        employeeId: formData.employeeId,
+        attendanceRuleId: formData.attendanceRuleId,
+        locationId: formData.locationId,
+        shiftId: formData.shiftId || undefined,
+        effectiveFrom: formData.effectiveFrom,
+        isActive: true,
+        employee,
+      };
+      setAssignments(prev => [...prev, newAssignment]);
+    }
+
+    setFormData({
+      employeeId: '',
+      attendanceRuleId: '',
+      locationId: '',
+      shiftId: '',
+      effectiveFrom: new Date().toISOString().split('T')[0],
+    });
+    setEditingAssignment(null);
+    setIsAssignDialogOpen(false);
+  };
+
+  const handleEditAssignment = (assignment: typeof sampleAssignments[0]) => {
+    setFormData({
+      employeeId: assignment.employeeId,
+      attendanceRuleId: assignment.attendanceRuleId,
+      locationId: assignment.locationId,
+      shiftId: assignment.shiftId || '',
+      effectiveFrom: assignment.effectiveFrom,
+    });
+    setEditingAssignment(assignment.id);
+    setIsAssignDialogOpen(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      employeeId: '',
+      attendanceRuleId: '',
+      locationId: '',
+      shiftId: '',
+      effectiveFrom: new Date().toISOString().split('T')[0],
+    });
+    setEditingAssignment(null);
+  };
+
   const filteredAssignments = assignments.filter(a => {
     const matchesSearch = 
       a.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -155,7 +235,10 @@ export const EmployeeAssignment = () => {
           <h2 className="text-xl font-semibold">{t('attendance.assignment.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('attendance.assignment.subtitle')}</p>
         </div>
-        <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <Dialog open={isAssignDialogOpen} onOpenChange={(open) => {
+          setIsAssignDialogOpen(open);
+          if (!open) resetForm();
+        }}>
           <DialogTrigger asChild>
             <Button className={cn("gap-2", isRTL && "flex-row-reverse")}>
               <Plus className="w-4 h-4" />
@@ -164,12 +247,18 @@ export const EmployeeAssignment = () => {
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>{t('attendance.assignment.assignEmployee')}</DialogTitle>
+              <DialogTitle>
+                {editingAssignment ? t('attendance.assignment.editAssignment') : t('attendance.assignment.assignEmployee')}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>{t('attendance.assignment.employee')}</Label>
-                <Select>
+                <Select 
+                  value={formData.employeeId} 
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, employeeId: v }))}
+                  disabled={!!editingAssignment}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={t('attendance.assignment.selectEmployee')} />
                   </SelectTrigger>
@@ -185,7 +274,10 @@ export const EmployeeAssignment = () => {
               
               <div className="space-y-2">
                 <Label>{t('attendance.assignment.attendanceRule')}</Label>
-                <Select>
+                <Select 
+                  value={formData.attendanceRuleId}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, attendanceRuleId: v }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={t('attendance.assignment.selectRule')} />
                   </SelectTrigger>
@@ -201,7 +293,10 @@ export const EmployeeAssignment = () => {
               
               <div className="space-y-2">
                 <Label>{t('attendance.assignment.location')}</Label>
-                <Select>
+                <Select 
+                  value={formData.locationId}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, locationId: v }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={t('attendance.assignment.selectLocation')} />
                   </SelectTrigger>
@@ -217,7 +312,10 @@ export const EmployeeAssignment = () => {
               
               <div className="space-y-2">
                 <Label>{t('attendance.assignment.shift')}</Label>
-                <Select>
+                <Select 
+                  value={formData.shiftId}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, shiftId: v }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={t('attendance.assignment.selectShift')} />
                   </SelectTrigger>
@@ -234,10 +332,14 @@ export const EmployeeAssignment = () => {
               
               <div className="space-y-2">
                 <Label>{t('attendance.assignment.effectiveFrom')}</Label>
-                <Input type="date" defaultValue={new Date().toISOString().split('T')[0]} />
+                <Input 
+                  type="date" 
+                  value={formData.effectiveFrom}
+                  onChange={(e) => setFormData(prev => ({ ...prev, effectiveFrom: e.target.value }))}
+                />
               </div>
               
-              <Button className="w-full">
+              <Button className="w-full" onClick={handleSaveAssignment}>
                 {t('attendance.assignment.save')}
               </Button>
             </div>
@@ -381,7 +483,11 @@ export const EmployeeAssignment = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleEditAssignment(assignment)}
+                        >
                           <Edit2 className="w-4 h-4" />
                         </Button>
                       </TableCell>

@@ -25,10 +25,10 @@ export const AttendanceRules = () => {
   const [rules, setRules] = useState<AttendanceRule[]>(sampleAttendanceRules);
   const [locations] = useState(sampleLocations);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<ScheduleType>('fixed');
   
-  // New rule form state
-  const [newRule, setNewRule] = useState<Partial<AttendanceRule>>({
+  const getDefaultRule = (): Partial<AttendanceRule> => ({
     name: '',
     nameAr: '',
     description: '',
@@ -45,7 +45,16 @@ export const AttendanceRules = () => {
       gracePeriodMinutes: 15,
       earlyDepartureMinutes: 15,
     },
+    flexibleSchedule: {
+      arrivalWindowStart: '09:00',
+      arrivalWindowEnd: '09:30',
+      minimumWorkHours: 8,
+      coreHoursStart: '10:00',
+      coreHoursEnd: '16:00',
+    },
   });
+
+  const [newRule, setNewRule] = useState<Partial<AttendanceRule>>(getDefaultRule());
 
   const getScheduleIcon = (type: ScheduleType) => {
     switch (type) {
@@ -69,6 +78,46 @@ export const AttendanceRules = () => {
     }
   };
 
+  const handleSaveRule = () => {
+    if (!newRule.name || !newRule.nameAr) return;
+
+    if (editingRuleId) {
+      setRules(prev => prev.map(r => 
+        r.id === editingRuleId 
+          ? { ...r, ...newRule, scheduleType: selectedType } as AttendanceRule
+          : r
+      ));
+    } else {
+      const rule: AttendanceRule = {
+        id: `rule-${Date.now()}`,
+        name: newRule.name,
+        nameAr: newRule.nameAr,
+        description: newRule.description || '',
+        descriptionAr: newRule.descriptionAr || '',
+        scheduleType: selectedType,
+        isActive: true,
+        weekendDays: newRule.weekendDays || [5, 6],
+        workingDaysPerWeek: newRule.workingDaysPerWeek || 5,
+        maxOvertimeHoursDaily: newRule.maxOvertimeHoursDaily || 4,
+        maxOvertimeHoursWeekly: newRule.maxOvertimeHoursWeekly || 20,
+        fixedSchedule: selectedType === 'fixed' ? newRule.fixedSchedule : undefined,
+        flexibleSchedule: selectedType === 'flexible' ? newRule.flexibleSchedule : undefined,
+      };
+      setRules(prev => [...prev, rule]);
+    }
+
+    setNewRule(getDefaultRule());
+    setEditingRuleId(null);
+    setIsAddDialogOpen(false);
+  };
+
+  const handleEditRule = (rule: AttendanceRule) => {
+    setNewRule(rule);
+    setSelectedType(rule.scheduleType);
+    setEditingRuleId(rule.id);
+    setIsAddDialogOpen(true);
+  };
+
   const handleDeleteRule = (ruleId: string) => {
     setRules(rules.filter(r => r.id !== ruleId));
   };
@@ -79,6 +128,12 @@ export const AttendanceRules = () => {
     ));
   };
 
+  const resetForm = () => {
+    setNewRule(getDefaultRule());
+    setEditingRuleId(null);
+    setSelectedType('fixed');
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -87,7 +142,10 @@ export const AttendanceRules = () => {
           <h2 className="text-xl font-semibold">{t('attendance.rules.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('attendance.rules.subtitle')}</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+          setIsAddDialogOpen(open);
+          if (!open) resetForm();
+        }}>
           <DialogTrigger asChild>
             <Button className={cn("gap-2", isRTL && "flex-row-reverse")}>
               <Plus className="w-4 h-4" />
@@ -96,7 +154,9 @@ export const AttendanceRules = () => {
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{t('attendance.rules.addRule')}</DialogTitle>
+              <DialogTitle>
+                {editingRuleId ? t('attendance.rules.editRule') : t('attendance.rules.addRule')}
+              </DialogTitle>
             </DialogHeader>
             <Tabs value={selectedType} onValueChange={(v) => setSelectedType(v as ScheduleType)}>
               <TabsList className="grid grid-cols-3 mb-4">
@@ -301,7 +361,7 @@ export const AttendanceRules = () => {
               </CardContent>
             </Card>
             
-            <Button className="w-full mt-4">
+            <Button className="w-full mt-4" onClick={handleSaveRule}>
               {t('attendance.rules.save')}
             </Button>
           </DialogContent>
@@ -393,7 +453,7 @@ export const AttendanceRules = () => {
                     checked={rule.isActive}
                     onCheckedChange={() => handleToggleActive(rule.id)}
                   />
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" onClick={() => handleEditRule(rule)}>
                     <Edit2 className="w-4 h-4" />
                   </Button>
                   <Button 

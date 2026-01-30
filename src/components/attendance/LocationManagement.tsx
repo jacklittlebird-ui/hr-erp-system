@@ -46,7 +46,7 @@ export const LocationManagement = () => {
       address: newLocation.address,
     };
     
-    setLocations([...locations, location]);
+    setLocations(prev => [...prev, location]);
     setNewLocation({
       name: '',
       nameAr: '',
