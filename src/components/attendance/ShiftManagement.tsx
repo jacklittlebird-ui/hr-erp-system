@@ -6,24 +6,24 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, Plus, Edit2, Trash2, Calendar, Users, Moon, Sun, Sunset, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ShiftDefinition, Location, sampleShiftDefinitions, sampleLocations } from '@/types/attendance';
+import { toast } from '@/hooks/use-toast';
 
 export const ShiftManagement = () => {
   const { t, isRTL, language } = useLanguage();
   const [shifts, setShifts] = useState<ShiftDefinition[]>(sampleShiftDefinitions);
   const [locations] = useState<Location[]>(sampleLocations);
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingShift, setEditingShift] = useState<ShiftDefinition | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   
-  // New shift form state
-  const [newShift, setNewShift] = useState<Partial<ShiftDefinition>>({
+  // Shift form state
+  const [formData, setFormData] = useState<Partial<ShiftDefinition>>({
     name: '',
     nameAr: '',
     code: '',
@@ -35,6 +35,44 @@ export const ShiftManagement = () => {
     isOvernight: false,
     order: 1,
   });
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      nameAr: '',
+      code: '',
+      startTime: '08:00',
+      endTime: '16:00',
+      breakDuration: 30,
+      color: '#22c55e',
+      locationId: '',
+      isOvernight: false,
+      order: 1,
+    });
+    setEditingShiftId(null);
+  };
+
+  const handleOpenAddDialog = () => {
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEditDialog = (shift: ShiftDefinition) => {
+    setFormData({
+      name: shift.name,
+      nameAr: shift.nameAr,
+      code: shift.code,
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+      breakDuration: shift.breakDuration,
+      color: shift.color,
+      locationId: shift.locationId,
+      isOvernight: shift.isOvernight,
+      order: shift.order,
+    });
+    setEditingShiftId(shift.id);
+    setIsDialogOpen(true);
+  };
 
   const getShiftIcon = (code: string) => {
     switch (code.toUpperCase()) {
@@ -63,48 +101,76 @@ export const ShiftManagement = () => {
     return (endMinutes - startMinutes) / 60;
   };
 
-  const handleAddShift = () => {
-    if (!newShift.name || !newShift.startTime || !newShift.endTime || !newShift.locationId) return;
+  const handleSaveShift = () => {
+    if (!formData.name || !formData.startTime || !formData.endTime || !formData.locationId) {
+      toast({
+        title: language === 'ar' ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     const workDuration = calculateWorkDuration(
-      newShift.startTime,
-      newShift.endTime!,
-      newShift.isOvernight || false
+      formData.startTime,
+      formData.endTime!,
+      formData.isOvernight || false
     );
     
-    const shift: ShiftDefinition = {
-      id: `shift-${Date.now()}`,
-      name: newShift.name,
-      nameAr: newShift.nameAr || newShift.name,
-      code: newShift.code || newShift.name.toUpperCase().replace(/\s/g, '_'),
-      startTime: newShift.startTime,
-      endTime: newShift.endTime!,
-      isOvernight: newShift.isOvernight || false,
-      breakDuration: newShift.breakDuration || 30,
-      workDuration,
-      color: newShift.color || '#22c55e',
-      locationId: newShift.locationId,
-      order: shifts.length + 1,
-    };
+    if (editingShiftId) {
+      // Update existing shift
+      setShifts(prev => prev.map(shift => {
+        if (shift.id === editingShiftId) {
+          return {
+            ...shift,
+            name: formData.name!,
+            nameAr: formData.nameAr || formData.name!,
+            code: formData.code || formData.name!.toUpperCase().replace(/\s/g, '_'),
+            startTime: formData.startTime!,
+            endTime: formData.endTime!,
+            isOvernight: formData.isOvernight || false,
+            breakDuration: formData.breakDuration || 30,
+            workDuration,
+            color: formData.color || '#22c55e',
+            locationId: formData.locationId!,
+          };
+        }
+        return shift;
+      }));
+      toast({
+        title: language === 'ar' ? 'تم تحديث الوردية بنجاح' : 'Shift updated successfully',
+      });
+    } else {
+      // Add new shift
+      const shift: ShiftDefinition = {
+        id: `shift-${Date.now()}`,
+        name: formData.name!,
+        nameAr: formData.nameAr || formData.name!,
+        code: formData.code || formData.name!.toUpperCase().replace(/\s/g, '_'),
+        startTime: formData.startTime!,
+        endTime: formData.endTime!,
+        isOvernight: formData.isOvernight || false,
+        breakDuration: formData.breakDuration || 30,
+        workDuration,
+        color: formData.color || '#22c55e',
+        locationId: formData.locationId!,
+        order: shifts.length + 1,
+      };
+      
+      setShifts(prev => [...prev, shift]);
+      toast({
+        title: language === 'ar' ? 'تمت إضافة الوردية بنجاح' : 'Shift added successfully',
+      });
+    }
     
-    setShifts([...shifts, shift]);
-    setNewShift({
-      name: '',
-      nameAr: '',
-      code: '',
-      startTime: '08:00',
-      endTime: '16:00',
-      breakDuration: 30,
-      color: '#22c55e',
-      locationId: '',
-      isOvernight: false,
-      order: 1,
-    });
-    setIsAddDialogOpen(false);
+    resetForm();
+    setIsDialogOpen(false);
   };
 
   const handleDeleteShift = (shiftId: string) => {
     setShifts(shifts.filter(s => s.id !== shiftId));
+    toast({
+      title: language === 'ar' ? 'تم حذف الوردية' : 'Shift deleted',
+    });
   };
 
   const filteredShifts = selectedLocation === 'all' 
@@ -121,114 +187,125 @@ export const ShiftManagement = () => {
           <h2 className="text-xl font-semibold">{t('attendance.shifts.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('attendance.shifts.subtitle')}</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className={cn("gap-2", isRTL && "flex-row-reverse")}>
-              <Plus className="w-4 h-4" />
-              {t('attendance.shifts.addShift')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>{t('attendance.shifts.addShift')}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t('attendance.shifts.nameEn')}</Label>
-                  <Input 
-                    value={newShift.name}
-                    onChange={(e) => setNewShift({ ...newShift, name: e.target.value })}
-                    placeholder="Morning Shift"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('attendance.shifts.nameAr')}</Label>
-                  <Input 
-                    value={newShift.nameAr}
-                    onChange={(e) => setNewShift({ ...newShift, nameAr: e.target.value })}
-                    placeholder="وردية صباحية"
-                    dir="rtl"
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t('attendance.shifts.startTime')}</Label>
-                  <Input 
-                    type="time"
-                    value={newShift.startTime}
-                    onChange={(e) => setNewShift({ ...newShift, startTime: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('attendance.shifts.endTime')}</Label>
-                  <Input 
-                    type="time"
-                    value={newShift.endTime}
-                    onChange={(e) => setNewShift({ ...newShift, endTime: e.target.value })}
-                  />
-                </div>
-              </div>
-              
+        <Button onClick={handleOpenAddDialog} className={cn("gap-2", isRTL && "flex-row-reverse")}>
+          <Plus className="w-4 h-4" />
+          {t('attendance.shifts.addShift')}
+        </Button>
+      </div>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingShiftId 
+                ? (language === 'ar' ? 'تعديل الوردية' : 'Edit Shift') 
+                : t('attendance.shifts.addShift')
+              }
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t('attendance.shifts.location')}</Label>
-                <Select 
-                  value={newShift.locationId}
-                  onValueChange={(v) => setNewShift({ ...newShift, locationId: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('attendance.shifts.selectLocation')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {airportLocations.map((loc) => (
-                      <SelectItem key={loc.id} value={loc.id}>
-                        {language === 'ar' ? loc.nameAr : loc.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t('attendance.shifts.breakDuration')}</Label>
-                  <Input 
-                    type="number"
-                    value={newShift.breakDuration}
-                    onChange={(e) => setNewShift({ ...newShift, breakDuration: Number(e.target.value) })}
-                    min={0}
-                    max={120}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('attendance.shifts.color')}</Label>
-                  <Input 
-                    type="color"
-                    value={newShift.color}
-                    onChange={(e) => setNewShift({ ...newShift, color: e.target.value })}
-                    className="h-10 p-1"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <Label htmlFor="overnight">{t('attendance.shifts.overnight')}</Label>
-                <Switch 
-                  id="overnight"
-                  checked={newShift.isOvernight}
-                  onCheckedChange={(checked) => setNewShift({ ...newShift, isOvernight: checked })}
+                <Label>{t('attendance.shifts.nameEn')}</Label>
+                <Input 
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Morning Shift"
                 />
               </div>
-              
-              <Button onClick={handleAddShift} className="w-full">
-                {t('attendance.shifts.save')}
-              </Button>
+              <div className="space-y-2">
+                <Label>{t('attendance.shifts.nameAr')}</Label>
+                <Input 
+                  value={formData.nameAr}
+                  onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
+                  placeholder="وردية صباحية"
+                  dir="rtl"
+                />
+              </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t('attendance.shifts.startTime')}</Label>
+                <Input 
+                  type="time"
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('attendance.shifts.endTime')}</Label>
+                <Input 
+                  type="time"
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>{t('attendance.shifts.location')}</Label>
+              <Select 
+                value={formData.locationId}
+                onValueChange={(v) => setFormData({ ...formData, locationId: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('attendance.shifts.selectLocation')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {airportLocations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {language === 'ar' ? loc.nameAr : loc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t('attendance.shifts.breakDuration')}</Label>
+                <Input 
+                  type="number"
+                  value={formData.breakDuration}
+                  onChange={(e) => setFormData({ ...formData, breakDuration: Number(e.target.value) })}
+                  min={0}
+                  max={120}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('attendance.shifts.color')}</Label>
+                <Input 
+                  type="color"
+                  value={formData.color}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  className="h-10 p-1"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="overnight">{t('attendance.shifts.overnight')}</Label>
+              <Switch 
+                id="overnight"
+                checked={formData.isOvernight}
+                onCheckedChange={(checked) => setFormData({ ...formData, isOvernight: checked })}
+              />
+            </div>
+            
+            <Button onClick={handleSaveShift} className="w-full">
+              {editingShiftId 
+                ? (language === 'ar' ? 'حفظ التعديلات' : 'Save Changes')
+                : t('attendance.shifts.save')
+              }
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Location Filter */}
       <div className={cn("flex gap-4 items-center", isRTL && "flex-row-reverse")}>
@@ -275,7 +352,12 @@ export const ShiftManagement = () => {
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleOpenEditDialog(shift)}
+                    >
                       <Edit2 className="w-4 h-4" />
                     </Button>
                     <Button 
