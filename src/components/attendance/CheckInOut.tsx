@@ -53,8 +53,17 @@ const sampleEmployees: Employee[] = [
 export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) => {
   const { t, isRTL, language } = useLanguage();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [employees, setEmployees] = useState<Employee[]>(sampleEmployees);
+  
+  // Check-in dialog state
+  const [showCheckInDialog, setShowCheckInDialog] = useState(false);
+  const [selectedCheckInEmployee, setSelectedCheckInEmployee] = useState<string>('');
+  
+  // Check-out dialog state
+  const [showCheckOutDialog, setShowCheckOutDialog] = useState(false);
+  const [selectedCheckOutEmployee, setSelectedCheckOutEmployee] = useState<string>('');
+  
+  // Add employee dialog state
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [newEmployee, setNewEmployee] = useState({
     name: '',
@@ -64,47 +73,92 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
   });
   
   const today = new Date().toISOString().split('T')[0];
-  
-  // Find today's record for selected employee
-  const todayRecord = selectedEmployee 
-    ? records.find(r => r.date === today && r.employeeId === selectedEmployee.id)
-    : null;
-  const hasCheckedIn = todayRecord?.checkIn !== null;
-  const hasCheckedOut = todayRecord?.checkOut !== null;
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // Get employees who haven't checked in today
+  const employeesNotCheckedIn = employees.filter(emp => {
+    const todayRecord = records.find(r => r.date === today && r.employeeId === emp.id);
+    return !todayRecord || !todayRecord.checkIn;
+  });
+
+  // Get employees who have checked in but not checked out today
+  const employeesCheckedInNotOut = employees.filter(emp => {
+    const todayRecord = records.find(r => r.date === today && r.employeeId === emp.id);
+    return todayRecord && todayRecord.checkIn && !todayRecord.checkOut;
+  });
+
   const handleCheckIn = () => {
-    if (!selectedEmployee) {
+    if (!selectedCheckInEmployee) {
       toast({
         title: t('attendance.selectEmployeeFirst'),
         variant: 'destructive',
       });
       return;
     }
+    
+    const employee = employees.find(e => e.id === selectedCheckInEmployee);
+    if (!employee) return;
+
     onCheckIn(
-      selectedEmployee.id, 
-      selectedEmployee.name, 
-      selectedEmployee.nameAr, 
-      selectedEmployee.department
+      employee.id, 
+      employee.name, 
+      employee.nameAr, 
+      employee.department
     );
+    
     toast({
       title: t('attendance.checkin.success'),
-      description: `${language === 'ar' ? selectedEmployee.nameAr : selectedEmployee.name} - ${t('attendance.checkin.successMessage')}`,
+      description: `${language === 'ar' ? employee.nameAr : employee.name} - ${currentTime.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}`,
     });
+    
+    setShowCheckInDialog(false);
+    setSelectedCheckInEmployee('');
   };
 
   const handleCheckOut = () => {
-    if (todayRecord) {
-      onCheckOut(todayRecord.id);
+    if (!selectedCheckOutEmployee) {
       toast({
-        title: t('attendance.checkout.success'),
-        description: `${language === 'ar' ? selectedEmployee?.nameAr : selectedEmployee?.name} - ${t('attendance.checkout.successMessage')}`,
+        title: t('attendance.selectEmployeeFirst'),
+        variant: 'destructive',
       });
+      return;
     }
+
+    const employee = employees.find(e => e.id === selectedCheckOutEmployee);
+    const todayRecord = records.find(r => r.date === today && r.employeeId === selectedCheckOutEmployee);
+    
+    if (!todayRecord || !employee) return;
+
+    // Calculate work hours
+    const checkInTime = todayRecord.checkIn;
+    const checkOutTime = `${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`;
+    
+    let workHours = 0;
+    let workMinutes = 0;
+    
+    if (checkInTime) {
+      const [inH, inM] = checkInTime.split(':').map(Number);
+      const [outH, outM] = [currentTime.getHours(), currentTime.getMinutes()];
+      const totalInMinutes = inH * 60 + inM;
+      const totalOutMinutes = outH * 60 + outM;
+      const diffMinutes = totalOutMinutes - totalInMinutes;
+      workHours = Math.floor(diffMinutes / 60);
+      workMinutes = diffMinutes % 60;
+    }
+
+    onCheckOut(todayRecord.id);
+    
+    toast({
+      title: t('attendance.checkout.success'),
+      description: `${language === 'ar' ? employee.nameAr : employee.name} - ${t('attendance.workDuration')}: ${workHours}h ${workMinutes}m`,
+    });
+    
+    setShowCheckOutDialog(false);
+    setSelectedCheckOutEmployee('');
   };
 
   const handleAddEmployee = () => {
@@ -126,7 +180,6 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
     };
 
     setEmployees(prev => [...prev, employee]);
-    setSelectedEmployee(employee);
     setShowAddEmployee(false);
     setNewEmployee({ name: '', nameAr: '', department: '', location: 'HQ' });
     
@@ -154,27 +207,6 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
     });
   };
 
-  const getWorkDuration = () => {
-    if (!todayRecord?.checkIn) return null;
-    const [checkInHour, checkInMin] = todayRecord.checkIn.split(':').map(Number);
-    const checkInDate = new Date();
-    checkInDate.setHours(checkInHour, checkInMin, 0);
-    
-    const endTime = todayRecord.checkOut 
-      ? (() => {
-          const [h, m] = todayRecord.checkOut.split(':').map(Number);
-          const d = new Date();
-          d.setHours(h, m, 0);
-          return d;
-        })()
-      : currentTime;
-    
-    const diff = endTime.getTime() - checkInDate.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${minutes}m`;
-  };
-
   // Get today's attendance summary
   const todayStats = {
     totalCheckedIn: records.filter(r => r.date === today && r.checkIn).length,
@@ -182,83 +214,18 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
     totalLate: records.filter(r => r.date === today && r.status === 'late').length,
   };
 
+  // Get recent check-ins/outs for display
+  const recentActivity = records
+    .filter(r => r.date === today)
+    .sort((a, b) => {
+      const timeA = a.checkOut || a.checkIn || '';
+      const timeB = b.checkOut || b.checkIn || '';
+      return timeB.localeCompare(timeA);
+    })
+    .slice(0, 5);
+
   return (
     <div className="space-y-6">
-      {/* Employee Selection Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-            <User className="w-5 h-5 text-primary" />
-            {t('attendance.selectEmployee')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className={cn("flex gap-4 items-end", isRTL && "flex-row-reverse")}>
-            <div className="flex-1">
-              <Label className="mb-2 block">{t('attendance.employee')}</Label>
-              <Select 
-                value={selectedEmployee?.id || ''} 
-                onValueChange={(value) => {
-                  const emp = employees.find(e => e.id === value);
-                  setSelectedEmployee(emp || null);
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t('attendance.selectEmployeePlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                        <span>{emp.id}</span>
-                        <span>-</span>
-                        <span>{language === 'ar' ? emp.nameAr : emp.name}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {emp.department}
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={() => setShowAddEmployee(true)} variant="outline" className="gap-2">
-              <Plus className="w-4 h-4" />
-              {t('attendance.addEmployee')}
-            </Button>
-          </div>
-
-          {selectedEmployee && (
-            <div className={cn("mt-4 p-4 bg-muted rounded-lg flex items-center gap-6", isRTL && "flex-row-reverse")}>
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="w-8 h-8 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-lg">
-                  {language === 'ar' ? selectedEmployee.nameAr : selectedEmployee.name}
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  {language === 'ar' ? selectedEmployee.name : selectedEmployee.nameAr}
-                </p>
-                <div className={cn("flex gap-4 mt-2 text-sm", isRTL && "flex-row-reverse")}>
-                  <span className="flex items-center gap-1">
-                    <Building2 className="w-4 h-4" />
-                    {selectedEmployee.department}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {selectedEmployee.location}
-                  </span>
-                </div>
-              </div>
-              <Badge variant="secondary" className="text-sm">
-                {selectedEmployee.id}
-              </Badge>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Current Time Card */}
       <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
         <CardContent className="p-8">
@@ -267,155 +234,326 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
               <Calendar className="w-5 h-5 text-primary" />
               <span className="text-muted-foreground">{formatDate(currentTime)}</span>
             </div>
-            <div className="text-6xl font-bold text-primary mb-6 font-mono">
+            <div className="text-6xl font-bold text-primary mb-8 font-mono">
               {formatTime(currentTime)}
             </div>
             
-            {/* Action Buttons */}
-            <div className={cn("flex justify-center gap-4", isRTL && "flex-row-reverse")}>
-              {!selectedEmployee ? (
-                <Badge variant="outline" className="text-lg py-3 px-6 bg-muted">
-                  {t('attendance.selectEmployeeFirst')}
-                </Badge>
-              ) : !hasCheckedIn ? (
-                <Button 
-                  size="lg" 
-                  className="bg-success hover:bg-success/90 min-w-[200px] h-14 text-lg gap-2"
-                  onClick={handleCheckIn}
-                >
-                  <LogIn className="w-5 h-5" />
-                  {t('attendance.checkin.button')}
-                </Button>
-              ) : !hasCheckedOut ? (
-                <Button 
-                  size="lg" 
-                  variant="destructive"
-                  className="min-w-[200px] h-14 text-lg gap-2"
-                  onClick={handleCheckOut}
-                >
-                  <LogOut className="w-5 h-5" />
-                  {t('attendance.checkout.button')}
-                </Button>
-              ) : (
-                <Badge variant="outline" className="text-lg py-3 px-6 bg-muted">
-                  {t('attendance.completed')}
-                </Badge>
-              )}
+            {/* Main Action Buttons */}
+            <div className={cn("flex justify-center gap-6 flex-wrap", isRTL && "flex-row-reverse")}>
+              <Button 
+                size="lg" 
+                className="bg-success hover:bg-success/90 min-w-[200px] h-16 text-xl gap-3 shadow-lg"
+                onClick={() => setShowCheckInDialog(true)}
+              >
+                <LogIn className="w-6 h-6" />
+                {t('attendance.checkin.button')}
+              </Button>
+              
+              <Button 
+                size="lg" 
+                variant="destructive"
+                className="min-w-[200px] h-16 text-xl gap-3 shadow-lg"
+                onClick={() => setShowCheckOutDialog(true)}
+              >
+                <LogOut className="w-6 h-6" />
+                {t('attendance.checkout.button')}
+              </Button>
+              
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="min-w-[200px] h-16 text-xl gap-3"
+                onClick={() => setShowAddEmployee(true)}
+              >
+                <Plus className="w-6 h-6" />
+                {t('attendance.addEmployee')}
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Today's Status for Selected Employee */}
-      {selectedEmployee && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
-                <div className="p-3 rounded-lg bg-success/10">
-                  <LogIn className="w-6 h-6 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('attendance.checkin.time')}</p>
-                  <p className="text-2xl font-bold">
-                    {todayRecord?.checkIn || '--:--'}
-                  </p>
-                </div>
+      {/* Today's Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
+              <div className="p-3 rounded-lg bg-success/10">
+                <LogIn className="w-6 h-6 text-success" />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
-                <div className="p-3 rounded-lg bg-destructive/10">
-                  <LogOut className="w-6 h-6 text-destructive" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('attendance.checkout.time')}</p>
-                  <p className="text-2xl font-bold">
-                    {todayRecord?.checkOut || '--:--'}
-                  </p>
-                </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{t('attendance.totalCheckedIn')}</p>
+                <p className="text-3xl font-bold text-success">{todayStats.totalCheckedIn}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
-                <div className="p-3 rounded-lg bg-primary/10">
-                  <Timer className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('attendance.workDuration')}</p>
-                  <p className="text-2xl font-bold">
-                    {getWorkDuration() || '--:--'}
-                  </p>
-                </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
+              <div className="p-3 rounded-lg bg-primary/10">
+                <LogOut className="w-6 h-6 text-primary" />
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+              <div>
+                <p className="text-sm text-muted-foreground">{t('attendance.totalCheckedOut')}</p>
+                <p className="text-3xl font-bold text-primary">{todayStats.totalCheckedOut}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Today's Status Info */}
-      {todayRecord && (
+        <Card>
+          <CardContent className="p-6">
+            <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
+              <div className="p-3 rounded-lg bg-warning/10">
+                <Clock className="w-6 h-6 text-warning" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{t('attendance.totalLate')}</p>
+                <p className="text-3xl font-bold text-warning">{todayStats.totalLate}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
+      {recentActivity.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-              <Clock className="w-5 h-5" />
-              {t('attendance.todayStatus')}
+              <Timer className="w-5 h-5" />
+              {t('attendance.recentActivity')}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
-              <Badge 
-                variant="outline" 
-                className={cn(
-                  "text-sm py-1 px-3",
-                  todayRecord.status === 'present' && "bg-success/10 text-success border-success",
-                  todayRecord.status === 'late' && "bg-warning/10 text-warning border-warning",
-                  todayRecord.status === 'early-leave' && "bg-orange-100 text-orange-700 border-orange-300",
-                )}
-              >
-                {t(`attendance.status.${todayRecord.status}`)}
-              </Badge>
-              {todayRecord.status === 'late' && (
-                <span className="text-sm text-muted-foreground">
-                  {t('attendance.lateBy')} {parseInt(todayRecord.checkIn?.split(':')[0] || '9') - 9}h {parseInt(todayRecord.checkIn?.split(':')[1] || '0')}m
-                </span>
-              )}
+            <div className="space-y-3">
+              {recentActivity.map((record, index) => (
+                <div 
+                  key={`${record.id}-${index}`}
+                  className={cn(
+                    "flex items-center justify-between p-3 bg-muted/50 rounded-lg",
+                    isRTL && "flex-row-reverse"
+                  )}
+                >
+                  <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {language === 'ar' ? record.employeeNameAr : record.employeeName}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{record.department}</p>
+                    </div>
+                  </div>
+                  <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
+                    {record.checkIn && (
+                      <Badge variant="outline" className="bg-success/10 text-success border-success">
+                        <LogIn className="w-3 h-3 mr-1" />
+                        {record.checkIn}
+                      </Badge>
+                    )}
+                    {record.checkOut && (
+                      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive">
+                        <LogOut className="w-3 h-3 mr-1" />
+                        {record.checkOut}
+                      </Badge>
+                    )}
+                    <Badge 
+                      variant="outline" 
+                      className={cn(
+                        record.status === 'present' && "bg-success/10 text-success",
+                        record.status === 'late' && "bg-warning/10 text-warning",
+                        record.status === 'early-leave' && "bg-orange-100 text-orange-700",
+                      )}
+                    >
+                      {t(`attendance.status.${record.status}`)}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Today's Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-            <Calendar className="w-5 h-5" />
-            {t('attendance.todaySummary')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-success/10 rounded-lg">
-              <p className="text-3xl font-bold text-success">{todayStats.totalCheckedIn}</p>
-              <p className="text-sm text-muted-foreground">{t('attendance.totalCheckedIn')}</p>
+      {/* Check-In Dialog */}
+      <Dialog open={showCheckInDialog} onOpenChange={setShowCheckInDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+              <LogIn className="w-5 h-5 text-success" />
+              {t('attendance.checkin.button')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label className="mb-2 block">{t('attendance.selectEmployee')}</Label>
+              <Select 
+                value={selectedCheckInEmployee} 
+                onValueChange={setSelectedCheckInEmployee}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('attendance.selectEmployeePlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {employeesNotCheckedIn.length === 0 ? (
+                    <div className="p-4 text-center text-muted-foreground">
+                      {t('attendance.allEmployeesCheckedIn')}
+                    </div>
+                  ) : (
+                    employeesNotCheckedIn.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                          <span className="font-mono text-xs text-muted-foreground">{emp.id}</span>
+                          <span>{language === 'ar' ? emp.nameAr : emp.name}</span>
+                          <Badge variant="outline" className="text-xs ml-2">
+                            {emp.department}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="text-center p-4 bg-primary/10 rounded-lg">
-              <p className="text-3xl font-bold text-primary">{todayStats.totalCheckedOut}</p>
-              <p className="text-sm text-muted-foreground">{t('attendance.totalCheckedOut')}</p>
-            </div>
-            <div className="text-center p-4 bg-warning/10 rounded-lg">
-              <p className="text-3xl font-bold text-warning">{todayStats.totalLate}</p>
-              <p className="text-sm text-muted-foreground">{t('attendance.totalLate')}</p>
-            </div>
+            
+            {selectedCheckInEmployee && (
+              <div className="p-4 bg-success/10 rounded-lg border border-success/20">
+                <p className="text-sm text-muted-foreground mb-1">{t('attendance.checkin.time')}</p>
+                <p className="text-2xl font-bold text-success">
+                  {currentTime.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true 
+                  })}
+                </p>
+              </div>
+            )}
           </div>
-        </CardContent>
-      </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowCheckInDialog(false);
+              setSelectedCheckInEmployee('');
+            }}>
+              {t('common.cancel')}
+            </Button>
+            <Button 
+              className="bg-success hover:bg-success/90"
+              onClick={handleCheckIn}
+              disabled={!selectedCheckInEmployee}
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              {t('attendance.checkin.confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Check-Out Dialog */}
+      <Dialog open={showCheckOutDialog} onOpenChange={setShowCheckOutDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+              <LogOut className="w-5 h-5 text-destructive" />
+              {t('attendance.checkout.button')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label className="mb-2 block">{t('attendance.selectEmployee')}</Label>
+              <Select 
+                value={selectedCheckOutEmployee} 
+                onValueChange={setSelectedCheckOutEmployee}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('attendance.selectEmployeePlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {employeesCheckedInNotOut.length === 0 ? (
+                    <div className="p-4 text-center text-muted-foreground">
+                      {t('attendance.noEmployeesToCheckOut')}
+                    </div>
+                  ) : (
+                    employeesCheckedInNotOut.map((emp) => {
+                      const record = records.find(r => r.date === today && r.employeeId === emp.id);
+                      return (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                            <span className="font-mono text-xs text-muted-foreground">{emp.id}</span>
+                            <span>{language === 'ar' ? emp.nameAr : emp.name}</span>
+                            <Badge variant="outline" className="text-xs bg-success/10 text-success">
+                              {t('attendance.checkin.time')}: {record?.checkIn}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      );
+                    })
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedCheckOutEmployee && (() => {
+              const record = records.find(r => r.date === today && r.employeeId === selectedCheckOutEmployee);
+              const checkInTime = record?.checkIn;
+              let workHours = 0;
+              let workMinutes = 0;
+              
+              if (checkInTime) {
+                const [inH, inM] = checkInTime.split(':').map(Number);
+                const [outH, outM] = [currentTime.getHours(), currentTime.getMinutes()];
+                const diffMinutes = (outH * 60 + outM) - (inH * 60 + inM);
+                workHours = Math.floor(diffMinutes / 60);
+                workMinutes = diffMinutes % 60;
+              }
+              
+              return (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-success/10 rounded-lg border border-success/20">
+                      <p className="text-xs text-muted-foreground">{t('attendance.checkin.time')}</p>
+                      <p className="text-xl font-bold text-success">{checkInTime}</p>
+                    </div>
+                    <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                      <p className="text-xs text-muted-foreground">{t('attendance.checkout.time')}</p>
+                      <p className="text-xl font-bold text-destructive">
+                        {currentTime.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { 
+                          hour: '2-digit', 
+                          minute: '2-digit',
+                          hour12: true 
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/20 text-center">
+                    <p className="text-sm text-muted-foreground mb-1">{t('attendance.workDuration')}</p>
+                    <p className="text-3xl font-bold text-primary">{workHours}h {workMinutes}m</p>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowCheckOutDialog(false);
+              setSelectedCheckOutEmployee('');
+            }}>
+              {t('common.cancel')}
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleCheckOut}
+              disabled={!selectedCheckOutEmployee}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              {t('attendance.checkout.confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Employee Dialog */}
       <Dialog open={showAddEmployee} onOpenChange={setShowAddEmployee}>
@@ -471,10 +609,10 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="HQ">{t('attendance.locations.hq')}</SelectItem>
-                  <SelectItem value="Airport-T1">{t('attendance.locations.airportT1')}</SelectItem>
-                  <SelectItem value="Airport-T2">{t('attendance.locations.airportT2')}</SelectItem>
-                  <SelectItem value="Airport-T3">{t('attendance.locations.airportT3')}</SelectItem>
+                  <SelectItem value="HQ">HQ - المقر الرئيسي</SelectItem>
+                  <SelectItem value="Airport-T1">Airport Terminal 1 - صالة 1</SelectItem>
+                  <SelectItem value="Airport-T2">Airport Terminal 2 - صالة 2</SelectItem>
+                  <SelectItem value="Airport-T3">Airport Terminal 3 - صالة 3</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -484,6 +622,7 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
               {t('common.cancel')}
             </Button>
             <Button onClick={handleAddEmployee}>
+              <Plus className="w-4 h-4 mr-2" />
               {t('common.add')}
             </Button>
           </DialogFooter>
