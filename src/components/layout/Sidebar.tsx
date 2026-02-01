@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Clock, FileText, Calendar, KeyRound, Wallet,
   FileBarChart, HandCoins, UserPlus, Star, Monitor, Shirt, FolderOpen, BarChart3,
-  GraduationCap, Settings, Shield, Layers, UserCog,
+  GraduationCap, Settings, Shield, Layers, UserCog, UserCheck,
 } from 'lucide-react';
 
 interface NavItem {
@@ -15,6 +15,7 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { key: 'nav.dashboard', icon: LayoutDashboard, path: '/' },
+  { key: 'nav.employeePortal', icon: UserCheck, path: '/employee-portal' },
   { key: 'nav.employees', icon: Users, path: '/employees' },
   { key: 'nav.departments', icon: Building2, path: '/departments' },
   { key: 'nav.attendance', icon: Clock, path: '/attendance' },
