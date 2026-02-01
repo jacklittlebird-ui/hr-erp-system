@@ -85,10 +85,21 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
     return !todayRecord || !todayRecord.checkIn;
   });
 
-  // Get employees who have checked in but not checked out today
-  const employeesCheckedInNotOut = employees.filter(emp => {
-    const todayRecord = records.find(r => r.date === today && r.employeeId === emp.id);
-    return todayRecord && todayRecord.checkIn && !todayRecord.checkOut;
+  // Get records of employees who have checked in but not checked out today
+  const recordsCheckedInNotOut = records.filter(r => r.date === today && r.checkIn && !r.checkOut);
+  
+  // Map to employee info for display
+  const employeesCheckedInNotOut = recordsCheckedInNotOut.map(record => {
+    const emp = employees.find(e => e.id === record.employeeId);
+    return {
+      id: record.employeeId,
+      name: emp?.name || record.employeeName,
+      nameAr: emp?.nameAr || record.employeeNameAr,
+      department: emp?.department || record.department,
+      location: emp?.location || 'HQ',
+      checkIn: record.checkIn,
+      recordId: record.id
+    };
   });
 
   const handleCheckIn = () => {
@@ -477,20 +488,17 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
                       {t('attendance.noEmployeesToCheckOut')}
                     </div>
                   ) : (
-                    employeesCheckedInNotOut.map((emp) => {
-                      const record = records.find(r => r.date === today && r.employeeId === emp.id);
-                      return (
-                        <SelectItem key={emp.id} value={emp.id}>
-                          <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                            <span className="font-mono text-xs text-muted-foreground">{emp.id}</span>
-                            <span>{language === 'ar' ? emp.nameAr : emp.name}</span>
-                            <Badge variant="outline" className="text-xs bg-success/10 text-success">
-                              {t('attendance.checkin.time')}: {record?.checkIn}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      );
-                    })
+                    employeesCheckedInNotOut.map((emp) => (
+                      <SelectItem key={emp.recordId} value={emp.id}>
+                        <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                          <span className="font-mono text-xs text-muted-foreground">{emp.id}</span>
+                          <span className="font-medium">{language === 'ar' ? emp.nameAr : emp.name}</span>
+                          <Badge variant="outline" className="text-xs bg-success/10 text-success">
+                            {t('attendance.checkin.time')}: {emp.checkIn}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))
                   )}
                 </SelectContent>
               </Select>
