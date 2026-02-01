@@ -33,6 +33,7 @@ const translations: Record<string, Record<Language, string>> = {
   'nav.groups': { en: 'Groups', ar: 'المجموعات' },
   'nav.roles': { en: 'Roles', ar: 'الأدوار' },
   'nav.settings': { en: 'Site Settings', ar: 'إعدادات الموقع' },
+  'nav.employeePortal': { en: 'Employee Portal', ar: 'بوابة الموظف' },
   'dashboard.title': { en: 'Dashboard', ar: 'لوحة التحكم' },
   'dashboard.totalEmployees': { en: 'Total Employees', ar: 'إجمالي الموظفين' },
   'dashboard.activeEmployees': { en: 'Active Employees', ar: 'موظفين نشطين' },
