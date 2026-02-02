@@ -483,22 +483,28 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
                   <SelectValue placeholder={t('attendance.selectEmployeePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {employeesCheckedInNotOut.length === 0 ? (
+                  {recordsCheckedInNotOut.length === 0 ? (
                     <div className="p-4 text-center text-muted-foreground">
                       {t('attendance.noEmployeesToCheckOut')}
                     </div>
                   ) : (
-                    employeesCheckedInNotOut.map((emp) => (
-                      <SelectItem key={emp.recordId} value={emp.id}>
-                        <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                          <span className="font-mono text-xs text-muted-foreground">{emp.id}</span>
-                          <span className="font-medium">{language === 'ar' ? emp.nameAr : emp.name}</span>
-                          <Badge variant="outline" className="text-xs bg-success/10 text-success">
-                            {t('attendance.checkin.time')}: {emp.checkIn}
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))
+                    recordsCheckedInNotOut.map((record) => {
+                      const emp = employees.find(e => e.id === record.employeeId);
+                      const displayName = language === 'ar' 
+                        ? (emp?.nameAr || record.employeeNameAr) 
+                        : (emp?.name || record.employeeName);
+                      return (
+                        <SelectItem key={record.id} value={record.employeeId}>
+                          <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                            <span className="font-mono text-xs text-muted-foreground">{record.employeeId}</span>
+                            <span className="font-medium">{displayName}</span>
+                            <Badge variant="outline" className="text-xs bg-success/10 text-success">
+                              {t('attendance.checkin.time')}: {record.checkIn}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      );
+                    })
                   )}
                 </SelectContent>
               </Select>

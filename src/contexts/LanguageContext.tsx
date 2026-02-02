@@ -417,6 +417,7 @@ const translations: Record<string, Record<Language, string>> = {
   'attendance.locations.employees': { en: 'employees', ar: 'موظف' },
   'attendance.locations.24hours': { en: '24/7 Operations', ar: 'عمليات على مدار الساعة' },
   'attendance.locations.geofence': { en: 'Geofence Radius', ar: 'نطاق السياج الجغرافي' },
+  'attendance.locations.editLocation': { en: 'Edit Location', ar: 'تعديل الموقع' },
   // Attendance - Employee Assignment
   'attendance.assignment.title': { en: 'Employee Attendance Assignment', ar: 'تعيين حضور الموظفين' },
   'attendance.assignment.subtitle': { en: 'Assign attendance rules and shifts to employees', ar: 'تعيين قواعد الحضور والورديات للموظفين' },
