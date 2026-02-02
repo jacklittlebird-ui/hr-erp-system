@@ -19,6 +19,8 @@ export const LocationManagement = () => {
   const { t, isRTL, language } = useLanguage();
   const [locations, setLocations] = useState<Location[]>(sampleLocations);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [newLocation, setNewLocation] = useState<Partial<Location>>({
     name: '',
     nameAr: '',
@@ -66,6 +68,20 @@ export const LocationManagement = () => {
     setLocations(locations.map(l => 
       l.id === locationId ? { ...l, isActive: !l.isActive } : l
     ));
+  };
+
+  const handleEditLocation = (location: Location) => {
+    setEditingLocation(location);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingLocation) return;
+    setLocations(locations.map(l => 
+      l.id === editingLocation.id ? editingLocation : l
+    ));
+    setIsEditDialogOpen(false);
+    setEditingLocation(null);
   };
 
   const hqLocations = locations.filter(l => l.type === 'headquarters');
@@ -236,7 +252,15 @@ export const LocationManagement = () => {
                       <Badge variant="outline" className="mt-1">{location.code}</Badge>
                     </div>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEditLocation(location)}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
                     <Switch 
                       checked={location.isActive}
                       onCheckedChange={() => handleToggleActive(location.id)}
@@ -287,7 +311,15 @@ export const LocationManagement = () => {
                       <Badge variant="outline" className="mt-1">{location.code}</Badge>
                     </div>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEditLocation(location)}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
                     <Switch 
                       checked={location.isActive}
                       onCheckedChange={() => handleToggleActive(location.id)}
@@ -321,6 +353,102 @@ export const LocationManagement = () => {
           ))}
         </div>
       </div>
+
+      {/* Edit Location Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+              <Edit2 className="w-5 h-5" />
+              {t('attendance.locations.editLocation')}
+            </DialogTitle>
+          </DialogHeader>
+          {editingLocation && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t('attendance.locations.nameEn')}</Label>
+                  <Input 
+                    value={editingLocation.name}
+                    onChange={(e) => setEditingLocation({ ...editingLocation, name: e.target.value })}
+                    placeholder="Location Name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('attendance.locations.nameAr')}</Label>
+                  <Input 
+                    value={editingLocation.nameAr}
+                    onChange={(e) => setEditingLocation({ ...editingLocation, nameAr: e.target.value })}
+                    placeholder="اسم الموقع"
+                    dir="rtl"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t('attendance.locations.code')}</Label>
+                  <Input 
+                    value={editingLocation.code}
+                    onChange={(e) => setEditingLocation({ ...editingLocation, code: e.target.value.toUpperCase() })}
+                    placeholder="CAI"
+                    maxLength={5}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('attendance.locations.type')}</Label>
+                  <Select 
+                    value={editingLocation.type}
+                    onValueChange={(v) => setEditingLocation({ ...editingLocation, type: v as LocationType })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="headquarters">{t('attendance.locations.headquarters')}</SelectItem>
+                      <SelectItem value="airport">{t('attendance.locations.airport')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>{t('attendance.locations.address')}</Label>
+                <Input 
+                  value={editingLocation.address || ''}
+                  onChange={(e) => setEditingLocation({ ...editingLocation, address: e.target.value })}
+                  placeholder="Full address"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>{t('attendance.locations.timezone')}</Label>
+                <Select 
+                  value={editingLocation.timezone}
+                  onValueChange={(v) => setEditingLocation({ ...editingLocation, timezone: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Africa/Cairo">Africa/Cairo (EET)</SelectItem>
+                    <SelectItem value="UTC">UTC</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setIsEditDialogOpen(false)}>
+                  {t('common.cancel')}
+                </Button>
+                <Button onClick={handleSaveEdit} className="flex-1">
+                  {t('attendance.locations.save')}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
