@@ -105,9 +105,34 @@ const EmployeeAttendance = () => {
   
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [checkInTime, setCheckInTime] = useState<string | null>(null);
-  const [checkOutTime, setCheckOutTime] = useState<string | null>(null);
+  
+  // Load attendance state from localStorage on mount
+  const [isCheckedIn, setIsCheckedIn] = useState(() => {
+    const saved = localStorage.getItem(`attendance_${today}`);
+    if (saved) {
+      const data = JSON.parse(saved);
+      return data.isCheckedIn || false;
+    }
+    return false;
+  });
+  
+  const [checkInTime, setCheckInTime] = useState<string | null>(() => {
+    const saved = localStorage.getItem(`attendance_${today}`);
+    if (saved) {
+      const data = JSON.parse(saved);
+      return data.checkInTime || null;
+    }
+    return null;
+  });
+  
+  const [checkOutTime, setCheckOutTime] = useState<string | null>(() => {
+    const saved = localStorage.getItem(`attendance_${today}`);
+    if (saved) {
+      const data = JSON.parse(saved);
+      return data.checkOutTime || null;
+    }
+    return null;
+  });
   
   const monthlyRecords = useMemo(() => 
     generateMonthlyRecords(selectedYear, selectedMonth),
@@ -136,10 +161,20 @@ const EmployeeAttendance = () => {
     };
   }, [monthlyRecords]);
 
+  // Save attendance state to localStorage whenever it changes
+  const saveAttendanceState = (checkedIn: boolean, inTime: string | null, outTime: string | null) => {
+    localStorage.setItem(`attendance_${today}`, JSON.stringify({
+      isCheckedIn: checkedIn,
+      checkInTime: inTime,
+      checkOutTime: outTime,
+    }));
+  };
+
   const handleCheckIn = () => {
     const time = format(new Date(), 'HH:mm');
     setIsCheckedIn(true);
     setCheckInTime(time);
+    saveAttendanceState(true, time, null);
     toast({
       title: language === 'ar' ? 'تم تسجيل الحضور بنجاح' : 'Check-in Successful',
       description: language === 'ar' 
@@ -152,6 +187,7 @@ const EmployeeAttendance = () => {
     const time = format(new Date(), 'HH:mm');
     setCheckOutTime(time);
     setIsCheckedIn(false);
+    saveAttendanceState(false, checkInTime, time);
     
     // Calculate work duration
     if (checkInTime) {
