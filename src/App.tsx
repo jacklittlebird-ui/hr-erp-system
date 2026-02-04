@@ -11,6 +11,7 @@ import Attendance from "./pages/Attendance";
 import Performance from "./pages/Performance";
 import EmployeeAttendance from "./pages/EmployeeAttendance";
 import Training from "./pages/Training";
+import Loans from "./pages/Loans";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/performance" element={<Performance />} />
             <Route path="/employee-portal" element={<EmployeeAttendance />} />
             <Route path="/training" element={<Training />} />
+            <Route path="/loans" element={<Loans />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
