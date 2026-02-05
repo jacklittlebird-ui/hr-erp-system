@@ -12,6 +12,7 @@ import Performance from "./pages/Performance";
 import EmployeeAttendance from "./pages/EmployeeAttendance";
 import Training from "./pages/Training";
 import Loans from "./pages/Loans";
+import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/employee-portal" element={<EmployeeAttendance />} />
             <Route path="/training" element={<Training />} />
             <Route path="/loans" element={<Loans />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
