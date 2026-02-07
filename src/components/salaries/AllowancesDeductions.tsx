@@ -25,30 +25,62 @@ interface AllowanceType {
   appliesTo: string;
 }
 
+const initialItems: AllowanceType[] = [
+  { id: '1', nameAr: 'بدل السكن', nameEn: 'Housing Allowance', type: 'allowance', calculation: 'percentage', defaultValue: 25, isActive: true, isTaxable: false, appliesTo: 'all' },
+  { id: '2', nameAr: 'بدل المواصلات', nameEn: 'Transport Allowance', type: 'allowance', calculation: 'fixed', defaultValue: 500, isActive: true, isTaxable: false, appliesTo: 'all' },
+  { id: '3', nameAr: 'بدل الوجبات', nameEn: 'Meal Allowance', type: 'allowance', calculation: 'fixed', defaultValue: 300, isActive: true, isTaxable: false, appliesTo: 'all' },
+  { id: '4', nameAr: 'بدل الهاتف', nameEn: 'Phone Allowance', type: 'allowance', calculation: 'fixed', defaultValue: 200, isActive: true, isTaxable: true, appliesTo: 'managers' },
+  { id: '5', nameAr: 'بدل طبيعة عمل', nameEn: 'Nature of Work Allowance', type: 'allowance', calculation: 'percentage', defaultValue: 15, isActive: true, isTaxable: true, appliesTo: 'field' },
+  { id: '6', nameAr: 'التأمين الاجتماعي', nameEn: 'Social Insurance', type: 'deduction', calculation: 'percentage', defaultValue: 11, isActive: true, isTaxable: false, appliesTo: 'all' },
+  { id: '7', nameAr: 'ضريبة الدخل', nameEn: 'Income Tax', type: 'deduction', calculation: 'percentage', defaultValue: 10, isActive: true, isTaxable: false, appliesTo: 'all' },
+  { id: '8', nameAr: 'التأمين الصحي', nameEn: 'Health Insurance', type: 'deduction', calculation: 'fixed', defaultValue: 250, isActive: true, isTaxable: false, appliesTo: 'all' },
+  { id: '9', nameAr: 'صندوق التوفير', nameEn: 'Savings Fund', type: 'deduction', calculation: 'percentage', defaultValue: 5, isActive: false, isTaxable: false, appliesTo: 'optional' },
+  { id: '10', nameAr: 'خصم الغياب', nameEn: 'Absence Deduction', type: 'deduction', calculation: 'fixed', defaultValue: 0, isActive: true, isTaxable: false, appliesTo: 'variable' },
+];
+
 export const AllowancesDeductions = () => {
   const { t, isRTL } = useLanguage();
   const { toast } = useToast();
   const [activeView, setActiveView] = useState<'allowances' | 'deductions'>('allowances');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [items, setItems] = useState<AllowanceType[]>(initialItems);
 
-  const [items] = useState<AllowanceType[]>([
-    { id: '1', nameAr: 'بدل السكن', nameEn: 'Housing Allowance', type: 'allowance', calculation: 'percentage', defaultValue: 25, isActive: true, isTaxable: false, appliesTo: 'all' },
-    { id: '2', nameAr: 'بدل المواصلات', nameEn: 'Transport Allowance', type: 'allowance', calculation: 'fixed', defaultValue: 500, isActive: true, isTaxable: false, appliesTo: 'all' },
-    { id: '3', nameAr: 'بدل الوجبات', nameEn: 'Meal Allowance', type: 'allowance', calculation: 'fixed', defaultValue: 300, isActive: true, isTaxable: false, appliesTo: 'all' },
-    { id: '4', nameAr: 'بدل الهاتف', nameEn: 'Phone Allowance', type: 'allowance', calculation: 'fixed', defaultValue: 200, isActive: true, isTaxable: true, appliesTo: 'managers' },
-    { id: '5', nameAr: 'بدل طبيعة عمل', nameEn: 'Nature of Work Allowance', type: 'allowance', calculation: 'percentage', defaultValue: 15, isActive: true, isTaxable: true, appliesTo: 'field' },
-    { id: '6', nameAr: 'التأمين الاجتماعي', nameEn: 'Social Insurance', type: 'deduction', calculation: 'percentage', defaultValue: 11, isActive: true, isTaxable: false, appliesTo: 'all' },
-    { id: '7', nameAr: 'ضريبة الدخل', nameEn: 'Income Tax', type: 'deduction', calculation: 'percentage', defaultValue: 10, isActive: true, isTaxable: false, appliesTo: 'all' },
-    { id: '8', nameAr: 'التأمين الصحي', nameEn: 'Health Insurance', type: 'deduction', calculation: 'fixed', defaultValue: 250, isActive: true, isTaxable: false, appliesTo: 'all' },
-    { id: '9', nameAr: 'صندوق التوفير', nameEn: 'Savings Fund', type: 'deduction', calculation: 'percentage', defaultValue: 5, isActive: false, isTaxable: false, appliesTo: 'optional' },
-    { id: '10', nameAr: 'خصم الغياب', nameEn: 'Absence Deduction', type: 'deduction', calculation: 'fixed', defaultValue: 0, isActive: true, isTaxable: false, appliesTo: 'variable' },
-  ]);
+  // Edit state
+  const [editItem, setEditItem] = useState<AllowanceType | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editForm, setEditForm] = useState({ nameAr: '', nameEn: '', calculation: 'fixed' as 'fixed' | 'percentage', defaultValue: 0, appliesTo: 'all', isTaxable: false, isActive: true });
 
   const filtered = items.filter(i => i.type === (activeView === 'allowances' ? 'allowance' : 'deduction'));
 
   const handleAdd = () => {
     toast({ title: t('common.success'), description: t('salaries.itemAdded') });
     setShowAddDialog(false);
+  };
+
+  const handleEditClick = (item: AllowanceType) => {
+    setEditItem(item);
+    setEditForm({
+      nameAr: item.nameAr,
+      nameEn: item.nameEn,
+      calculation: item.calculation,
+      defaultValue: item.defaultValue,
+      appliesTo: item.appliesTo,
+      isTaxable: item.isTaxable,
+      isActive: item.isActive,
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleEditSave = () => {
+    if (!editItem) return;
+    setItems(prev => prev.map(item =>
+      item.id === editItem.id
+        ? { ...item, ...editForm }
+        : item
+    ));
+    toast({ title: t('common.success'), description: t('salaries.itemUpdated') });
+    setShowEditDialog(false);
+    setEditItem(null);
   };
 
   const appliesToLabels: Record<string, string> = {
@@ -208,7 +240,7 @@ export const AllowancesDeductions = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button size="sm" variant="ghost">
+                    <Button size="sm" variant="ghost" onClick={() => handleEditClick(item)}>
                       <Edit className="w-4 h-4" />
                     </Button>
                   </TableCell>
@@ -218,6 +250,78 @@ export const AllowancesDeductions = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className={cn(isRTL && "text-right")}>
+              {t('salaries.editItem')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t('salaries.nameAr')}</Label>
+                <Input
+                  className={cn(isRTL && "text-right")}
+                  value={editForm.nameAr}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, nameAr: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('salaries.nameEn')}</Label>
+                <Input
+                  value={editForm.nameEn}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, nameEn: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t('salaries.calculationType')}</Label>
+                <Select value={editForm.calculation} onValueChange={(v) => setEditForm(prev => ({ ...prev, calculation: v as 'fixed' | 'percentage' }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed">{t('salaries.fixedAmount')}</SelectItem>
+                    <SelectItem value="percentage">{t('salaries.percentageOfBasic')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('salaries.defaultValue')}</Label>
+                <Input
+                  type="number"
+                  value={editForm.defaultValue}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, defaultValue: Number(e.target.value) }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{t('salaries.appliesTo')}</Label>
+              <Select value={editForm.appliesTo} onValueChange={(v) => setEditForm(prev => ({ ...prev, appliesTo: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('salaries.appliesAll')}</SelectItem>
+                  <SelectItem value="managers">{t('salaries.appliesManagers')}</SelectItem>
+                  <SelectItem value="field">{t('salaries.appliesField')}</SelectItem>
+                  <SelectItem value="optional">{t('salaries.appliesOptional')}</SelectItem>
+                  <SelectItem value="variable">{t('salaries.appliesVariable')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+              <Switch checked={editForm.isTaxable} onCheckedChange={(v) => setEditForm(prev => ({ ...prev, isTaxable: v }))} />
+              <Label>{t('salaries.isTaxable')}</Label>
+            </div>
+            <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+              <Switch checked={editForm.isActive} onCheckedChange={(v) => setEditForm(prev => ({ ...prev, isActive: v }))} />
+              <Label>{t('salaries.statusLabel')}</Label>
+            </div>
+            <Button onClick={handleEditSave} className="w-full">{t('common.save')}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
