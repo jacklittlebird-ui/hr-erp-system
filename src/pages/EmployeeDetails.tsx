@@ -1,0 +1,202 @@
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  ArrowRight, Save, User, Phone, CreditCard, Briefcase, Wallet, Calendar,
+  Shield, FileCheck, Award, Building2, Clock, CalendarDays, MapPin,
+  BarChart3, AlertTriangle, FileText, Receipt, HandCoins, GraduationCap, StickyNote,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { mockEmployees } from '@/data/mockEmployees';
+import { BasicInfoTab } from '@/components/employees/tabs/BasicInfoTab';
+import { ContactInfoTab } from '@/components/employees/tabs/ContactInfoTab';
+import { IdentityTab } from '@/components/employees/tabs/IdentityTab';
+import { JobInfoTab } from '@/components/employees/tabs/JobInfoTab';
+import { InsuranceTab } from '@/components/employees/tabs/InsuranceTab';
+import { PermitsTab } from '@/components/employees/tabs/PermitsTab';
+import { CertificatesTab } from '@/components/employees/tabs/CertificatesTab';
+import { DepartmentsTab } from '@/components/employees/tabs/DepartmentsTab';
+import { LeaveBalanceTab } from '@/components/employees/tabs/LeaveBalanceTab';
+import { SalaryTab } from '@/components/employees/tabs/SalaryTab';
+import { OtherTab } from '@/components/employees/tabs/OtherTab';
+
+const detailTabs = [
+  { id: 'basic', icon: User, labelKey: 'employees.tabs.basicInfo' },
+  { id: 'contact', icon: Phone, labelKey: 'employees.tabs.contactInfo' },
+  { id: 'identity', icon: CreditCard, labelKey: 'employees.tabs.identity' },
+  { id: 'job', icon: Briefcase, labelKey: 'employees.tabs.jobInfo' },
+  { id: 'salary', icon: Wallet, labelKey: 'employees.tabs.salary' },
+  { id: 'leave', icon: Calendar, labelKey: 'employees.tabs.leaveBalance' },
+  { id: 'insurance', icon: Shield, labelKey: 'employees.tabs.insurance' },
+  { id: 'permits', icon: FileCheck, labelKey: 'employees.tabs.permits' },
+  { id: 'certificates', icon: Award, labelKey: 'employees.tabs.certificates' },
+  { id: 'departments', icon: Building2, labelKey: 'employees.tabs.departments' },
+  { id: 'attendanceRecord', icon: Clock, labelKey: 'employees.tabs.attendanceRecord' },
+  { id: 'leaveRecord', icon: CalendarDays, labelKey: 'employees.tabs.leaveRecord' },
+  { id: 'missionRecord', icon: MapPin, labelKey: 'employees.tabs.missionRecord' },
+  { id: 'evaluations', icon: BarChart3, labelKey: 'employees.tabs.evaluations' },
+  { id: 'violations', icon: AlertTriangle, labelKey: 'employees.tabs.violations' },
+  { id: 'documents', icon: FileText, labelKey: 'employees.tabs.documents' },
+  { id: 'salaryRecord', icon: Receipt, labelKey: 'employees.tabs.salaryRecord' },
+  { id: 'loansAdvances', icon: HandCoins, labelKey: 'employees.tabs.loansAdvances' },
+  { id: 'training', icon: GraduationCap, labelKey: 'employees.tabs.training' },
+  { id: 'notes', icon: StickyNote, labelKey: 'employees.tabs.notes' },
+];
+
+const PlaceholderTab = ({ label }: { label: string }) => (
+  <div className="p-8 flex flex-col items-center justify-center text-muted-foreground min-h-[200px]">
+    <FileText className="w-12 h-12 mb-4 opacity-40" />
+    <p className="text-lg font-medium">{label}</p>
+    <p className="text-sm mt-1 opacity-60">قريباً...</p>
+  </div>
+);
+
+const EmployeeDetails = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { t, isRTL, language } = useLanguage();
+  const [activeTab, setActiveTab] = useState('basic');
+
+  const employee = mockEmployees.find(e => e.id === id);
+
+  if (!employee) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground text-lg">الموظف غير موجود</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'basic': return <BasicInfoTab employee={employee} />;
+      case 'contact': return <ContactInfoTab employee={employee} />;
+      case 'identity': return <IdentityTab employee={employee} />;
+      case 'job': return <JobInfoTab employee={employee} />;
+      case 'salary': return <SalaryTab employee={employee} />;
+      case 'leave': return <LeaveBalanceTab employee={employee} />;
+      case 'insurance': return <InsuranceTab employee={employee} />;
+      case 'permits': return <PermitsTab employee={employee} />;
+      case 'certificates': return <CertificatesTab employee={employee} />;
+      case 'departments': return <DepartmentsTab employee={employee} />;
+      case 'other': return <OtherTab employee={employee} />;
+      default: {
+        const tab = detailTabs.find(t => t.id === activeTab);
+        return <PlaceholderTab label={tab ? t(tab.labelKey) : activeTab} />;
+      }
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="bg-primary rounded-xl p-6">
+          <div className={cn(
+            "flex items-center justify-between",
+            isRTL && "flex-row-reverse"
+          )}>
+            <h1 className="text-2xl font-bold text-primary-foreground">
+              {t('employees.details.title')}
+            </h1>
+            <div className={cn("flex gap-3", isRTL && "flex-row-reverse")}>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="gap-2"
+                onClick={() => navigate('/employees')}
+              >
+                <ArrowRight className={cn("w-4 h-4", !isRTL && "rotate-180")} />
+                {t('employees.details.backToList')}
+              </Button>
+              <Button
+                size="sm"
+                className="gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground"
+              >
+                <Save className="w-4 h-4" />
+                {t('employees.save')}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Employee Info Card */}
+        <div className="border-2 border-destructive/30 rounded-xl p-6 bg-card">
+          <div className={cn(
+            "flex items-center gap-6",
+            isRTL && "flex-row-reverse"
+          )}>
+            <Avatar className="w-24 h-24 border-4 border-primary/20">
+              <AvatarImage src={employee.avatar} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                {employee.nameAr.slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
+            <div className={cn("flex-1 space-y-3", isRTL && "text-right")}>
+              <div className={cn(
+                "flex items-center gap-3",
+                isRTL && "flex-row-reverse"
+              )}>
+                <span className="text-muted-foreground font-medium">
+                  {t('employees.details.nameAr')} :
+                </span>
+                <span className="text-lg font-bold text-primary">
+                  {employee.nameAr}
+                </span>
+              </div>
+              <div className={cn(
+                "flex items-center gap-3",
+                isRTL && "flex-row-reverse"
+              )}>
+                <span className="text-muted-foreground font-medium">
+                  {t('employees.details.nameEn')} :
+                </span>
+                <span className="text-lg font-bold text-primary">
+                  {employee.nameEn}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Grid */}
+        <div className="border-2 border-warning/40 rounded-xl p-5 bg-card">
+          <div className="flex flex-wrap gap-3">
+            {detailTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all text-sm font-medium",
+                    isActive
+                      ? "bg-primary text-primary-foreground border-primary shadow-md"
+                      : "bg-card text-foreground border-border hover:border-primary/50 hover:bg-muted/50",
+                    isRTL && "flex-row-reverse"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="whitespace-nowrap">{t(tab.labelKey)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="border rounded-xl bg-card overflow-hidden">
+          {renderTabContent()}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default EmployeeDetails;

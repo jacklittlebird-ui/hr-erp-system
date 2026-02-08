@@ -1,5 +1,6 @@
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Employee } from '@/pages/Employees';
+import { Employee } from '@/types/employee';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,16 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Trash2, Edit, Eye } from 'lucide-react';
+import { Trash2, Edit, Eye, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EmployeeTableProps {
   employees: Employee[];
-  onEdit: (employee: Employee) => void;
 }
 
-export const EmployeeTable = ({ employees, onEdit }: EmployeeTableProps) => {
+export const EmployeeTable = ({ employees }: EmployeeTableProps) => {
   const { t, isRTL, language } = useLanguage();
+  const navigate = useNavigate();
 
   const getInitials = (name: string) => {
     return name
@@ -29,6 +30,29 @@ export const EmployeeTable = ({ employees, onEdit }: EmployeeTableProps) => {
       .join('')
       .slice(0, 2)
       .toUpperCase();
+  };
+
+  const getStatusBadge = (status: Employee['status']) => {
+    switch (status) {
+      case 'active':
+        return (
+          <Badge className="bg-success text-success-foreground hover:bg-success/90">
+            {t('employees.status.active')}
+          </Badge>
+        );
+      case 'inactive':
+        return (
+          <Badge variant="outline" className="text-warning border-warning">
+            {t('employees.status.inactive')}
+          </Badge>
+        );
+      case 'suspended':
+        return (
+          <Badge variant="outline" className="text-destructive border-destructive">
+            {t('employees.status.suspended')}
+          </Badge>
+        );
+    }
   };
 
   return (
@@ -86,40 +110,40 @@ export const EmployeeTable = ({ employees, onEdit }: EmployeeTableProps) => {
                 {employee.jobTitle}
               </TableCell>
               <TableCell className={cn(isRTL && "text-right")} dir="ltr">
-                {employee.phone}
+                {employee.phone ? (
+                  employee.phone
+                ) : (
+                  <span className="flex items-center gap-1 text-warning">
+                    <AlertTriangle className="w-4 h-4" />
+                    {t('employees.status.undefined')}
+                  </span>
+                )}
               </TableCell>
               <TableCell className={cn(isRTL && "text-right")}>
-                {employee.status === 'active' ? (
-                  <Badge className="bg-success text-success-foreground hover:bg-success/90">
-                    {t('employees.status.active')}
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-warning border-warning">
-                    {t('employees.status.inactive')}
-                  </Badge>
-                )}
+                {getStatusBadge(employee.status)}
               </TableCell>
               <TableCell>
                 <div className={cn("flex gap-1", isRTL && "flex-row-reverse justify-end")}>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-                    onClick={() => onEdit(employee)}
+                    onClick={() => navigate(`/employees/${employee.id}`)}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => navigate(`/employees/${employee.id}`)}
                   >
                     <Eye className="w-4 h-4" />
                   </Button>

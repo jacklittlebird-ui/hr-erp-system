@@ -1,0 +1,44 @@
+import { Employee } from '@/types/employee';
+
+export const mockEmployees: Employee[] = [
+  {
+    id: '1',
+    employeeId: 'Emp001',
+    nameAr: 'جلال عبد الرازق عبد العليم',
+    nameEn: 'Galal AbdelRazek AbdelHaliem',
+    department: 'الإدارة',
+    jobTitle: 'موظف',
+    phone: '01000010001',
+    status: 'active',
+  },
+  {
+    id: '2',
+    employeeId: 'Emp002',
+    nameAr: 'أحمد محمد علي',
+    nameEn: 'Ahmed Mohamed Ali',
+    department: 'تقنية المعلومات',
+    jobTitle: 'مطور برمجيات',
+    phone: '01000020002',
+    status: 'active',
+  },
+  {
+    id: '3',
+    employeeId: 'Emp003',
+    nameAr: 'سارة أحمد حسن',
+    nameEn: 'Sara Ahmed Hassan',
+    department: 'الإدارة',
+    jobTitle: 'محاسبة',
+    phone: '01000030003',
+    status: 'inactive',
+  },
+  {
+    id: '4',
+    employeeId: 'Emp004',
+    nameAr: 'شريف منير',
+    nameEn: 'Sherif Mounir',
+    department: '-',
+    jobTitle: 'موظف',
+    phone: '',
+    status: 'active',
+  },
+];
