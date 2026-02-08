@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { cn } from '@/lib/utils';
-import { CalendarDays, Clock, PlusCircle, Calendar } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { CalendarDays, Clock, PlusCircle } from 'lucide-react';
+import { sampleLeaveRequests, samplePermissionRequests, sampleOvertimeRequests } from '@/data/leavesData';
 
 interface LeaveRecordTabProps {
   employee: Employee;
@@ -11,69 +11,6 @@ interface LeaveRecordTabProps {
 
 type SubTab = 'leaves' | 'permissions' | 'extraDays';
 type RecordStatus = 'approved' | 'pending' | 'rejected';
-
-interface LeaveRecord {
-  id: string;
-  type: string;
-  startDate: string;
-  endDate: string;
-  days: number;
-  status: RecordStatus;
-  reason: string;
-  notes: string;
-}
-
-interface PermissionRecord {
-  id: string;
-  type: string;
-  date: string;
-  time: string;
-  duration: string;
-  status: RecordStatus;
-  reason: string;
-  notes: string;
-}
-
-interface ExtraDayRecord {
-  id: string;
-  type: string;
-  date: string;
-  year: string;
-  reason: string;
-  status: RecordStatus;
-}
-
-// Mock data
-const mockLeaveRecords: LeaveRecord[] = [
-  { id: '1', type: 'إجازة سنوية', startDate: '2026/01/05', endDate: '2026/01/07', days: 3, status: 'approved', reason: 'إجازة عائلية', notes: '-' },
-  { id: '2', type: 'إجازة مرضية', startDate: '2026/01/15', endDate: '2026/01/16', days: 2, status: 'approved', reason: 'مرض', notes: 'تم تقديم تقرير طبي' },
-  { id: '3', type: 'إجازة عارضة', startDate: '2026/01/20', endDate: '2026/01/20', days: 1, status: 'pending', reason: 'ظروف شخصية', notes: '-' },
-  { id: '4', type: 'إجازة سنوية', startDate: '2026/02/01', endDate: '2026/02/03', days: 3, status: 'approved', reason: 'سفر', notes: '-' },
-  { id: '5', type: 'إجازة مرضية', startDate: '2026/02/10', endDate: '2026/02/10', days: 1, status: 'rejected', reason: 'صداع', notes: 'لم يتم تقديم تقرير' },
-  { id: '6', type: 'إجازة عارضة', startDate: '2026/02/15', endDate: '2026/02/15', days: 1, status: 'approved', reason: 'ظروف طارئة', notes: '-' },
-  { id: '7', type: 'إجازة سنوية', startDate: '2026/01/25', endDate: '2026/01/27', days: 3, status: 'pending', reason: 'إجازة', notes: '-' },
-  { id: '8', type: 'إجازة مرضية', startDate: '2026/02/05', endDate: '2026/02/05', days: 1, status: 'approved', reason: 'فحص طبي', notes: '-' },
-];
-
-const mockPermissionRecords: PermissionRecord[] = [
-  { id: '1', type: 'Late Arrival', date: '2026/01/05', time: '10:00', duration: '1 ساعة', status: 'approved', reason: 'adsd', notes: '-' },
-  { id: '2', type: 'Late Arrival', date: '2026/01/03', time: '10:00', duration: '1 ساعة', status: 'approved', reason: 'jhodv', notes: '-' },
-  { id: '3', type: 'خروج مبكر', date: '2026/01/10', time: '15:00', duration: '2 ساعة', status: 'pending', reason: 'موعد طبي', notes: '-' },
-  { id: '4', type: 'Late Arrival', date: '2026/01/20', time: '09:30', duration: '30 دقيقة', status: 'rejected', reason: 'زحمة', notes: '-' },
-  { id: '5', type: 'خروج مبكر', date: '2026/02/01', time: '14:00', duration: '3 ساعات', status: 'approved', reason: 'أمر شخصي', notes: '-' },
-  { id: '6', type: 'Late Arrival', date: '2026/02/05', time: '10:30', duration: '1.5 ساعة', status: 'approved', reason: 'مواصلات', notes: '-' },
-];
-
-const mockExtraDayRecords: ExtraDayRecord[] = [
-  { id: '1', type: 'يوم إضافي', date: '2026/01/25', year: '-', reason: 'لالا', status: 'pending' },
-  { id: '2', type: 'يوم إضافي', date: '2026/01/03', year: '-', reason: 'qsd', status: 'approved' },
-  { id: '3', type: 'يوم إضافي', date: '2026/01/03', year: '-', reason: 'عمل في الراحة', status: 'approved' },
-  { id: '4', type: 'يوم إضافي', date: '2026/02/01', year: '-', reason: 'عمل إضافي', status: 'approved' },
-  { id: '5', type: 'يوم إضافي', date: '2026/02/10', year: '-', reason: 'بديل', status: 'pending' },
-  { id: '6', type: 'يوم إضافي', date: '2026/01/15', year: '-', reason: 'عمل يوم جمعة', status: 'approved' },
-  { id: '7', type: 'يوم إضافي', date: '2026/02/07', year: '-', reason: 'عمل في إجازة رسمية', status: 'approved' },
-  { id: '8', type: 'يوم إضافي', date: '2026/01/10', year: '-', reason: 'تعويض', status: 'rejected' },
-];
 
 const statusConfig: Record<RecordStatus, { label: string; labelAr: string; bg: string; text: string; border: string }> = {
   approved: { label: 'Approved', labelAr: 'موافق عليه', bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
@@ -91,7 +28,6 @@ const StatusBadge = ({ status }: { status: RecordStatus }) => {
   );
 };
 
-// Summary card component for status counts
 const StatusSummaryCards = ({ 
   approved, pending, rejected, 
   approvedLabel, pendingLabel, rejectedLabel 
@@ -99,73 +35,111 @@ const StatusSummaryCards = ({
   approved: number; pending: number; rejected: number;
   approvedLabel: string; pendingLabel: string; rejectedLabel: string;
 }) => {
-  const { isRTL } = useLanguage();
   return (
     <div className="grid grid-cols-3 gap-4">
       <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 text-center">
-        <p className={cn("text-sm font-medium text-yellow-700 mb-1", isRTL && "text-right")}>{pendingLabel}</p>
+        <p className="text-sm font-medium text-yellow-700 mb-1">{pendingLabel}</p>
         <p className="text-3xl font-bold text-yellow-600">{pending}</p>
       </div>
       <div className="rounded-xl border-2 border-green-200 bg-green-50 p-4 text-center">
-        <p className={cn("text-sm font-medium text-green-700 mb-1", isRTL && "text-right")}>{approvedLabel}</p>
+        <p className="text-sm font-medium text-green-700 mb-1">{approvedLabel}</p>
         <p className="text-3xl font-bold text-green-600">{approved}</p>
       </div>
       <div className="rounded-xl border-2 border-red-200 bg-red-50 p-4 text-center">
-        <p className={cn("text-sm font-medium text-red-700 mb-1", isRTL && "text-right")}>{rejectedLabel}</p>
+        <p className="text-sm font-medium text-red-700 mb-1">{rejectedLabel}</p>
         <p className="text-3xl font-bold text-red-600">{rejected}</p>
       </div>
     </div>
   );
 };
 
+const leaveTypeLabels: Record<string, { en: string; ar: string }> = {
+  annual: { en: 'Annual Leave', ar: 'إجازة سنوية' },
+  sick: { en: 'Sick Leave', ar: 'إجازة مرضية' },
+  casual: { en: 'Casual Leave', ar: 'إجازة عارضة' },
+  unpaid: { en: 'Unpaid Leave', ar: 'إجازة بدون راتب' },
+  maternity: { en: 'Maternity Leave', ar: 'إجازة أمومة' },
+  paternity: { en: 'Paternity Leave', ar: 'إجازة أبوة' },
+};
+
+const permissionTypeLabels: Record<string, { en: string; ar: string }> = {
+  early_leave: { en: 'Early Leave', ar: 'خروج مبكر' },
+  late_arrival: { en: 'Late Arrival', ar: 'حضور متأخر' },
+  personal: { en: 'Personal', ar: 'شخصي' },
+  medical: { en: 'Medical', ar: 'طبي' },
+};
+
+const overtimeTypeLabels: Record<string, { en: string; ar: string }> = {
+  regular: { en: 'Regular', ar: 'عادي' },
+  holiday: { en: 'Holiday', ar: 'إجازة رسمية' },
+  weekend: { en: 'Weekend', ar: 'نهاية أسبوع' },
+};
+
 export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
   const { t, isRTL, language } = useLanguage();
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('leaves');
 
-  // Computed summaries
+  // Filter data by employee
+  const employeeLeaves = useMemo(() => {
+    return sampleLeaveRequests.filter(
+      r => r.employeeId.toLowerCase() === employee.employeeId.toLowerCase()
+    );
+  }, [employee.employeeId]);
+
+  const employeePermissions = useMemo(() => {
+    return samplePermissionRequests.filter(
+      r => r.employeeId.toLowerCase() === employee.employeeId.toLowerCase()
+    );
+  }, [employee.employeeId]);
+
+  const employeeOvertime = useMemo(() => {
+    return sampleOvertimeRequests.filter(
+      r => r.employeeId.toLowerCase() === employee.employeeId.toLowerCase()
+    );
+  }, [employee.employeeId]);
+
   const leaveSummary = useMemo(() => {
-    const approved = mockLeaveRecords.filter(r => r.status === 'approved');
+    const approved = employeeLeaves.filter(r => r.status === 'approved');
     const usedDays = approved.reduce((sum, r) => sum + r.days, 0);
     return {
-      total: 21,
+      total: employee.annualLeaveBalance || 21,
       used: usedDays,
-      remaining: 21 - usedDays,
+      remaining: (employee.annualLeaveBalance || 21) - usedDays,
       approvedCount: approved.length,
-      pendingCount: mockLeaveRecords.filter(r => r.status === 'pending').length,
-      rejectedCount: mockLeaveRecords.filter(r => r.status === 'rejected').length,
+      pendingCount: employeeLeaves.filter(r => r.status === 'pending').length,
+      rejectedCount: employeeLeaves.filter(r => r.status === 'rejected').length,
     };
-  }, []);
+  }, [employeeLeaves, employee.annualLeaveBalance]);
 
   const permissionSummary = useMemo(() => ({
     total: 24,
-    used: 12,
-    remaining: 12,
-    approvedCount: mockPermissionRecords.filter(r => r.status === 'approved').length,
-    pendingCount: mockPermissionRecords.filter(r => r.status === 'pending').length,
-    rejectedCount: mockPermissionRecords.filter(r => r.status === 'rejected').length,
-  }), []);
+    used: employeePermissions.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.durationHours, 0),
+    remaining: 24 - employeePermissions.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.durationHours, 0),
+    approvedCount: employeePermissions.filter(r => r.status === 'approved').length,
+    pendingCount: employeePermissions.filter(r => r.status === 'pending').length,
+    rejectedCount: employeePermissions.filter(r => r.status === 'rejected').length,
+  }), [employeePermissions]);
 
-  const extraDaysSummary = useMemo(() => {
-    const approved = mockExtraDayRecords.filter(r => r.status === 'approved');
+  const overtimeSummary = useMemo(() => {
+    const approved = employeeOvertime.filter(r => r.status === 'approved');
     return {
-      totalAdded: approved.length,
+      totalHours: approved.reduce((sum, r) => sum + r.hours, 0),
       approvedCount: approved.length,
-      pendingCount: mockExtraDayRecords.filter(r => r.status === 'pending').length,
-      rejectedCount: mockExtraDayRecords.filter(r => r.status === 'rejected').length,
+      pendingCount: employeeOvertime.filter(r => r.status === 'pending').length,
+      rejectedCount: employeeOvertime.filter(r => r.status === 'rejected').length,
     };
-  }, []);
+  }, [employeeOvertime]);
 
   const subTabs = [
-    { id: 'leaves' as SubTab, icon: CalendarDays, label: t('leaveRecord.leaves'), count: mockLeaveRecords.length },
-    { id: 'permissions' as SubTab, icon: Clock, label: t('leaveRecord.permissions'), count: mockPermissionRecords.length },
-    { id: 'extraDays' as SubTab, icon: PlusCircle, label: t('leaveRecord.extraDays'), count: mockExtraDayRecords.length },
+    { id: 'leaves' as SubTab, icon: CalendarDays, label: t('leaveRecord.leaves'), count: employeeLeaves.length },
+    { id: 'permissions' as SubTab, icon: Clock, label: t('leaveRecord.permissions'), count: employeePermissions.length },
+    { id: 'extraDays' as SubTab, icon: PlusCircle, label: t('leaveRecord.extraDays'), count: employeeOvertime.length },
   ];
 
   return (
     <div className="p-6 space-y-6">
       {/* Top Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Annual Leave Balance */}
         <div className="relative rounded-2xl overflow-hidden h-28"
           style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 50%, #c4b5fd 100%)' }}>
           <div className={cn("absolute inset-0 p-5 flex flex-col justify-between", isRTL ? "text-right" : "text-left")}>
@@ -177,7 +151,6 @@ export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
           </div>
         </div>
 
-        {/* Permissions Balance */}
         <div className="relative rounded-2xl overflow-hidden h-28"
           style={{ background: 'linear-gradient(135deg, #ec4899 0%, #f472b6 50%, #f9a8d4 100%)' }}>
           <div className={cn("absolute inset-0 p-5 flex flex-col justify-between", isRTL ? "text-right" : "text-left")}>
@@ -189,14 +162,13 @@ export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
           </div>
         </div>
 
-        {/* Extra Days */}
         <div className="relative rounded-2xl overflow-hidden h-28"
           style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #67e8f9 100%)' }}>
           <div className={cn("absolute inset-0 p-5 flex flex-col justify-between", isRTL ? "text-right" : "text-left")}>
             <p className="text-white/90 text-sm font-medium">{t('leaveRecord.extraDaysLabel')}</p>
             <div>
-              <span className="text-4xl font-bold text-white">{extraDaysSummary.totalAdded}</span>
-              <span className="text-white/80 text-sm mr-2 ml-2">{t('leaveRecord.dayAdded')}</span>
+              <span className="text-4xl font-bold text-white">{overtimeSummary.totalHours}</span>
+              <span className="text-white/80 text-sm mr-2 ml-2">{language === 'ar' ? 'ساعة' : 'hours'}</span>
             </div>
           </div>
         </div>
@@ -233,20 +205,28 @@ export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
       </div>
 
       {/* Tab Content */}
-      {activeSubTab === 'leaves' && <LeavesContent summary={leaveSummary} />}
-      {activeSubTab === 'permissions' && <PermissionsContent summary={permissionSummary} />}
-      {activeSubTab === 'extraDays' && <ExtraDaysContent summary={extraDaysSummary} />}
+      {activeSubTab === 'leaves' && (
+        <LeavesContent leaves={employeeLeaves} summary={leaveSummary} />
+      )}
+      {activeSubTab === 'permissions' && (
+        <PermissionsContent permissions={employeePermissions} summary={permissionSummary} />
+      )}
+      {activeSubTab === 'extraDays' && (
+        <OvertimeContent overtime={employeeOvertime} summary={overtimeSummary} />
+      )}
     </div>
   );
 };
 
 // ========== Leaves Sub-Tab ==========
-const LeavesContent = ({ summary }: { summary: { approvedCount: number; pendingCount: number; rejectedCount: number } }) => {
-  const { t, isRTL } = useLanguage();
+const LeavesContent = ({ leaves, summary }: { 
+  leaves: typeof sampleLeaveRequests;
+  summary: { approvedCount: number; pendingCount: number; rejectedCount: number } 
+}) => {
+  const { t, isRTL, language } = useLanguage();
 
   return (
     <div className="space-y-5">
-      {/* Status Summary */}
       <StatusSummaryCards
         approved={summary.approvedCount}
         pending={summary.pendingCount}
@@ -255,8 +235,6 @@ const LeavesContent = ({ summary }: { summary: { approvedCount: number; pendingC
         pendingLabel={t('leaveRecord.pendingLeaves')}
         rejectedLabel={t('leaveRecord.rejectedLeaves')}
       />
-
-      {/* Table */}
       <div className="rounded-xl overflow-hidden border border-border/30">
         <table className="w-full">
           <thead>
@@ -267,21 +245,30 @@ const LeavesContent = ({ summary }: { summary: { approvedCount: number; pendingC
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.days')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.status')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.reason')}</th>
-              <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.notes')}</th>
             </tr>
           </thead>
           <tbody>
-            {mockLeaveRecords.map((record, idx) => (
-              <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
-                <td className="px-4 py-3 text-sm text-foreground">{record.type}</td>
-                <td className="px-4 py-3 text-sm text-foreground">{record.startDate}</td>
-                <td className="px-4 py-3 text-sm text-foreground">{record.endDate}</td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium">{record.days}</td>
-                <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
-                <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">{record.notes}</td>
+            {leaves.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  {language === 'ar' ? 'لا توجد إجازات مسجلة' : 'No leaves recorded'}
+                </td>
               </tr>
-            ))}
+            ) : (
+              leaves.map((record, idx) => {
+                const typeLabel = leaveTypeLabels[record.leaveType];
+                return (
+                  <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
+                    <td className="px-4 py-3 text-sm text-foreground">{language === 'ar' ? typeLabel?.ar : typeLabel?.en}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{record.startDate}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{record.endDate}</td>
+                    <td className="px-4 py-3 text-sm text-foreground font-medium">{record.days}</td>
+                    <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
+                    <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -290,12 +277,14 @@ const LeavesContent = ({ summary }: { summary: { approvedCount: number; pendingC
 };
 
 // ========== Permissions Sub-Tab ==========
-const PermissionsContent = ({ summary }: { summary: { approvedCount: number; pendingCount: number; rejectedCount: number } }) => {
-  const { t, isRTL } = useLanguage();
+const PermissionsContent = ({ permissions, summary }: { 
+  permissions: typeof samplePermissionRequests;
+  summary: { approvedCount: number; pendingCount: number; rejectedCount: number } 
+}) => {
+  const { t, isRTL, language } = useLanguage();
 
   return (
     <div className="space-y-5">
-      {/* Status Summary - horizontal bars like the reference */}
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl bg-yellow-50 border border-yellow-200 p-3 flex items-center justify-end gap-3" dir="rtl">
           <span className="text-yellow-700 font-semibold text-sm">{t('leaveRecord.pendingLabel')}</span>
@@ -311,7 +300,6 @@ const PermissionsContent = ({ summary }: { summary: { approvedCount: number; pen
         </div>
       </div>
 
-      {/* Table */}
       <div className="rounded-xl overflow-hidden border border-border/30">
         <table className="w-full">
           <thead>
@@ -322,21 +310,30 @@ const PermissionsContent = ({ summary }: { summary: { approvedCount: number; pen
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.duration')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.status')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.reason')}</th>
-              <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.notes')}</th>
             </tr>
           </thead>
           <tbody>
-            {mockPermissionRecords.map((record, idx) => (
-              <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
-                <td className="px-4 py-3 text-sm text-foreground">{record.type}</td>
-                <td className="px-4 py-3 text-sm text-foreground">{record.date}</td>
-                <td className="px-4 py-3 text-sm text-foreground">{record.time}</td>
-                <td className="px-4 py-3 text-sm text-foreground">{record.duration}</td>
-                <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
-                <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">{record.notes}</td>
+            {permissions.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  {language === 'ar' ? 'لا توجد أذونات مسجلة' : 'No permissions recorded'}
+                </td>
               </tr>
-            ))}
+            ) : (
+              permissions.map((record, idx) => {
+                const typeLabel = permissionTypeLabels[record.permissionType];
+                return (
+                  <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
+                    <td className="px-4 py-3 text-sm text-foreground">{language === 'ar' ? typeLabel?.ar : typeLabel?.en}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{record.date}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{record.fromTime} - {record.toTime}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{record.durationHours} {language === 'ar' ? 'ساعة' : 'hrs'}</td>
+                    <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
+                    <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -344,20 +341,21 @@ const PermissionsContent = ({ summary }: { summary: { approvedCount: number; pen
   );
 };
 
-// ========== Extra Days Sub-Tab ==========
-const ExtraDaysContent = ({ summary }: { summary: { totalAdded: number; approvedCount: number; pendingCount: number; rejectedCount: number } }) => {
-  const { t, isRTL } = useLanguage();
+// ========== Overtime/Additions Sub-Tab ==========
+const OvertimeContent = ({ overtime, summary }: { 
+  overtime: typeof sampleOvertimeRequests;
+  summary: { totalHours: number; approvedCount: number; pendingCount: number; rejectedCount: number } 
+}) => {
+  const { t, isRTL, language } = useLanguage();
 
   return (
     <div className="space-y-5">
-      {/* Banner */}
       <div className="rounded-xl p-4 text-center text-white font-semibold flex items-center justify-center gap-2"
         style={{ background: 'linear-gradient(135deg, #ec4899, #f97316)' }}>
         <PlusCircle className="w-5 h-5" />
         {t('leaveRecord.extraDaysCurrentYear')}
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-xl border-2 border-green-200 bg-green-50 p-4 text-center">
           <p className="text-sm font-medium text-green-700 mb-1">{t('leaveRecord.approvedDays')}</p>
@@ -369,32 +367,42 @@ const ExtraDaysContent = ({ summary }: { summary: { totalAdded: number; approved
         </div>
         <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-4 text-center">
           <p className="text-sm font-medium text-blue-700 mb-1">{t('leaveRecord.totalAddedDays')}</p>
-          <p className="text-3xl font-bold text-blue-600">{summary.totalAdded}</p>
+          <p className="text-3xl font-bold text-blue-600">{summary.totalHours}</p>
         </div>
       </div>
 
-      {/* Table */}
       <div className="rounded-xl overflow-hidden border border-border/30">
         <table className="w-full">
           <thead>
             <tr className="bg-muted/80">
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.date')}</th>
-              <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.year')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.additionType')}</th>
+              <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{language === 'ar' ? 'الساعات' : 'Hours'}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.reason')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.status')}</th>
             </tr>
           </thead>
           <tbody>
-            {mockExtraDayRecords.map((record, idx) => (
-              <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
-                <td className="px-4 py-3 text-sm text-foreground">{record.date}</td>
-                <td className="px-4 py-3 text-sm text-foreground">{record.year}</td>
-                <td className="px-4 py-3 text-sm text-foreground">{record.type}</td>
-                <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
-                <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
+            {overtime.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                  {language === 'ar' ? 'لا توجد إضافات مسجلة' : 'No overtime recorded'}
+                </td>
               </tr>
-            ))}
+            ) : (
+              overtime.map((record, idx) => {
+                const typeLabel = overtimeTypeLabels[record.overtimeType];
+                return (
+                  <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
+                    <td className="px-4 py-3 text-sm text-foreground">{record.date}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{language === 'ar' ? typeLabel?.ar : typeLabel?.en}</td>
+                    <td className="px-4 py-3 text-sm text-foreground font-medium">{record.hours}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
+                    <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
