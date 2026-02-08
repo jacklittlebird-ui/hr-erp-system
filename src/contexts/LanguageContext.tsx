@@ -16,7 +16,7 @@ const translations: Record<string, Record<Language, string>> = {
   'nav.departments': { en: 'Departments', ar: 'الأقسام' },
   'nav.attendance': { en: 'Attendance', ar: 'الحضور والانصراف' },
   'nav.missions': { en: 'Mission Requests', ar: 'طلبات المأمورية' },
-  'nav.leaves': { en: 'Leaves', ar: 'الإجازات' },
+  'nav.leaves': { en: 'Leaves/Permissions/Missions', ar: 'الإجازات/الإذونات/المأموريات' },
   'nav.permissions': { en: 'Permissions', ar: 'الأذونات' },
   'nav.salaries': { en: 'Salaries', ar: 'الرواتب' },
   'nav.salaryReports': { en: 'Salary Reports', ar: 'تقارير الرواتب' },
