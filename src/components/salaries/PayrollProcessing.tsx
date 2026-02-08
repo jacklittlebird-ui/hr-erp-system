@@ -59,10 +59,10 @@ export const PayrollProcessing = () => {
   ];
 
   const stats = [
-    { label: t('salaries.stats.totalEmployees'), value: '160', icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
-    { label: t('salaries.stats.totalPayroll'), value: '928K', icon: Wallet, color: 'text-green-600', bg: 'bg-green-100' },
-    { label: t('salaries.stats.totalAllowances'), value: '170K', icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-100' },
-    { label: t('salaries.stats.pendingApproval'), value: '1', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100' },
+    { label: t('salaries.stats.totalEmployees'), value: '160', icon: Users, color: 'text-primary-foreground', bg: 'bg-stat-blue', cardBg: 'bg-stat-blue-bg' },
+    { label: t('salaries.stats.totalPayroll'), value: '928K', icon: Wallet, color: 'text-primary-foreground', bg: 'bg-stat-green', cardBg: 'bg-stat-green-bg' },
+    { label: t('salaries.stats.totalAllowances'), value: '170K', icon: TrendingUp, color: 'text-primary-foreground', bg: 'bg-stat-purple', cardBg: 'bg-stat-purple-bg' },
+    { label: t('salaries.stats.pendingApproval'), value: '1', icon: Clock, color: 'text-foreground', bg: 'bg-stat-yellow', cardBg: 'bg-stat-yellow-bg' },
   ];
 
   const getStatusBadge = (status: string) => {
@@ -97,19 +97,15 @@ export const PayrollProcessing = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardContent className="p-6">
-              <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
-                <div className={cn("p-3 rounded-lg", stat.bg)}>
-                  <stat.icon className={cn("w-6 h-6", stat.color)} />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div key={index} className={cn("rounded-xl p-5 flex items-center gap-4 shadow-sm border border-border/30", stat.cardBg, isRTL && "flex-row-reverse")}>
+            <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", stat.bg)}>
+              <stat.icon className={cn("w-6 h-6", stat.color)} />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">{stat.label}</p>
+              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+            </div>
+          </div>
         ))}
       </div>
 

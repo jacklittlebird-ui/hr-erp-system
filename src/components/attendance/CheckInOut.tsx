@@ -286,47 +286,41 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
 
       {/* Today's Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
-              <div className="p-3 rounded-lg bg-success/10">
-                <LogIn className="w-6 h-6 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t('attendance.totalCheckedIn')}</p>
-                <p className="text-3xl font-bold text-success">{todayStats.totalCheckedIn}</p>
-              </div>
+        <div className="rounded-xl p-5 bg-stat-green-bg flex items-center gap-4 shadow-sm border border-border/30">
+          <div className={cn("flex items-center gap-4 w-full", isRTL && "flex-row-reverse")}>
+            <div className="p-3 rounded-xl bg-stat-green shrink-0">
+              <LogIn className="w-6 h-6 text-primary-foreground" />
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <p className="text-sm text-muted-foreground">{t('attendance.totalCheckedIn')}</p>
+              <p className="text-3xl font-bold text-foreground">{todayStats.totalCheckedIn}</p>
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
-              <div className="p-3 rounded-lg bg-primary/10">
-                <LogOut className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t('attendance.totalCheckedOut')}</p>
-                <p className="text-3xl font-bold text-primary">{todayStats.totalCheckedOut}</p>
-              </div>
+        <div className="rounded-xl p-5 bg-stat-blue-bg flex items-center gap-4 shadow-sm border border-border/30">
+          <div className={cn("flex items-center gap-4 w-full", isRTL && "flex-row-reverse")}>
+            <div className="p-3 rounded-xl bg-stat-blue shrink-0">
+              <LogOut className="w-6 h-6 text-primary-foreground" />
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <p className="text-sm text-muted-foreground">{t('attendance.totalCheckedOut')}</p>
+              <p className="text-3xl font-bold text-foreground">{todayStats.totalCheckedOut}</p>
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
-              <div className="p-3 rounded-lg bg-warning/10">
-                <Clock className="w-6 h-6 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t('attendance.totalLate')}</p>
-                <p className="text-3xl font-bold text-warning">{todayStats.totalLate}</p>
-              </div>
+        <div className="rounded-xl p-5 bg-stat-coral-bg flex items-center gap-4 shadow-sm border border-border/30">
+          <div className={cn("flex items-center gap-4 w-full", isRTL && "flex-row-reverse")}>
+            <div className="p-3 rounded-xl bg-stat-coral shrink-0">
+              <Clock className="w-6 h-6 text-primary-foreground" />
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <p className="text-sm text-muted-foreground">{t('attendance.totalLate')}</p>
+              <p className="text-3xl font-bold text-foreground">{todayStats.totalLate}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Recent Activity */}
@@ -377,7 +371,7 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
                       className={cn(
                         record.status === 'present' && "bg-success/10 text-success",
                         record.status === 'late' && "bg-warning/10 text-warning",
-                        record.status === 'early-leave' && "bg-orange-100 text-orange-700",
+                        record.status === 'early-leave' && "bg-stat-coral/10 text-stat-coral",
                       )}
                     >
                       {t(`attendance.status.${record.status}`)}

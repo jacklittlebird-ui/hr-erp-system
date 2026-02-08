@@ -97,7 +97,7 @@ export const TrainingRecords = () => {
 
   const getResultBadge = (result: string) => {
     switch(result) {
-      case 'passed': return <Badge className="bg-green-500">{t('training.result.passed')}</Badge>;
+      case 'passed': return <Badge className="bg-stat-green">{t('training.result.passed')}</Badge>;
       case 'failed': return <Badge variant="destructive">{t('training.result.failed')}</Badge>;
       default: return <Badge variant="secondary">{t('training.result.pending')}</Badge>;
     }

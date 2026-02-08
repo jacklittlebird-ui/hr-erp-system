@@ -206,50 +206,42 @@ export const LoansList = () => {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('loans.stats.totalLoans')}</p>
-                <p className="text-2xl font-bold">{stats.totalLoans}</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('loans.stats.activeLoans')}</p>
-                <p className="text-2xl font-bold">{stats.activeLoans}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('loans.stats.pendingLoans')}</p>
-                <p className="text-2xl font-bold">{stats.pendingLoans}</p>
-              </div>
-              <Clock className="h-8 w-8 text-yellow-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('loans.stats.totalOutstanding')}</p>
-                <p className="text-2xl font-bold">{stats.totalAmount.toLocaleString()}</p>
-              </div>
-              <Users className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="rounded-xl p-5 bg-stat-purple-bg flex items-center gap-4 shadow-sm border border-border/30">
+          <div className="w-12 h-12 rounded-xl bg-stat-purple flex items-center justify-center shrink-0">
+            <DollarSign className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{t('loans.stats.totalLoans')}</p>
+            <p className="text-2xl font-bold text-foreground">{stats.totalLoans}</p>
+          </div>
+        </div>
+        <div className="rounded-xl p-5 bg-stat-green-bg flex items-center gap-4 shadow-sm border border-border/30">
+          <div className="w-12 h-12 rounded-xl bg-stat-green flex items-center justify-center shrink-0">
+            <CheckCircle className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{t('loans.stats.activeLoans')}</p>
+            <p className="text-2xl font-bold text-foreground">{stats.activeLoans}</p>
+          </div>
+        </div>
+        <div className="rounded-xl p-5 bg-stat-yellow-bg flex items-center gap-4 shadow-sm border border-border/30">
+          <div className="w-12 h-12 rounded-xl bg-stat-yellow flex items-center justify-center shrink-0">
+            <Clock className="h-6 w-6 text-foreground" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{t('loans.stats.pendingLoans')}</p>
+            <p className="text-2xl font-bold text-foreground">{stats.pendingLoans}</p>
+          </div>
+        </div>
+        <div className="rounded-xl p-5 bg-stat-blue-bg flex items-center gap-4 shadow-sm border border-border/30">
+          <div className="w-12 h-12 rounded-xl bg-stat-blue flex items-center justify-center shrink-0">
+            <Users className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{t('loans.stats.totalOutstanding')}</p>
+            <p className="text-2xl font-bold text-foreground">{stats.totalAmount.toLocaleString()}</p>
+          </div>
+        </div>
       </div>
 
       {/* Main Card */}
@@ -336,10 +328,10 @@ export const LoansList = () => {
                       {loan.status === 'pending' && (
                         <>
                           <Button variant="ghost" size="icon" onClick={() => handleApprove(loan.id)}>
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <CheckCircle className="h-4 w-4 text-stat-green" />
                           </Button>
                           <Button variant="ghost" size="icon" onClick={() => handleReject(loan.id)}>
-                            <Trash2 className="h-4 w-4 text-red-500" />
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </>
                       )}
