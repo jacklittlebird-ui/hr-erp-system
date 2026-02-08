@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,7 @@ const Departments = () => {
   const [selectedManager, setSelectedManager] = useState('');
   const [managerOpen, setManagerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
 
   const activeEmployees = useMemo(() => mockEmployees.filter(e => e.status === 'active'), []);
 
@@ -107,6 +108,9 @@ const Departments = () => {
     setNameAr(dept.nameAr);
     setNameEn(dept.nameEn);
     setSelectedManager(dept.managerId);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
   };
 
   const handleDelete = (id: string) => {
@@ -185,7 +189,7 @@ const Departments = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Add/Edit Form */}
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2" ref={formRef}>
             <CardHeader>
               <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
                 <Plus className="w-5 h-5 text-primary" />
