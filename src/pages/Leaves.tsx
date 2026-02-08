@@ -34,7 +34,7 @@ const Leaves = () => {
   const [missionRequests, setMissionRequests] = useState<MissionRequest[]>(sampleMissionRequests);
   const [overtimeRequests, setOvertimeRequests] = useState<OvertimeRequest[]>(sampleOvertimeRequests);
 
-  const handleApprove = (id: string) => {
+  const handleApproveLeave = (id: string) => {
     setLeaveRequests(prev => prev.map(req =>
       req.id === id
         ? { ...req, status: 'approved' as const, approvedBy: 'Current User', approvedDate: new Date().toISOString().split('T')[0] }
@@ -42,11 +42,47 @@ const Leaves = () => {
     ));
   };
 
-  const handleReject = (id: string, reason: string) => {
+  const handleRejectLeave = (id: string, reason: string) => {
     setLeaveRequests(prev => prev.map(req =>
       req.id === id
         ? { ...req, status: 'rejected' as const, rejectionReason: reason }
         : req
+    ));
+  };
+
+  const handleApprovePermission = (id: string) => {
+    setPermissionRequests(prev => prev.map(req =>
+      req.id === id ? { ...req, status: 'approved' as const } : req
+    ));
+  };
+
+  const handleRejectPermission = (id: string, reason: string) => {
+    setPermissionRequests(prev => prev.map(req =>
+      req.id === id ? { ...req, status: 'rejected' as const } : req
+    ));
+  };
+
+  const handleApproveMission = (id: string) => {
+    setMissionRequests(prev => prev.map(req =>
+      req.id === id ? { ...req, status: 'approved' as const } : req
+    ));
+  };
+
+  const handleRejectMission = (id: string, reason: string) => {
+    setMissionRequests(prev => prev.map(req =>
+      req.id === id ? { ...req, status: 'rejected' as const } : req
+    ));
+  };
+
+  const handleApproveOvertime = (id: string) => {
+    setOvertimeRequests(prev => prev.map(req =>
+      req.id === id ? { ...req, status: 'approved' as const } : req
+    ));
+  };
+
+  const handleRejectOvertime = (id: string, reason: string) => {
+    setOvertimeRequests(prev => prev.map(req =>
+      req.id === id ? { ...req, status: 'rejected' as const } : req
     ));
   };
 
@@ -174,9 +210,18 @@ const Leaves = () => {
 
           <TabsContent value="approvals">
             <LeaveApprovals
-              requests={leaveRequests.filter(r => r.status === 'pending')}
-              onApprove={handleApprove}
-              onReject={handleReject}
+              leaveRequests={leaveRequests.filter(r => r.status === 'pending')}
+              permissionRequests={permissionRequests.filter(r => r.status === 'pending')}
+              missionRequests={missionRequests.filter(r => r.status === 'pending')}
+              overtimeRequests={overtimeRequests.filter(r => r.status === 'pending')}
+              onApproveLeave={handleApproveLeave}
+              onRejectLeave={handleRejectLeave}
+              onApprovePermission={handleApprovePermission}
+              onRejectPermission={handleRejectPermission}
+              onApproveMission={handleApproveMission}
+              onRejectMission={handleRejectMission}
+              onApproveOvertime={handleApproveOvertime}
+              onRejectOvertime={handleRejectOvertime}
             />
           </TabsContent>
 
