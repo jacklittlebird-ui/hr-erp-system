@@ -20,6 +20,7 @@ import { PermitsTab } from '@/components/employees/tabs/PermitsTab';
 import { CertificatesTab } from '@/components/employees/tabs/CertificatesTab';
 import { DepartmentsTab } from '@/components/employees/tabs/DepartmentsTab';
 import { LeaveBalanceTab } from '@/components/employees/tabs/LeaveBalanceTab';
+import { LeaveRecordTab } from '@/components/employees/tabs/LeaveRecordTab';
 import { SalaryTab } from '@/components/employees/tabs/SalaryTab';
 import { OtherTab } from '@/components/employees/tabs/OtherTab';
 
@@ -80,6 +81,7 @@ const EmployeeDetails = () => {
       case 'job': return <JobInfoTab employee={employee} />;
       case 'salary': return <SalaryTab employee={employee} />;
       case 'leave': return <LeaveBalanceTab employee={employee} />;
+      case 'leaveRecord': return <LeaveRecordTab employee={employee} />;
       case 'insurance': return <InsuranceTab employee={employee} />;
       case 'permits': return <PermitsTab employee={employee} />;
       case 'certificates': return <CertificatesTab employee={employee} />;
