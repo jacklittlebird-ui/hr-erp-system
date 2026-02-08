@@ -47,7 +47,7 @@ export const Sidebar = () => {
 
   return (
     <aside className={cn(
-      "fixed top-16 h-[calc(100vh-4rem)] w-64 bg-card border-border overflow-y-auto",
+      "fixed top-16 h-[calc(100vh-4rem)] w-64 bg-sidebar border-sidebar-border overflow-y-auto",
       isRTL ? "right-0 border-l" : "left-0 border-r"
     )}>
       <nav className="p-4 space-y-1">
@@ -55,7 +55,7 @@ export const Sidebar = () => {
           <NavButton key={item.key} item={item} t={t} isRTL={isRTL} isActive={location.pathname === item.path} />
         ))}
         <div className="pt-6 pb-2">
-          <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <p className="px-3 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
             {t('nav.configurations')}
           </p>
         </div>
