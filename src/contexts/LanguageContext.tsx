@@ -1129,6 +1129,21 @@ const translations: Record<string, Record<Language, string>> = {
   'leaveRecord.totalAddedDays': { en: 'Total Added Days', ar: 'إجمالي الأيام المضافة' },
   'leaveRecord.additionType': { en: 'Addition Type', ar: 'نوع الإضافة' },
   'leaveRecord.year': { en: 'Year', ar: 'السنة' },
+  // Departments Tab
+  'departments.totalEmployees': { en: 'Total Employees', ar: 'إجمالي الموظفين' },
+  'departments.inDepartment': { en: 'In this department', ar: 'في هذا القسم' },
+  'departments.activeEmployees': { en: 'Active Employees', ar: 'الموظفين النشطين' },
+  'departments.currentlyActive': { en: 'Currently active', ar: 'نشط حالياً' },
+  'departments.avgPerformance': { en: 'Avg Performance', ar: 'متوسط الأداء' },
+  'departments.performanceScore': { en: 'Performance score', ar: 'درجة الأداء' },
+  'departments.growthRate': { en: 'Growth Rate', ar: 'معدل النمو' },
+  'departments.thisYear': { en: 'This year', ar: 'هذا العام' },
+  'departments.departmentInfo': { en: 'Department Information', ar: 'بيانات القسم' },
+  'departments.nameAr': { en: 'Department Name (Arabic)', ar: 'اسم القسم بالعربي' },
+  'departments.nameEn': { en: 'Department Name (English)', ar: 'اسم القسم بالإنجليزي' },
+  'departments.manager': { en: 'Department Manager', ar: 'مدير القسم' },
+  'departments.accessCodes': { en: 'Department Access Codes', ar: 'أكواد الأقسام' },
+  'departments.save': { en: 'Save Department', ar: 'حفظ القسم' },
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
