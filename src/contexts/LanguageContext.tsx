@@ -1144,6 +1144,26 @@ const translations: Record<string, Record<Language, string>> = {
   'departments.manager': { en: 'Department Manager', ar: 'مدير القسم' },
   'departments.accessCodes': { en: 'Department Access Codes', ar: 'أكواد الأقسام' },
   'departments.save': { en: 'Save Department', ar: 'حفظ القسم' },
+  // Departments Page
+  'departmentsPage.title': { en: 'Departments Management', ar: 'إدارة الأقسام' },
+  'departmentsPage.subtitle': { en: 'Manage departments, assign managers, and track analytics', ar: 'إدارة الأقسام وتعيين المديرين ومتابعة الإحصائيات' },
+  'departmentsPage.totalDepts': { en: 'Total Departments', ar: 'إجمالي الأقسام' },
+  'departmentsPage.registeredDepts': { en: 'Registered departments', ar: 'أقسام مسجلة' },
+  'departmentsPage.totalEmps': { en: 'Total Employees', ar: 'إجمالي الموظفين' },
+  'departmentsPage.acrossAllDepts': { en: 'Across all departments', ar: 'في جميع الأقسام' },
+  'departmentsPage.avgSize': { en: 'Average Size', ar: 'متوسط الحجم' },
+  'departmentsPage.empsPerDept': { en: 'Employees per department', ar: 'موظف لكل قسم' },
+  'departmentsPage.managers': { en: 'Managers', ar: 'المديرين' },
+  'departmentsPage.uniqueManagers': { en: 'Unique managers', ar: 'مدير مختلف' },
+  'departmentsPage.addDept': { en: 'Add New Department', ar: 'إضافة قسم جديد' },
+  'departmentsPage.editDept': { en: 'Edit Department', ar: 'تعديل القسم' },
+  'departmentsPage.distribution': { en: 'Employee Distribution', ar: 'توزيع الموظفين' },
+  'departmentsPage.deptList': { en: 'Departments List', ar: 'قائمة الأقسام' },
+  'departmentsPage.deptNameAr': { en: 'Name (Arabic)', ar: 'الاسم بالعربي' },
+  'departmentsPage.deptNameEn': { en: 'Name (English)', ar: 'الاسم بالإنجليزي' },
+  'departmentsPage.deptManager': { en: 'Manager', ar: 'المدير' },
+  'departmentsPage.empCount': { en: 'Employees', ar: 'عدد الموظفين' },
+  'departmentsPage.actions': { en: 'Actions', ar: 'الإجراءات' },
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
