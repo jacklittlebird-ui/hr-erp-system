@@ -5,106 +5,244 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { CheckCircle, XCircle, User, Calendar, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, User, Calendar, FileText, ShieldCheck, Briefcase, PlusCircle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LeaveRequest } from '@/types/leaves';
+import { LeaveRequest, PermissionRequest, MissionRequest, OvertimeRequest } from '@/types/leaves';
 import { toast } from '@/hooks/use-toast';
 
-interface LeaveApprovalsProps {
-  requests: LeaveRequest[];
-  onApprove: (id: string) => void;
-  onReject: (id: string, reason: string) => void;
+type UnifiedRequest = {
+  id: string;
+  type: 'leave' | 'permission' | 'mission' | 'overtime';
+  employeeName: string;
+  employeeNameAr: string;
+  department: string;
+  reason: string;
+  details: string;
+  badgeLabel: string;
+  badgeColor: string;
+};
+
+interface AllApprovalsProps {
+  leaveRequests: LeaveRequest[];
+  permissionRequests: PermissionRequest[];
+  missionRequests: MissionRequest[];
+  overtimeRequests: OvertimeRequest[];
+  onApproveLeave: (id: string) => void;
+  onRejectLeave: (id: string, reason: string) => void;
+  onApprovePermission: (id: string) => void;
+  onRejectPermission: (id: string, reason: string) => void;
+  onApproveMission: (id: string) => void;
+  onRejectMission: (id: string, reason: string) => void;
+  onApproveOvertime: (id: string) => void;
+  onRejectOvertime: (id: string, reason: string) => void;
 }
 
-export const LeaveApprovals = ({ requests, onApprove, onReject }: LeaveApprovalsProps) => {
+export const LeaveApprovals = ({
+  leaveRequests,
+  permissionRequests,
+  missionRequests,
+  overtimeRequests,
+  onApproveLeave,
+  onRejectLeave,
+  onApprovePermission,
+  onRejectPermission,
+  onApproveMission,
+  onRejectMission,
+  onApproveOvertime,
+  onRejectOvertime,
+}: AllApprovalsProps) => {
   const { t, isRTL, language } = useLanguage();
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
+  const [selectedItem, setSelectedItem] = useState<{ id: string; type: 'leave' | 'permission' | 'mission' | 'overtime' } | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [filter, setFilter] = useState<'all' | 'leave' | 'permission' | 'mission' | 'overtime'>('all');
 
-  const handleApprove = (request: LeaveRequest) => {
-    onApprove(request.id);
-    toast({
-      title: t('leaves.approvals.approved'),
-      description: t('leaves.approvals.approvedMessage'),
-    });
+  const unifiedRequests: UnifiedRequest[] = [
+    ...leaveRequests.map((r): UnifiedRequest => ({
+      id: r.id,
+      type: 'leave',
+      employeeName: r.employeeName,
+      employeeNameAr: r.employeeNameAr,
+      department: r.department,
+      reason: r.reason,
+      details: `${r.startDate} → ${r.endDate} (${r.days} ${t('leaves.days')})`,
+      badgeLabel: t(`leaves.types.${r.leaveType}`),
+      badgeColor: 'bg-blue-500',
+    })),
+    ...permissionRequests.map((r): UnifiedRequest => ({
+      id: r.id,
+      type: 'permission',
+      employeeName: r.employeeName,
+      employeeNameAr: r.employeeNameAr,
+      department: r.department,
+      reason: r.reason,
+      details: `${r.date} | ${r.fromTime} - ${r.toTime} (${r.durationHours} ${t('leaveBalance.hours')})`,
+      badgeLabel: t(`leaves.permTypes.${r.permissionType}`),
+      badgeColor: 'bg-orange-500',
+    })),
+    ...missionRequests.map((r): UnifiedRequest => ({
+      id: r.id,
+      type: 'mission',
+      employeeName: r.employeeName,
+      employeeNameAr: r.employeeNameAr,
+      department: r.department,
+      reason: r.reason,
+      details: `${r.date}${r.destination ? ` | ${r.destination}` : ''}`,
+      badgeLabel: t(`leaves.missionTypes.${r.missionType}`),
+      badgeColor: 'bg-purple-500',
+    })),
+    ...overtimeRequests.map((r): UnifiedRequest => ({
+      id: r.id,
+      type: 'overtime',
+      employeeName: r.employeeName,
+      employeeNameAr: r.employeeNameAr,
+      department: r.department,
+      reason: r.reason,
+      details: `${r.date} | ${r.hours} ${t('leaveBalance.hours')}`,
+      badgeLabel: t(`leaves.overtimeTypes.${r.overtimeType}`),
+      badgeColor: 'bg-green-500',
+    })),
+  ];
+
+  const filteredRequests = filter === 'all' ? unifiedRequests : unifiedRequests.filter(r => r.type === filter);
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'leave': return <FileText className="w-4 h-4" />;
+      case 'permission': return <ShieldCheck className="w-4 h-4" />;
+      case 'mission': return <Briefcase className="w-4 h-4" />;
+      case 'overtime': return <PlusCircle className="w-4 h-4" />;
+      default: return <FileText className="w-4 h-4" />;
+    }
   };
 
-  const handleRejectClick = (request: LeaveRequest) => {
-    setSelectedRequest(request);
+  const getTypeBadge = (type: string) => {
+    const config: Record<string, { label: string; color: string }> = {
+      leave: { label: t('leaves.tabs.leaves'), color: 'bg-blue-100 text-blue-700 border-blue-300' },
+      permission: { label: t('leaves.tabs.permissions'), color: 'bg-orange-100 text-orange-700 border-orange-300' },
+      mission: { label: t('leaves.tabs.missions'), color: 'bg-purple-100 text-purple-700 border-purple-300' },
+      overtime: { label: t('leaves.tabs.overtime'), color: 'bg-green-100 text-green-700 border-green-300' },
+    };
+    const c = config[type] || config.leave;
+    return <Badge variant="outline" className={cn("text-xs", c.color)}>{c.label}</Badge>;
+  };
+
+  const getBorderColor = (type: string) => {
+    switch (type) {
+      case 'leave': return 'border-l-blue-500';
+      case 'permission': return 'border-l-orange-500';
+      case 'mission': return 'border-l-purple-500';
+      case 'overtime': return 'border-l-green-500';
+      default: return 'border-l-primary';
+    }
+  };
+
+  const handleApprove = (item: UnifiedRequest) => {
+    switch (item.type) {
+      case 'leave': onApproveLeave(item.id); break;
+      case 'permission': onApprovePermission(item.id); break;
+      case 'mission': onApproveMission(item.id); break;
+      case 'overtime': onApproveOvertime(item.id); break;
+    }
+    toast({ title: t('leaves.approvals.approved'), description: t('leaves.approvals.approvedMessage') });
+  };
+
+  const handleRejectClick = (item: UnifiedRequest) => {
+    setSelectedItem({ id: item.id, type: item.type });
     setRejectDialogOpen(true);
   };
 
   const handleRejectConfirm = () => {
-    if (selectedRequest && rejectionReason) {
-      onReject(selectedRequest.id, rejectionReason);
-      toast({
-        title: t('leaves.approvals.rejected'),
-        description: t('leaves.approvals.rejectedMessage'),
-        variant: 'destructive',
-      });
+    if (selectedItem && rejectionReason) {
+      switch (selectedItem.type) {
+        case 'leave': onRejectLeave(selectedItem.id, rejectionReason); break;
+        case 'permission': onRejectPermission(selectedItem.id, rejectionReason); break;
+        case 'mission': onRejectMission(selectedItem.id, rejectionReason); break;
+        case 'overtime': onRejectOvertime(selectedItem.id, rejectionReason); break;
+      }
+      toast({ title: t('leaves.approvals.rejected'), description: t('leaves.approvals.rejectedMessage'), variant: 'destructive' });
       setRejectDialogOpen(false);
       setRejectionReason('');
-      setSelectedRequest(null);
+      setSelectedItem(null);
     }
   };
 
-  const getLeaveTypeColor = (type: LeaveRequest['leaveType']) => {
-    const colors: Record<string, string> = {
-      annual: 'bg-blue-500',
-      sick: 'bg-red-500',
-      casual: 'bg-green-500',
-      unpaid: 'bg-gray-500',
-      maternity: 'bg-pink-500',
-      paternity: 'bg-purple-500',
-    };
-    return colors[type] || 'bg-primary';
-  };
+  const filterButtons = [
+    { key: 'all' as const, label: t('employees.filter.all'), count: unifiedRequests.length },
+    { key: 'leave' as const, label: t('leaves.tabs.leaves'), count: leaveRequests.length },
+    { key: 'permission' as const, label: t('leaves.tabs.permissions'), count: permissionRequests.length },
+    { key: 'mission' as const, label: t('leaves.tabs.missions'), count: missionRequests.length },
+    { key: 'overtime' as const, label: t('leaves.tabs.overtime'), count: overtimeRequests.length },
+  ];
 
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="w-5 h-5" />
-            {t('leaves.approvals.title')}
-            {requests.length > 0 && (
-              <Badge variant="destructive" className="ml-2">
-                {requests.length}
-              </Badge>
-            )}
-          </CardTitle>
+          <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4", isRTL && "sm:flex-row-reverse")}>
+            <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+              <CheckCircle className="w-5 h-5" />
+              {t('leaves.approvals.title')}
+              {unifiedRequests.length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {unifiedRequests.length}
+                </Badge>
+              )}
+            </CardTitle>
+            <div className={cn("flex flex-wrap gap-2", isRTL && "flex-row-reverse")}>
+              {filterButtons.map((btn) => (
+                <Button
+                  key={btn.key}
+                  variant={filter === btn.key ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilter(btn.key)}
+                  className="gap-1.5"
+                >
+                  {btn.label}
+                  {btn.count > 0 && (
+                    <span className={cn(
+                      "text-xs rounded-full w-5 h-5 flex items-center justify-center",
+                      filter === btn.key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                    )}>
+                      {btn.count}
+                    </span>
+                  )}
+                </Button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {requests.length === 0 ? (
+          {filteredRequests.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>{t('leaves.approvals.noPending')}</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {requests.map((request) => (
-                <Card key={request.id} className="border-l-4" style={{ borderLeftColor: `var(--${request.leaveType === 'annual' ? 'primary' : request.leaveType === 'sick' ? 'destructive' : 'success'})` }}>
+              {filteredRequests.map((request) => (
+                <Card key={`${request.type}-${request.id}`} className={cn("border-l-4", getBorderColor(request.type))}>
                   <CardContent className="p-4">
                     <div className={cn("flex flex-col md:flex-row md:items-center justify-between gap-4", isRTL && "md:flex-row-reverse")}>
                       <div className="flex-1 space-y-2">
-                        <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                        <div className={cn("flex items-center gap-2 flex-wrap", isRTL && "flex-row-reverse")}>
                           <User className="w-4 h-4 text-muted-foreground" />
                           <span className="font-semibold">
                             {language === 'ar' ? request.employeeNameAr : request.employeeName}
                           </span>
+                          {getTypeBadge(request.type)}
                           <Badge variant="outline" className="text-xs">
-                            {t(`dept.${request.department.toLowerCase()}`)}
+                            {request.department}
                           </Badge>
                         </div>
-                        
-                        <div className={cn("flex items-center gap-4 text-sm text-muted-foreground", isRTL && "flex-row-reverse")}>
+
+                        <div className={cn("flex items-center gap-4 text-sm text-muted-foreground flex-wrap", isRTL && "flex-row-reverse")}>
                           <span className={cn("flex items-center gap-1", isRTL && "flex-row-reverse")}>
-                            <Calendar className="w-3 h-3" />
-                            {request.startDate} - {request.endDate}
+                            {getTypeIcon(request.type)}
+                            {request.details}
                           </span>
-                          <Badge className={cn("text-white", getLeaveTypeColor(request.leaveType))}>
-                            {t(`leaves.types.${request.leaveType}`)} ({request.days} {t('leaves.days')})
+                          <Badge className={cn("text-white text-xs", request.badgeColor)}>
+                            {request.badgeLabel}
                           </Badge>
                         </div>
 
