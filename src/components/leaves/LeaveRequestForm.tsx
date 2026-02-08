@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Send } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { LeaveRequest } from '@/pages/Leaves';
+import { LeaveRequest } from '@/types/leaves';
 import { toast } from '@/hooks/use-toast';
 
 interface LeaveRequestFormProps {

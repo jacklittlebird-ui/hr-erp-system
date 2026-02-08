@@ -2,18 +2,18 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LeaveRequest } from '@/types/leaves';
+import { OvertimeRequest } from '@/types/leaves';
 
-interface LeaveRequestsListProps {
-  requests: LeaveRequest[];
+interface OvertimeRequestsListProps {
+  requests: OvertimeRequest[];
 }
 
-export const LeaveRequestsList = ({ requests }: LeaveRequestsListProps) => {
+export const OvertimeRequestsList = ({ requests }: OvertimeRequestsListProps) => {
   const { t, isRTL, language } = useLanguage();
 
-  const getStatusBadge = (status: LeaveRequest['status']) => {
+  const getStatusBadge = (status: OvertimeRequest['status']) => {
     switch (status) {
       case 'pending':
         return (
@@ -39,18 +39,15 @@ export const LeaveRequestsList = ({ requests }: LeaveRequestsListProps) => {
     }
   };
 
-  const getLeaveTypeBadge = (type: LeaveRequest['leaveType']) => {
+  const getOvertimeTypeBadge = (type: OvertimeRequest['overtimeType']) => {
     const colors: Record<string, string> = {
-      annual: 'bg-blue-100 text-blue-700 border-blue-300',
-      sick: 'bg-red-100 text-red-700 border-red-300',
-      casual: 'bg-green-100 text-green-700 border-green-300',
-      unpaid: 'bg-gray-100 text-gray-700 border-gray-300',
-      maternity: 'bg-pink-100 text-pink-700 border-pink-300',
-      paternity: 'bg-purple-100 text-purple-700 border-purple-300',
+      regular: 'bg-blue-100 text-blue-700 border-blue-300',
+      holiday: 'bg-red-100 text-red-700 border-red-300',
+      weekend: 'bg-green-100 text-green-700 border-green-300',
     };
     return (
       <Badge variant="outline" className={colors[type]}>
-        {t(`leaves.types.${type}`)}
+        {t(`leaves.overtimeTypes.${type}`)}
       </Badge>
     );
   };
@@ -59,8 +56,8 @@ export const LeaveRequestsList = ({ requests }: LeaveRequestsListProps) => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          {t('leaves.list.title')}
+          <PlusCircle className="w-5 h-5" />
+          {t('leaves.overtime.listTitle')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -71,9 +68,9 @@ export const LeaveRequestsList = ({ requests }: LeaveRequestsListProps) => {
                 <TableHead className={cn(isRTL && "text-right")}>{t('leaves.list.employee')}</TableHead>
                 <TableHead className={cn(isRTL && "text-right")}>{t('leaves.list.department')}</TableHead>
                 <TableHead className={cn(isRTL && "text-right")}>{t('leaves.list.type')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('leaves.list.startDate')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('leaves.list.endDate')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('leaves.list.days')}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{t('leaves.overtime.date')}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{t('leaves.overtime.hours')}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{t('leaves.overtime.reason')}</TableHead>
                 <TableHead className={cn(isRTL && "text-right")}>{t('leaves.list.status')}</TableHead>
               </TableRow>
             </TableHeader>
@@ -81,7 +78,7 @@ export const LeaveRequestsList = ({ requests }: LeaveRequestsListProps) => {
               {requests.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    {t('leaves.list.noRequests')}
+                    {t('leaves.overtime.noRequests')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -90,11 +87,11 @@ export const LeaveRequestsList = ({ requests }: LeaveRequestsListProps) => {
                     <TableCell className="font-medium">
                       {language === 'ar' ? request.employeeNameAr : request.employeeName}
                     </TableCell>
-                    <TableCell>{t(`dept.${request.department.toLowerCase()}`)}</TableCell>
-                    <TableCell>{getLeaveTypeBadge(request.leaveType)}</TableCell>
-                    <TableCell>{request.startDate}</TableCell>
-                    <TableCell>{request.endDate}</TableCell>
-                    <TableCell>{request.days}</TableCell>
+                    <TableCell>{request.department}</TableCell>
+                    <TableCell>{getOvertimeTypeBadge(request.overtimeType)}</TableCell>
+                    <TableCell>{request.date}</TableCell>
+                    <TableCell>{request.hours} {t('leaveBalance.hours')}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">{request.reason}</TableCell>
                     <TableCell>{getStatusBadge(request.status)}</TableCell>
                   </TableRow>
                 ))

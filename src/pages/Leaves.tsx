@@ -2,192 +2,98 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LeaveRequestForm } from '@/components/leaves/LeaveRequestForm';
 import { LeaveRequestsList } from '@/components/leaves/LeaveRequestsList';
+import { PermissionRequestsList } from '@/components/leaves/PermissionRequestsList';
+import { MissionRequestsList } from '@/components/leaves/MissionRequestsList';
+import { OvertimeRequestsList } from '@/components/leaves/OvertimeRequestsList';
+import { NewRequestForm } from '@/components/leaves/NewRequestForm';
 import { LeaveBalanceOverview } from '@/components/leaves/LeaveBalanceOverview';
 import { LeaveCalendar } from '@/components/leaves/LeaveCalendar';
 import { LeaveApprovals } from '@/components/leaves/LeaveApprovals';
-import { Calendar, FileText, BarChart3, CheckCircle, Plus } from 'lucide-react';
+import {
+  sampleLeaveRequests,
+  samplePermissionRequests,
+  sampleMissionRequests,
+  sampleOvertimeRequests,
+  sampleLeaveBalances,
+} from '@/data/leavesData';
+import {
+  LeaveRequest,
+  PermissionRequest,
+  MissionRequest,
+  OvertimeRequest,
+} from '@/types/leaves';
+import { FileText, Plus, CheckCircle, BarChart3, Calendar, ShieldCheck, Briefcase, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export interface LeaveRequest {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  employeeNameAr: string;
-  department: string;
-  leaveType: 'annual' | 'sick' | 'casual' | 'unpaid' | 'maternity' | 'paternity';
-  startDate: string;
-  endDate: string;
-  days: number;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  submittedDate: string;
-  approvedBy?: string;
-  approvedDate?: string;
-  rejectionReason?: string;
-}
-
-export interface EmployeeLeaveBalance {
-  employeeId: string;
-  employeeName: string;
-  employeeNameAr: string;
-  department: string;
-  annualTotal: number;
-  annualUsed: number;
-  annualRemaining: number;
-  sickTotal: number;
-  sickUsed: number;
-  sickRemaining: number;
-  casualTotal: number;
-  casualUsed: number;
-  casualRemaining: number;
-}
-
-// Sample data
-export const sampleLeaveRequests: LeaveRequest[] = [
-  {
-    id: '1',
-    employeeId: 'EMP001',
-    employeeName: 'Ahmed Mohamed',
-    employeeNameAr: 'أحمد محمد',
-    department: 'IT',
-    leaveType: 'annual',
-    startDate: '2024-02-15',
-    endDate: '2024-02-20',
-    days: 5,
-    reason: 'Family vacation',
-    status: 'pending',
-    submittedDate: '2024-02-10',
-  },
-  {
-    id: '2',
-    employeeId: 'EMP002',
-    employeeName: 'Sara Ali',
-    employeeNameAr: 'سارة علي',
-    department: 'HR',
-    leaveType: 'sick',
-    startDate: '2024-02-12',
-    endDate: '2024-02-13',
-    days: 2,
-    reason: 'Medical appointment',
-    status: 'approved',
-    submittedDate: '2024-02-11',
-    approvedBy: 'Manager',
-    approvedDate: '2024-02-11',
-  },
-  {
-    id: '3',
-    employeeId: 'EMP003',
-    employeeName: 'Mohamed Hassan',
-    employeeNameAr: 'محمد حسن',
-    department: 'Finance',
-    leaveType: 'casual',
-    startDate: '2024-02-18',
-    endDate: '2024-02-18',
-    days: 1,
-    reason: 'Personal matter',
-    status: 'pending',
-    submittedDate: '2024-02-15',
-  },
-  {
-    id: '4',
-    employeeId: 'EMP004',
-    employeeName: 'Fatima Omar',
-    employeeNameAr: 'فاطمة عمر',
-    department: 'Sales',
-    leaveType: 'annual',
-    startDate: '2024-02-25',
-    endDate: '2024-03-01',
-    days: 5,
-    reason: 'Travel abroad',
-    status: 'rejected',
-    submittedDate: '2024-02-14',
-    rejectionReason: 'Conflict with project deadline',
-  },
-];
-
-export const sampleLeaveBalances: EmployeeLeaveBalance[] = [
-  {
-    employeeId: 'EMP001',
-    employeeName: 'Ahmed Mohamed',
-    employeeNameAr: 'أحمد محمد',
-    department: 'IT',
-    annualTotal: 21,
-    annualUsed: 5,
-    annualRemaining: 16,
-    sickTotal: 15,
-    sickUsed: 2,
-    sickRemaining: 13,
-    casualTotal: 7,
-    casualUsed: 1,
-    casualRemaining: 6,
-  },
-  {
-    employeeId: 'EMP002',
-    employeeName: 'Sara Ali',
-    employeeNameAr: 'سارة علي',
-    department: 'HR',
-    annualTotal: 21,
-    annualUsed: 10,
-    annualRemaining: 11,
-    sickTotal: 15,
-    sickUsed: 5,
-    sickRemaining: 10,
-    casualTotal: 7,
-    casualUsed: 3,
-    casualRemaining: 4,
-  },
-  {
-    employeeId: 'EMP003',
-    employeeName: 'Mohamed Hassan',
-    employeeNameAr: 'محمد حسن',
-    department: 'Finance',
-    annualTotal: 21,
-    annualUsed: 0,
-    annualRemaining: 21,
-    sickTotal: 15,
-    sickUsed: 0,
-    sickRemaining: 15,
-    casualTotal: 7,
-    casualUsed: 2,
-    casualRemaining: 5,
-  },
-];
-
 const Leaves = () => {
-  const { t, isRTL, language } = useLanguage();
-  const [activeTab, setActiveTab] = useState('requests');
+  const { t, isRTL } = useLanguage();
+  const [activeTab, setActiveTab] = useState('leaves');
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(sampleLeaveRequests);
+  const [permissionRequests, setPermissionRequests] = useState<PermissionRequest[]>(samplePermissionRequests);
+  const [missionRequests, setMissionRequests] = useState<MissionRequest[]>(sampleMissionRequests);
+  const [overtimeRequests, setOvertimeRequests] = useState<OvertimeRequest[]>(sampleOvertimeRequests);
 
   const handleApprove = (id: string) => {
-    setLeaveRequests(prev => prev.map(req => 
-      req.id === id 
+    setLeaveRequests(prev => prev.map(req =>
+      req.id === id
         ? { ...req, status: 'approved' as const, approvedBy: 'Current User', approvedDate: new Date().toISOString().split('T')[0] }
         : req
     ));
   };
 
   const handleReject = (id: string, reason: string) => {
-    setLeaveRequests(prev => prev.map(req => 
-      req.id === id 
+    setLeaveRequests(prev => prev.map(req =>
+      req.id === id
         ? { ...req, status: 'rejected' as const, rejectionReason: reason }
         : req
     ));
   };
 
-  const handleNewRequest = (request: Omit<LeaveRequest, 'id' | 'status' | 'submittedDate'>) => {
-    const newRequest: LeaveRequest = {
-      ...request,
-      id: String(leaveRequests.length + 1),
+  const handleNewLeave = (data: Omit<LeaveRequest, 'id' | 'status' | 'submittedDate'>) => {
+    setLeaveRequests(prev => [...prev, {
+      ...data,
+      id: String(prev.length + 1),
       status: 'pending',
       submittedDate: new Date().toISOString().split('T')[0],
-    };
-    setLeaveRequests(prev => [...prev, newRequest]);
-    setActiveTab('requests');
+    }]);
+    setActiveTab('leaves');
   };
 
-  const pendingCount = leaveRequests.filter(r => r.status === 'pending').length;
+  const handleNewPermission = (data: Omit<PermissionRequest, 'id' | 'status' | 'submittedDate'>) => {
+    setPermissionRequests(prev => [...prev, {
+      ...data,
+      id: `P${prev.length + 1}`,
+      status: 'pending',
+      submittedDate: new Date().toISOString().split('T')[0],
+    }]);
+    setActiveTab('permissions');
+  };
+
+  const handleNewMission = (data: Omit<MissionRequest, 'id' | 'status' | 'submittedDate'>) => {
+    setMissionRequests(prev => [...prev, {
+      ...data,
+      id: `M${prev.length + 1}`,
+      status: 'pending',
+      submittedDate: new Date().toISOString().split('T')[0],
+    }]);
+    setActiveTab('missions');
+  };
+
+  const handleNewOvertime = (data: Omit<OvertimeRequest, 'id' | 'status' | 'submittedDate'>) => {
+    setOvertimeRequests(prev => [...prev, {
+      ...data,
+      id: `O${prev.length + 1}`,
+      status: 'pending',
+      submittedDate: new Date().toISOString().split('T')[0],
+    }]);
+    setActiveTab('overtime');
+  };
+
+  const pendingCount = leaveRequests.filter(r => r.status === 'pending').length +
+    permissionRequests.filter(r => r.status === 'pending').length +
+    missionRequests.filter(r => r.status === 'pending').length +
+    overtimeRequests.filter(r => r.status === 'pending').length;
 
   return (
     <DashboardLayout>
@@ -199,47 +105,76 @@ const Leaves = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className={cn(
-            "grid w-full grid-cols-5 mb-6",
+            "grid w-full grid-cols-4 lg:grid-cols-8 mb-6",
             isRTL && "direction-rtl"
           )}>
-            <TabsTrigger value="requests" className="flex items-center gap-2">
+            <TabsTrigger value="leaves" className="flex items-center gap-1.5">
               <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('leaves.tabs.requests')}</span>
+              <span className="hidden lg:inline">{t('leaves.tabs.leaves')}</span>
             </TabsTrigger>
-            <TabsTrigger value="new" className="flex items-center gap-2">
+            <TabsTrigger value="permissions" className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4" />
+              <span className="hidden lg:inline">{t('leaves.tabs.permissions')}</span>
+            </TabsTrigger>
+            <TabsTrigger value="missions" className="flex items-center gap-1.5">
+              <Briefcase className="w-4 h-4" />
+              <span className="hidden lg:inline">{t('leaves.tabs.missions')}</span>
+            </TabsTrigger>
+            <TabsTrigger value="overtime" className="flex items-center gap-1.5">
+              <PlusCircle className="w-4 h-4" />
+              <span className="hidden lg:inline">{t('leaves.tabs.overtime')}</span>
+            </TabsTrigger>
+            <TabsTrigger value="new" className="flex items-center gap-1.5">
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('leaves.tabs.newRequest')}</span>
+              <span className="hidden lg:inline">{t('leaves.tabs.newRequest')}</span>
             </TabsTrigger>
-            <TabsTrigger value="approvals" className="flex items-center gap-2 relative">
+            <TabsTrigger value="approvals" className="flex items-center gap-1.5 relative">
               <CheckCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('leaves.tabs.approvals')}</span>
+              <span className="hidden lg:inline">{t('leaves.tabs.approvals')}</span>
               {pendingCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {pendingCount}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="balance" className="flex items-center gap-2">
+            <TabsTrigger value="balance" className="flex items-center gap-1.5">
               <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('leaves.tabs.balance')}</span>
+              <span className="hidden lg:inline">{t('leaves.tabs.balance')}</span>
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="flex items-center gap-2">
+            <TabsTrigger value="calendar" className="flex items-center gap-1.5">
               <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('leaves.tabs.calendar')}</span>
+              <span className="hidden lg:inline">{t('leaves.tabs.calendar')}</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="requests">
+          <TabsContent value="leaves">
             <LeaveRequestsList requests={leaveRequests} />
           </TabsContent>
 
+          <TabsContent value="permissions">
+            <PermissionRequestsList requests={permissionRequests} />
+          </TabsContent>
+
+          <TabsContent value="missions">
+            <MissionRequestsList requests={missionRequests} />
+          </TabsContent>
+
+          <TabsContent value="overtime">
+            <OvertimeRequestsList requests={overtimeRequests} />
+          </TabsContent>
+
           <TabsContent value="new">
-            <LeaveRequestForm onSubmit={handleNewRequest} />
+            <NewRequestForm
+              onSubmitLeave={handleNewLeave}
+              onSubmitPermission={handleNewPermission}
+              onSubmitMission={handleNewMission}
+              onSubmitOvertime={handleNewOvertime}
+            />
           </TabsContent>
 
           <TabsContent value="approvals">
-            <LeaveApprovals 
-              requests={leaveRequests.filter(r => r.status === 'pending')} 
+            <LeaveApprovals
+              requests={leaveRequests.filter(r => r.status === 'pending')}
               onApprove={handleApprove}
               onReject={handleReject}
             />
