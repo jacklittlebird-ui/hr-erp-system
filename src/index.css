@@ -11,7 +11,7 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
+    --background: 220 20% 97%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -20,65 +20,65 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 217 91% 60%;
+    --primary: 220 60% 20%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
+    --secondary: 220 25% 94%;
     --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96%;
+    --muted: 220 25% 94%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 0 75% 55%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 60%;
+    --border: 220 20% 88%;
+    --input: 220 20% 88%;
+    --ring: 220 60% 20%;
 
     --radius: 0.75rem;
 
-    /* HR ERP Custom Colors */
-    --stat-coral: 0 79% 72%;
-    --stat-coral-bg: 0 79% 95%;
-    --stat-blue: 217 91% 60%;
-    --stat-blue-bg: 217 91% 95%;
-    --stat-purple: 271 81% 56%;
-    --stat-purple-bg: 271 81% 95%;
-    --stat-teal: 168 76% 42%;
-    --stat-teal-bg: 168 76% 95%;
-    --stat-green: 142 71% 45%;
-    --stat-green-bg: 142 71% 95%;
-    --stat-yellow: 45 93% 47%;
-    --stat-yellow-bg: 45 93% 95%;
-    --stat-pink: 330 81% 60%;
-    --stat-pink-bg: 330 81% 95%;
+    /* HR ERP Custom Colors - Vibrant Accents */
+    --stat-coral: 16 85% 58%;
+    --stat-coral-bg: 16 85% 95%;
+    --stat-blue: 210 80% 55%;
+    --stat-blue-bg: 210 80% 95%;
+    --stat-purple: 265 75% 55%;
+    --stat-purple-bg: 265 75% 95%;
+    --stat-teal: 172 70% 40%;
+    --stat-teal-bg: 172 70% 95%;
+    --stat-green: 145 65% 42%;
+    --stat-green-bg: 145 65% 95%;
+    --stat-yellow: 40 95% 50%;
+    --stat-yellow-bg: 40 95% 95%;
+    --stat-pink: 340 75% 55%;
+    --stat-pink-bg: 340 75% 95%;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 215 16% 47%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-background: 220 55% 15%;
+    --sidebar-foreground: 220 15% 75%;
+    --sidebar-primary: 0 75% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 91% 97%;
-    --sidebar-accent-foreground: 217 91% 50%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 220 50% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 45% 20%;
+    --sidebar-ring: 0 75% 55%;
 
     /* Success/Warning Colors */
-    --success: 142 71% 45%;
+    --success: 145 65% 42%;
     --success-foreground: 0 0% 100%;
-    --warning: 45 93% 47%;
+    --warning: 40 95% 50%;
     --warning-foreground: 0 0% 0%;
 
-    /* Chart Colors */
-    --chart-1: 217 91% 60%;
-    --chart-2: 168 76% 42%;
-    --chart-3: 330 81% 60%;
-    --chart-4: 45 93% 47%;
-    --chart-5: 271 81% 56%;
-    --chart-6: 0 79% 72%;
+    /* Chart Colors - Vibrant Mix */
+    --chart-1: 0 75% 55%;
+    --chart-2: 210 80% 55%;
+    --chart-3: 40 95% 50%;
+    --chart-4: 145 65% 42%;
+    --chart-5: 265 75% 55%;
+    --chart-6: 16 85% 58%;
 
     /* Font */
     --font-sans: 'Baloo Bhaijaan 2', sans-serif;
@@ -86,42 +86,42 @@
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 220 50% 8%;
+    --foreground: 220 15% 95%;
 
-    --card: 222 47% 14%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 50% 12%;
+    --card-foreground: 220 15% 95%;
 
-    --popover: 222 47% 14%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 50% 12%;
+    --popover-foreground: 220 15% 95%;
 
-    --primary: 217 91% 60%;
+    --primary: 0 75% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 40% 18%;
+    --secondary-foreground: 220 15% 95%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 220 40% 18%;
+    --muted-foreground: 220 15% 60%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 75% 55%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 220 15% 95%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 212 27% 84%;
+    --border: 220 40% 18%;
+    --input: 220 40% 18%;
+    --ring: 0 75% 55%;
     
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 215 20% 65%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-background: 220 55% 8%;
+    --sidebar-foreground: 220 15% 65%;
+    --sidebar-primary: 0 75% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 220 40% 15%;
+    --sidebar-accent-foreground: 220 15% 95%;
+    --sidebar-border: 220 40% 15%;
+    --sidebar-ring: 0 75% 55%;
   }
 }
 

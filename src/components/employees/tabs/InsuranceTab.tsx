@@ -55,8 +55,9 @@ export const InsuranceTab = ({ employee }: InsuranceTabProps) => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="permanent">{t('employees.contract.permanent')}</SelectItem>
-              <SelectItem value="temporary">{t('employees.contract.temporary')}</SelectItem>
-              <SelectItem value="parttime">{t('employees.contract.parttime')}</SelectItem>
+              <SelectItem value="sixMonths">{t('employees.contract.sixMonths')}</SelectItem>
+              <SelectItem value="oneYear">{t('employees.contract.oneYear')}</SelectItem>
+              <SelectItem value="fourYears">{t('employees.contract.fourYears')}</SelectItem>
             </SelectContent>
           </Select>
         </div>

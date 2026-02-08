@@ -49,15 +49,29 @@ export const JobInfoTab = ({ employee }: JobInfoTabProps) => {
               <SelectValue placeholder={t('employees.selectDegree')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">1</SelectItem>
-              <SelectItem value="2">2</SelectItem>
-              <SelectItem value="3">3</SelectItem>
+              <SelectItem value="AA">AA</SelectItem>
+              <SelectItem value="A">A</SelectItem>
+              <SelectItem value="B">B</SelectItem>
+              <SelectItem value="C">C</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.jobLevel')}</Label>
-          <Input className={cn(isRTL && "text-right")} />
+          <Select>
+            <SelectTrigger className={cn(isRTL && "text-right")}>
+              <SelectValue placeholder={t('employees.select')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="junior">{t('employees.jobLevel.junior')}</SelectItem>
+              <SelectItem value="mid">{t('employees.jobLevel.mid')}</SelectItem>
+              <SelectItem value="senior">{t('employees.jobLevel.senior')}</SelectItem>
+              <SelectItem value="shiftLeader">{t('employees.jobLevel.shiftLeader')}</SelectItem>
+              <SelectItem value="supervisor">{t('employees.jobLevel.supervisor')}</SelectItem>
+              <SelectItem value="manager">{t('employees.jobLevel.manager')}</SelectItem>
+              <SelectItem value="director">{t('employees.jobLevel.director')}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.hireDate')}</Label>
@@ -79,6 +93,7 @@ export const JobInfoTab = ({ employee }: JobInfoTabProps) => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">{t('employees.status.active')}</SelectItem>
+              <SelectItem value="inactive">{t('employees.status.inactive')}</SelectItem>
               <SelectItem value="resigned">{t('employees.status.resigned')}</SelectItem>
             </SelectContent>
           </Select>
