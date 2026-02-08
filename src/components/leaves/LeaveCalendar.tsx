@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LeaveRequest } from '@/pages/Leaves';
+import { LeaveRequest } from '@/types/leaves';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isWithinInterval, parseISO } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 

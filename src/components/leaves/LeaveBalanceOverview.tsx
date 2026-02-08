@@ -4,7 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart3, CalendarDays, Stethoscope, Coffee } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { EmployeeLeaveBalance } from '@/pages/Leaves';
+import { EmployeeLeaveBalance } from '@/types/leaves';
 
 interface LeaveBalanceOverviewProps {
   balances: EmployeeLeaveBalance[];

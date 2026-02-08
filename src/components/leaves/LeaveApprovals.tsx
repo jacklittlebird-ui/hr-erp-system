@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { CheckCircle, XCircle, User, Calendar, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LeaveRequest } from '@/pages/Leaves';
+import { LeaveRequest } from '@/types/leaves';
 import { toast } from '@/hooks/use-toast';
 
 interface LeaveApprovalsProps {
