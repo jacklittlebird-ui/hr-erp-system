@@ -1076,6 +1076,26 @@ const translations: Record<string, Record<Language, string>> = {
   'salaryReports.allowanceBreakdown': { en: 'Allowance Breakdown', ar: 'تفصيل البدلات' },
   'salaryReports.deductionBreakdown': { en: 'Deduction Breakdown', ar: 'تفصيل الخصومات' },
   'salaryReports.monthlyAllowanceTrend': { en: 'Monthly Allowances vs Deductions', ar: 'البدلات مقابل الخصومات الشهرية' },
+  // Leave Balance Tab
+  'leaveBalance.year': { en: 'Year', ar: 'السنة' },
+  'leaveBalance.annualLeave': { en: 'Annual Leave', ar: 'الإجازة السنوية' },
+  'leaveBalance.sickLeave': { en: 'Sick Leave', ar: 'الإجازة المرضية' },
+  'leaveBalance.casualLeave': { en: 'Casual Leave', ar: 'الإجازة العارضة' },
+  'leaveBalance.permissions': { en: 'Permissions', ar: 'الأذونات' },
+  'leaveBalance.total': { en: 'Total', ar: 'الإجمالي' },
+  'leaveBalance.used': { en: 'Used', ar: 'المستخدم' },
+  'leaveBalance.remaining': { en: 'Remaining', ar: 'المتبقي' },
+  'leaveBalance.days': { en: 'days', ar: 'يوم' },
+  'leaveBalance.hours': { en: 'hours', ar: 'ساعة' },
+  'leaveBalance.saveBalance': { en: 'Save Balance', ar: 'حفظ الرصيد' },
+  'leaveBalance.saved': { en: 'Saved', ar: 'تم الحفظ' },
+  'leaveBalance.savedMessage': { en: 'Leave balance saved successfully', ar: 'تم حفظ رصيد الإجازات بنجاح' },
+  'leaveBalance.balanceHistory': { en: 'Balance History', ar: 'سجل الأرصدة' },
+  'leaveBalance.historyTitle': { en: 'Balance History (Current Year + Previous 4 Years)', ar: 'سجل الأرصدة (السنة الحالية + 4 سنوات سابقة)' },
+  'leaveBalance.showing': { en: 'Showing', ar: 'عرض' },
+  'leaveBalance.yearsLabel': { en: 'year(s)', ar: 'سنة/سنوات' },
+  'leaveBalance.currentYear': { en: 'Current Year', ar: 'السنة الحالية' },
+  'leaveBalance.noHistory': { en: 'No balance history found', ar: 'لا يوجد سجل أرصدة' },
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
