@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Wallet, TrendingUp, TrendingDown, DollarSign, Download, Printer, FileText } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { useReportExport } from '@/hooks/useReportExport';
 
 export const SalaryReports = () => {
   const { t, isRTL } = useLanguage();
   const [period, setPeriod] = useState('year');
+  const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
 
   const monthlySalaries = [
     { month: t('months.jan'), basic: 850000, allowances: 150000, deductions: 80000, net: 920000 },
@@ -43,17 +45,28 @@ export const SalaryReports = () => {
     { label: t('reports.totalDeductions'), value: '92K', icon: TrendingDown, color: 'text-destructive', bg: 'bg-destructive/10' },
   ];
 
+  const reportTitle = t('reports.tabs.salaries');
+
+  const getExportColumns = () => [
+    { header: t('reports.month'), key: 'month' },
+    { header: t('reports.basic'), key: 'basic' },
+    { header: t('reports.allowances'), key: 'allowances' },
+    { header: t('reports.deductions'), key: 'deductions' },
+    { header: t('reports.net'), key: 'net' },
+  ];
+
+  const getExportData = () => monthlySalaries.map(d => ({
+    month: d.month, basic: d.basic, allowances: d.allowances, deductions: d.deductions, net: d.net,
+  }));
+
   return (
     <div className="space-y-6">
-      {/* Filters */}
       <Card>
         <CardContent className="p-4">
           <div className={cn("flex flex-wrap gap-4 items-center justify-between", isRTL && "flex-row-reverse")}>
             <div className={cn("flex gap-4", isRTL && "flex-row-reverse")}>
               <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="month">{t('reports.thisMonth')}</SelectItem>
                   <SelectItem value="quarter">{t('reports.thisQuarter')}</SelectItem>
@@ -62,112 +75,92 @@ export const SalaryReports = () => {
               </Select>
             </div>
             <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
-              <Button variant="outline" size="sm">
-                <Printer className="w-4 h-4 mr-2" />
-                {t('reports.print')}
+              <Button variant="outline" size="sm" onClick={() => handlePrint(reportTitle)}>
+                <Printer className="w-4 h-4 mr-2" />{t('reports.print')}
               </Button>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                {t('reports.exportPDF')}
+              <Button variant="outline" size="sm" onClick={() => exportToPDF({ title: reportTitle, data: getExportData(), columns: getExportColumns() })}>
+                <Download className="w-4 h-4 mr-2" />{t('reports.exportPDF')}
               </Button>
-              <Button variant="outline" size="sm">
-                <FileText className="w-4 h-4 mr-2" />
-                {t('reports.exportExcel')}
+              <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: reportTitle, data: getExportData(), columns: getExportColumns() })}>
+                <FileText className="w-4 h-4 mr-2" />{t('reports.exportExcel')}
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardContent className="p-6">
-              <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
-                <div className={cn("p-3 rounded-lg", stat.bg)}>
-                  <stat.icon className={cn("w-6 h-6", stat.color)} />
+      <div ref={reportRef}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {stats.map((stat, index) => (
+            <Card key={index}>
+              <CardContent className="p-6">
+                <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
+                  <div className={cn("p-3 rounded-lg", stat.bg)}>
+                    <stat.icon className={cn("w-6 h-6", stat.color)} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{stat.label}</p>
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <Card className="lg:col-span-2">
+            <CardHeader><CardTitle>{t('reports.payrollTrend')}</CardTitle></CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={monthlySalaries}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" fontSize={12} />
+                    <YAxis fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                    <Tooltip formatter={(v: number) => `${(v / 1000).toFixed(0)}K`} />
+                    <Legend />
+                    <Area type="monotone" dataKey="net" name={t('reports.netSalary')} stroke="#22c55e" fill="#22c55e" fillOpacity={0.3} />
+                    <Area type="monotone" dataKey="basic" name={t('reports.basicSalary')} stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>{t('reports.payrollTrend')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlySalaries}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" fontSize={12} />
-                  <YAxis fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                  <Tooltip formatter={(v: number) => `${(v / 1000).toFixed(0)}K`} />
-                  <Legend />
-                  <Area type="monotone" dataKey="net" name={t('reports.netSalary')} stroke="#22c55e" fill="#22c55e" fillOpacity={0.3} />
-                  <Area type="monotone" dataKey="basic" name={t('reports.basicSalary')} stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader><CardTitle>{t('reports.salaryByDept')}</CardTitle></CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={departmentSalaries} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value"
+                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                      {departmentSalaries.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => `${(v / 1000).toFixed(0)}K`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('reports.salaryByDept')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={departmentSalaries}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                  >
-                    {departmentSalaries.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => `${(v / 1000).toFixed(0)}K`} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('reports.salaryDistribution')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={salaryRange}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="range" fontSize={12} />
-                  <YAxis fontSize={12} />
-                  <Tooltip />
-                  <Bar dataKey="count" name={t('reports.employees')} fill="#8b5cf6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader><CardTitle>{t('reports.salaryDistribution')}</CardTitle></CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={salaryRange}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="range" fontSize={12} /><YAxis fontSize={12} />
+                    <Tooltip />
+                    <Bar dataKey="count" name={t('reports.employees')} fill="#8b5cf6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
