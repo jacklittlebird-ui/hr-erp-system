@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { Download, FileBarChart, TrendingUp, TrendingDown, Users, Building2, Star, Target } from 'lucide-react';
+import { Download, FileBarChart, TrendingUp, TrendingDown, Star, Target, Building2, Printer, FileSpreadsheet } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { useReportExport } from '@/hooks/useReportExport';
 
 const departmentScores = [
   { department: 'تقنية المعلومات', average: 4.3, employees: 15, trend: '+0.3' },
@@ -39,9 +40,12 @@ const radarData = criteriaAverages.map(item => ({
   fullMark: 100,
 }));
 
+const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
+
 export const QuarterlyReports = () => {
-  const { t, isRTL } = useLanguage();
-  const [selectedYear, setSelectedYear] = useState('2024');
+  const { t, isRTL, language } = useLanguage();
+  const { exportToCSV, exportToPDF, handlePrint, reportRef } = useReportExport();
+  const [selectedYear, setSelectedYear] = useState('2025');
   const [selectedQuarter, setSelectedQuarter] = useState('Q4');
 
   const summaryStats = [
@@ -51,8 +55,34 @@ export const QuarterlyReports = () => {
     { label: t('performance.reports.needsImprovement'), value: '8%', icon: TrendingDown, color: 'bg-stat-coral/10 text-stat-coral' },
   ];
 
+  const handleExportCSV = () => {
+    exportToCSV({
+      title: language === 'ar' ? 'تقرير أداء الأقسام' : 'Department Performance Report',
+      columns: [
+        { header: language === 'ar' ? 'القسم' : 'Department', key: 'department' },
+        { header: language === 'ar' ? 'المتوسط' : 'Average', key: 'average' },
+        { header: language === 'ar' ? 'الموظفين' : 'Employees', key: 'employees' },
+        { header: language === 'ar' ? 'الاتجاه' : 'Trend', key: 'trend' },
+      ],
+      data: departmentScores as any,
+    });
+  };
+
+  const handleExportPDF = () => {
+    exportToPDF({
+      title: language === 'ar' ? 'تقرير أداء الأقسام' : 'Department Performance Report',
+      columns: [
+        { header: language === 'ar' ? 'القسم' : 'Department', key: 'department' },
+        { header: language === 'ar' ? 'المتوسط' : 'Average', key: 'average' },
+        { header: language === 'ar' ? 'الموظفين' : 'Employees', key: 'employees' },
+        { header: language === 'ar' ? 'الاتجاه' : 'Trend', key: 'trend' },
+      ],
+      data: departmentScores as any,
+    });
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={reportRef}>
       {/* Report Selection */}
       <Card>
         <CardHeader>
@@ -64,14 +94,13 @@ export const QuarterlyReports = () => {
               </CardTitle>
               <CardDescription className="mt-1">{t('performance.reports.description')}</CardDescription>
             </div>
-            <div className={cn("flex gap-3", isRTL && "flex-row-reverse")}>
+            <div className={cn("flex gap-2 flex-wrap", isRTL && "flex-row-reverse")}>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
                 <SelectTrigger className="w-28">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="2024">2024</SelectItem>
-                  <SelectItem value="2023">2023</SelectItem>
+                  {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
@@ -85,9 +114,17 @@ export const QuarterlyReports = () => {
                   <SelectItem value="Q1">Q1</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => handlePrint(language === 'ar' ? 'التقارير الربع سنوية' : 'Quarterly Reports')} className="gap-1.5">
+                <Printer className="w-4 h-4" />
+                {language === 'ar' ? 'طباعة' : 'Print'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-1.5">
+                <FileSpreadsheet className="w-4 h-4" />
+                Excel
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportPDF} className="gap-1.5">
                 <Download className="w-4 h-4" />
-                {t('performance.reports.export')}
+                PDF
               </Button>
             </div>
           </div>
@@ -118,7 +155,6 @@ export const QuarterlyReports = () => {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Quarterly Trend */}
         <Card>
           <CardHeader>
             <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
@@ -134,30 +170,14 @@ export const QuarterlyReports = () => {
                   <YAxis domain={[3, 5]} tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="score" 
-                    stroke="hsl(var(--stat-blue))" 
-                    strokeWidth={3}
-                    dot={{ fill: 'hsl(var(--stat-blue))', strokeWidth: 2, r: 6 }}
-                    name={t('performance.metrics.actualScore')}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="target" 
-                    stroke="hsl(var(--stat-green))" 
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={{ fill: 'hsl(var(--stat-green))', strokeWidth: 2, r: 4 }}
-                    name={t('performance.metrics.target')}
-                  />
+                  <Line type="monotone" dataKey="score" stroke="hsl(var(--stat-blue))" strokeWidth={3} dot={{ fill: 'hsl(var(--stat-blue))', strokeWidth: 2, r: 6 }} name={t('performance.metrics.actualScore')} />
+                  <Line type="monotone" dataKey="target" stroke="hsl(var(--stat-green))" strokeWidth={2} strokeDasharray="5 5" dot={{ fill: 'hsl(var(--stat-green))', strokeWidth: 2, r: 4 }} name={t('performance.metrics.target')} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        {/* Criteria Radar */}
         <Card>
           <CardHeader>
             <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
@@ -172,13 +192,7 @@ export const QuarterlyReports = () => {
                   <PolarGrid />
                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
-                  <Radar 
-                    name="Score" 
-                    dataKey="A" 
-                    stroke="hsl(var(--stat-blue))" 
-                    fill="hsl(var(--stat-blue))" 
-                    fillOpacity={0.4} 
-                  />
+                  <Radar name="Score" dataKey="A" stroke="hsl(var(--stat-blue))" fill="hsl(var(--stat-blue))" fillOpacity={0.4} />
                   <Tooltip />
                 </RadarChart>
               </ResponsiveContainer>
@@ -198,21 +212,13 @@ export const QuarterlyReports = () => {
         <CardContent>
           <div className="space-y-4">
             {departmentScores.map((dept) => (
-              <div 
-                key={dept.department}
-                className={cn(
-                  "flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors",
-                  isRTL && "flex-row-reverse"
-                )}
-              >
+              <div key={dept.department} className={cn("flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors", isRTL && "flex-row-reverse")}>
                 <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
                   <Building2 className="w-5 h-5 text-primary" />
                 </div>
                 <div className={cn("flex-1 min-w-0", isRTL && "text-right")}>
                   <p className="font-medium truncate">{dept.department}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {dept.employees} {t('performance.reports.employees')}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{dept.employees} {t('performance.reports.employees')}</p>
                 </div>
                 <div className="w-32">
                   <Progress value={dept.average * 20} className="h-2" />
@@ -222,12 +228,7 @@ export const QuarterlyReports = () => {
                     <Star className="w-4 h-4 text-stat-yellow fill-stat-yellow" />
                     <span className="font-bold">{dept.average}</span>
                   </div>
-                  <span className={cn(
-                    "text-xs font-medium px-1.5 py-0.5 rounded",
-                    dept.trend.startsWith('+') ? "bg-stat-green/10 text-stat-green" : "bg-stat-coral/10 text-stat-coral"
-                  )}>
-                    {dept.trend}
-                  </span>
+                  <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded", dept.trend.startsWith('+') ? "bg-stat-green/10 text-stat-green" : "bg-stat-coral/10 text-stat-coral")}>{dept.trend}</span>
                 </div>
               </div>
             ))}
@@ -250,12 +251,7 @@ export const QuarterlyReports = () => {
                 <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 12 }} />
                 <YAxis dataKey="criteria" type="category" width={100} tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Bar 
-                  dataKey="score" 
-                  fill="hsl(var(--stat-blue))" 
-                  radius={[0, 4, 4, 0]}
-                  barSize={24}
-                />
+                <Bar dataKey="score" fill="hsl(var(--stat-blue))" radius={[0, 4, 4, 0]} barSize={24} />
               </BarChart>
             </ResponsiveContainer>
           </div>
