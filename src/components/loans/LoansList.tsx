@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Search, Plus, Edit, Trash2, DollarSign, Users, Clock, CheckCircle, Printer, FileText, FileSpreadsheet, CreditCard } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, DollarSign, Users, Clock, CheckCircle, Printer, FileText, FileSpreadsheet, CreditCard, List } from 'lucide-react';
+import { InstallmentScheduleDialog } from './InstallmentScheduleDialog';
 import { toast } from '@/hooks/use-toast';
 import { mockEmployees as systemEmployees } from '@/data/mockEmployees';
 import { stationLocations } from '@/data/stationLocations';
@@ -92,6 +93,8 @@ export const LoansList = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [deletingLoanId, setDeletingLoanId] = useState<string | null>(null);
+  const [showInstallmentSchedule, setShowInstallmentSchedule] = useState(false);
+  const [viewingLoan, setViewingLoan] = useState<Loan | null>(null);
   const [formData, setFormData] = useState({
     employeeId: '',
     amount: '',
@@ -113,6 +116,15 @@ export const LoansList = () => {
     if (amount > 0 && installments > 0) return (amount / installments).toFixed(2);
     return '';
   }, [formData.amount, formData.installments]);
+
+  // Auto-calculate installments when manual: amount and monthlyPayment are set
+  const autoInstallmentsCount = useMemo(() => {
+    if (formData.calculationMethod !== 'manual') return '';
+    const amount = parseFloat(formData.amount);
+    const monthly = parseFloat(formData.monthlyPayment);
+    if (amount > 0 && monthly > 0) return String(Math.ceil(amount / monthly));
+    return '';
+  }, [formData.amount, formData.monthlyPayment, formData.calculationMethod]);
 
   const statusLabels: Record<string, { en: string; ar: string; color: string }> = {
     active: { en: 'Active', ar: 'نشط', color: 'bg-blue-100 text-blue-700 border-blue-300' },
@@ -157,14 +169,17 @@ export const LoansList = () => {
   };
 
   const handleSubmit = () => {
-    if (!formData.employeeId || !formData.amount || !formData.installments || !formData.startDate) {
+    const amount = parseFloat(formData.amount);
+    const isManual = formData.calculationMethod === 'manual';
+    const monthlyPayment = isManual ? parseFloat(formData.monthlyPayment || '0') : 0;
+    const installments = isManual ? (amount > 0 && monthlyPayment > 0 ? Math.ceil(amount / monthlyPayment) : 0) : parseInt(formData.installments);
+    const monthly = isManual ? monthlyPayment : (amount > 0 && installments > 0 ? amount / installments : 0);
+
+    if (!formData.employeeId || !formData.amount || !formData.startDate || installments <= 0) {
       toast({ title: isRTL ? 'خطأ' : 'Error', description: isRTL ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields', variant: 'destructive' });
       return;
     }
     const employee = systemEmployees.find(e => e.employeeId === formData.employeeId);
-    const amount = parseFloat(formData.amount);
-    const installments = parseInt(formData.installments);
-    const monthly = formData.calculationMethod === 'auto' ? amount / installments : parseFloat(formData.monthlyPayment || '0');
 
     if (editingLoan) {
       setLoans(loans.map(l => l.id === editingLoan.id ? {
@@ -339,7 +354,10 @@ export const LoansList = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className={`flex gap-2 pt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className={`flex gap-2 pt-2 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => { setViewingLoan(loan); setShowInstallmentSchedule(true); }}>
+                        <List className="h-3 w-3" />{isRTL ? 'جدول الأقساط' : 'Schedule'}
+                      </Button>
                       {loan.status === 'active' && (
                         <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => handleRecordPayment(loan.id)}>
                           <CreditCard className="h-3 w-3" />{isRTL ? 'تسجيل دفعة' : 'Record Payment'}
@@ -421,8 +439,12 @@ export const LoansList = () => {
 
             {/* Installments */}
             <div className="space-y-2">
-              <Label>{isRTL ? 'عدد الأقساط *' : 'Number of Installments *'}</Label>
-              <Input type="number" value={formData.installments} onChange={e => setFormData({ ...formData, installments: e.target.value })} />
+              <Label>{isRTL ? 'عدد الأقساط' : 'Number of Installments'}{formData.calculationMethod === 'manual' ? (isRTL ? ' (محسوب تلقائياً)' : ' (Auto-calculated)') : ' *'}</Label>
+              {formData.calculationMethod === 'manual' ? (
+                <Input value={autoInstallmentsCount ? `${autoInstallmentsCount} ${isRTL ? 'قسط' : 'installments'}` : ''} disabled className="bg-muted" />
+              ) : (
+                <Input type="number" value={formData.installments} onChange={e => setFormData({ ...formData, installments: e.target.value })} />
+              )}
             </div>
 
             {/* Monthly Payment */}
@@ -465,6 +487,7 @@ export const LoansList = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <InstallmentScheduleDialog open={showInstallmentSchedule} onOpenChange={setShowInstallmentSchedule} loan={viewingLoan} />
     </div>
   );
 };
