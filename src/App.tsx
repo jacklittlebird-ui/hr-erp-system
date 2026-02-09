@@ -10,7 +10,7 @@ import EmployeeDetails from "./pages/EmployeeDetails";
 import Leaves from "./pages/Leaves";
 import Attendance from "./pages/Attendance";
 import Performance from "./pages/Performance";
-import EmployeeAttendance from "./pages/EmployeeAttendance";
+import EmployeePortal from "./pages/EmployeePortal";
 import Training from "./pages/Training";
 import Loans from "./pages/Loans";
 import Salaries from "./pages/Salaries";
@@ -38,7 +38,7 @@ const App = () => (
             <Route path="/leaves" element={<Leaves />} />
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/performance" element={<Performance />} />
-            <Route path="/employee-portal" element={<EmployeeAttendance />} />
+            <Route path="/employee-portal" element={<EmployeePortal />} />
             <Route path="/training" element={<Training />} />
             <Route path="/loans" element={<Loans />} />
             <Route path="/salaries" element={<Salaries />} />
