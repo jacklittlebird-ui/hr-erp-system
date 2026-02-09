@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSalaryData, calcGross, calcNet, SalaryRecord } from '@/contexts/SalaryDataContext';
 import { Employee } from '@/types/employee';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,20 +26,6 @@ interface BankInfo {
   bankName: string;
 }
 
-interface SalaryRecord {
-  year: string;
-  basicSalary: number;
-  transportAllowance: number;
-  incentives: number;
-  livingAllowance: number;
-  stationAllowance: number;
-  mobileAllowance: number;
-  employeeInsurance: number;
-  employerSocialInsurance: number;
-  healthInsurance: number;
-  incomeTax: number;
-}
-
 const defaultBanks = [
   { value: 'credit_agricole', labelAr: 'كريدي أجريكول', labelEn: 'Crédit Agricole' },
   { value: 'nbe', labelAr: 'البنك الأهلي المصري', labelEn: 'National Bank of Egypt' },
@@ -48,17 +35,13 @@ const defaultBanks = [
 
 const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
 
-const calcGross = (r: SalaryRecord) =>
-  r.basicSalary + r.transportAllowance + r.incentives + r.livingAllowance + r.stationAllowance + r.mobileAllowance;
-
-const calcNet = (r: SalaryRecord) => calcGross(r) - r.employeeInsurance;
-
-const calcEmployerContributions = (r: SalaryRecord) =>
+const calcEmployerContributions = (r: Omit<SalaryRecord, 'year' | 'employeeId'>) =>
   r.employerSocialInsurance + r.healthInsurance + r.incomeTax;
 
 export const SalaryTab = ({ employee }: SalaryTabProps) => {
   const { isRTL, language } = useLanguage();
   const ar = language === 'ar';
+  const { salaryRecords, saveSalaryRecord, deleteSalaryRecord } = useSalaryData();
 
   // Bank info (fixed)
   const [bankInfo, setBankInfo] = useState<BankInfo>({
@@ -68,26 +51,30 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
   const [showAddBank, setShowAddBank] = useState(false);
   const [newBank, setNewBank] = useState({ labelAr: '', labelEn: '' });
 
-  // Salary records
-  const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
+  // Form state
   const [selectedYear, setSelectedYear] = useState('');
-  const [formData, setFormData] = useState<Omit<SalaryRecord, 'year'>>({
+  const [formData, setFormData] = useState({
     basicSalary: 0, transportAllowance: 0, incentives: 0, livingAllowance: 0,
     stationAllowance: 0, mobileAllowance: 0, employeeInsurance: 0,
     employerSocialInsurance: 0, healthInsurance: 0, incomeTax: 0,
   });
 
-  const existingRecord = useMemo(
-    () => salaryRecords.find(r => r.year === selectedYear),
-    [salaryRecords, selectedYear]
+  // Filter records for this employee
+  const employeeRecords = useMemo(
+    () => salaryRecords.filter(r => r.employeeId === employee.employeeId).sort((a, b) => b.year.localeCompare(a.year)),
+    [salaryRecords, employee.employeeId]
   );
 
-  // When year changes, load existing data
+  const existingRecord = useMemo(
+    () => employeeRecords.find(r => r.year === selectedYear),
+    [employeeRecords, selectedYear]
+  );
+
   const handleYearChange = useCallback((year: string) => {
     setSelectedYear(year);
-    const existing = salaryRecords.find(r => r.year === year);
+    const existing = salaryRecords.find(r => r.employeeId === employee.employeeId && r.year === year);
     if (existing) {
-      const { year: _, ...rest } = existing;
+      const { year: _, employeeId: __, ...rest } = existing;
       setFormData(rest);
     } else {
       setFormData({
@@ -96,31 +83,22 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
         employerSocialInsurance: 0, healthInsurance: 0, incomeTax: 0,
       });
     }
-  }, [salaryRecords]);
+  }, [salaryRecords, employee.employeeId]);
 
   const updateField = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
   };
 
-  const gross = useMemo(() => calcGross({ ...formData, year: '' }), [formData]);
-  const net = useMemo(() => calcNet({ ...formData, year: '' }), [formData]);
-  const employerTotal = useMemo(() => calcEmployerContributions({ ...formData, year: '' }), [formData]);
+  const gross = useMemo(() => calcGross({ ...formData }), [formData]);
+  const net = useMemo(() => calcNet({ ...formData }), [formData]);
+  const employerTotal = useMemo(() => calcEmployerContributions(formData), [formData]);
 
   const handleSaveSalary = () => {
     if (!selectedYear) {
       toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'اختر السنة أولاً' : 'Select a year first', variant: 'destructive' });
       return;
     }
-    const record: SalaryRecord = { year: selectedYear, ...formData };
-    setSalaryRecords(prev => {
-      const idx = prev.findIndex(r => r.year === selectedYear);
-      if (idx >= 0) {
-        const updated = [...prev];
-        updated[idx] = record;
-        return updated;
-      }
-      return [...prev, record];
-    });
+    saveSalaryRecord({ year: selectedYear, employeeId: employee.employeeId, ...formData });
     toast({ title: ar ? 'تم الحفظ' : 'Saved', description: ar ? `تم حفظ راتب سنة ${selectedYear}` : `Salary for ${selectedYear} saved` });
   };
 
@@ -138,11 +116,9 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
   };
 
   const handleDeleteRecord = (year: string) => {
-    setSalaryRecords(prev => prev.filter(r => r.year !== year));
+    deleteSalaryRecord(employee.employeeId, year);
     toast({ title: ar ? 'تم الحذف' : 'Deleted' });
   };
-
-  const sortedRecords = useMemo(() => [...salaryRecords].sort((a, b) => b.year.localeCompare(a.year)), [salaryRecords]);
 
   const fieldRow = (label: string, field: keyof typeof formData) => (
     <div className="space-y-1.5">
@@ -158,7 +134,7 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {/* ====== BANK INFO (FIXED) ====== */}
+      {/* ====== BANK INFO ====== */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
@@ -227,7 +203,6 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Allowances */}
           <div>
             <h4 className={cn("font-semibold text-sm mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
               <TrendingUp className="h-4 w-4 text-green-600" />
@@ -245,7 +220,6 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
 
           <Separator />
 
-          {/* Employee Deductions */}
           <div>
             <h4 className={cn("font-semibold text-sm mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
               <TrendingDown className="h-4 w-4 text-destructive" />
@@ -258,7 +232,6 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
 
           <Separator />
 
-          {/* Employer Contributions */}
           <div>
             <h4 className={cn("font-semibold text-sm mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
               <Building2 className="h-4 w-4 text-blue-600" />
@@ -279,21 +252,18 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-muted-foreground mb-1">{ar ? 'الراتب الإجمالي' : 'Gross Salary'}</p>
                 <p className="text-2xl font-bold text-green-700">{gross.toLocaleString()} <span className="text-sm">{ar ? 'ج.م' : 'EGP'}</span></p>
-                <p className="text-[10px] text-muted-foreground mt-1">{ar ? 'الأساسي + جميع البدلات + الحوافز' : 'Basic + All Allowances + Incentives'}</p>
               </CardContent>
             </Card>
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-muted-foreground mb-1">{ar ? 'الراتب الصافي' : 'Net Salary'}</p>
                 <p className="text-2xl font-bold text-blue-700">{net.toLocaleString()} <span className="text-sm">{ar ? 'ج.م' : 'EGP'}</span></p>
-                <p className="text-[10px] text-muted-foreground mt-1">{ar ? 'الإجمالي − تأمينات حصة الموظف' : 'Gross − Employee Insurance'}</p>
               </CardContent>
             </Card>
             <Card className="bg-purple-50 border-purple-200">
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-muted-foreground mb-1">{ar ? 'مساهمات صاحب العمل' : 'Employer Contributions'}</p>
                 <p className="text-2xl font-bold text-purple-700">{employerTotal.toLocaleString()} <span className="text-sm">{ar ? 'ج.م' : 'EGP'}</span></p>
-                <p className="text-[10px] text-muted-foreground mt-1">{ar ? 'تأمينات اجتماعية + صحي + ضريبة' : 'Social + Health + Tax'}</p>
               </CardContent>
             </Card>
           </div>
@@ -308,7 +278,7 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
       </Card>
 
       {/* ====== SALARY HISTORY ====== */}
-      {sortedRecords.length > 0 && (
+      {employeeRecords.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
@@ -336,11 +306,9 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedRecords.map(r => (
+                  {employeeRecords.map(r => (
                     <TableRow key={r.year}>
-                      <TableCell className="text-center font-bold">
-                        <Badge variant="outline">{r.year}</Badge>
-                      </TableCell>
+                      <TableCell className="text-center font-bold"><Badge variant="outline">{r.year}</Badge></TableCell>
                       <TableCell>{r.basicSalary.toLocaleString()}</TableCell>
                       <TableCell>{r.transportAllowance.toLocaleString()}</TableCell>
                       <TableCell>{r.incentives.toLocaleString()}</TableCell>

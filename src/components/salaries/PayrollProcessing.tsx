@@ -1,105 +1,183 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSalaryData, calcGross } from '@/contexts/SalaryDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { Play, CheckCircle, Clock, AlertTriangle, Users, Wallet, TrendingUp, FileText } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Wallet, Gift, TrendingDown, Building2, Save, X, FileText, Users, TrendingUp, Clock } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { mockEmployees } from '@/data/mockEmployees';
 
-interface PayrollRun {
-  id: string;
+// Mock data references - in real app these would come from shared stores
+const mockLoans = [
+  { employeeId: 'Emp001', monthlyPayment: 2500, status: 'active' },
+  { employeeId: 'Emp002', monthlyPayment: 2000, status: 'active' },
+];
+
+const mockAdvances = [
+  { employeeId: 'Emp002', amount: 2000, deductionMonth: '2026-02', status: 'approved' },
+];
+
+const mockMobileBills = [
+  { employeeId: 'Emp001', billAmount: 350, deductionMonth: '2026-02' },
+  { employeeId: 'Emp002', billAmount: 280, deductionMonth: '2026-02' },
+];
+
+interface PayrollEntry {
+  employeeId: string;
   month: string;
   year: string;
-  status: 'draft' | 'processing' | 'completed' | 'approved';
-  totalEmployees: number;
-  totalBasic: number;
-  totalAllowances: number;
-  totalDeductions: number;
-  totalNet: number;
-  processedDate?: string;
-  approvedBy?: string;
+  // Bonus
+  bonusType: 'amount' | 'percentage';
+  bonusValue: number;
+  // Deductions
+  leaveDays: number;
+  penaltyType: 'amount' | 'days' | 'percentage';
+  penaltyValue: number;
+  saved: boolean;
 }
 
 export const PayrollProcessing = () => {
-  const { t, isRTL } = useLanguage();
-  const { toast } = useToast();
-  const [selectedMonth, setSelectedMonth] = useState('01');
+  const { language, isRTL } = useLanguage();
+  const ar = language === 'ar';
+  const { getSalaryRecord } = useSalaryData();
+
+  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('02');
   const [selectedYear, setSelectedYear] = useState('2026');
-  const [showDetails, setShowDetails] = useState(false);
 
-  const [payrollRuns] = useState<PayrollRun[]>([
-    {
-      id: '1', month: '01', year: '2026', status: 'completed',
-      totalEmployees: 160, totalBasic: 850000, totalAllowances: 170000,
-      totalDeductions: 92000, totalNet: 928000, processedDate: '2026-01-28', approvedBy: 'أحمد محمد'
-    },
-    {
-      id: '2', month: '12', year: '2025', status: 'approved',
-      totalEmployees: 158, totalBasic: 840000, totalAllowances: 165000,
-      totalDeductions: 90000, totalNet: 915000, processedDate: '2025-12-27', approvedBy: 'أحمد محمد'
-    },
-    {
-      id: '3', month: '11', year: '2025', status: 'approved',
-      totalEmployees: 155, totalBasic: 830000, totalAllowances: 160000,
-      totalDeductions: 88000, totalNet: 902000, processedDate: '2025-11-27', approvedBy: 'أحمد محمد'
-    },
-  ]);
+  // Payroll-specific fields
+  const [bonusType, setBonusType] = useState<'amount' | 'percentage'>('amount');
+  const [bonusValue, setBonusValue] = useState(0);
+  const [leaveDays, setLeaveDays] = useState(0);
+  const [penaltyType, setPenaltyType] = useState<'amount' | 'days' | 'percentage'>('amount');
+  const [penaltyValue, setPenaltyValue] = useState(0);
 
-  const payrollEmployees = [
-    { id: '1', name: 'جلال عبد الرازق', dept: 'تقنية المعلومات', basic: 8500, allowances: 2500, deductions: 950, net: 10050 },
-    { id: '2', name: 'محمد أحمد علي', dept: 'الموارد البشرية', basic: 7200, allowances: 2000, deductions: 800, net: 8400 },
-    { id: '3', name: 'سارة حسن محمود', dept: 'المالية', basic: 9000, allowances: 3000, deductions: 1100, net: 10900 },
-    { id: '4', name: 'أحمد يوسف', dept: 'التسويق', basic: 6800, allowances: 1800, deductions: 750, net: 7850 },
-    { id: '5', name: 'فاطمة عبدالله', dept: 'العمليات', basic: 7500, allowances: 2200, deductions: 850, net: 8850 },
-    { id: '6', name: 'خالد إبراهيم', dept: 'تقنية المعلومات', basic: 9500, allowances: 3200, deductions: 1200, net: 11500 },
-  ];
+  // Saved payroll entries
+  const [savedEntries, setSavedEntries] = useState<PayrollEntry[]>([]);
 
-  const stats = [
-    { label: t('salaries.stats.totalEmployees'), value: '160', icon: Users, color: 'text-primary-foreground', bg: 'bg-stat-blue', cardBg: 'bg-stat-blue-bg' },
-    { label: t('salaries.stats.totalPayroll'), value: '928K', icon: Wallet, color: 'text-primary-foreground', bg: 'bg-stat-green', cardBg: 'bg-stat-green-bg' },
-    { label: t('salaries.stats.totalAllowances'), value: '170K', icon: TrendingUp, color: 'text-primary-foreground', bg: 'bg-stat-purple', cardBg: 'bg-stat-purple-bg' },
-    { label: t('salaries.stats.pendingApproval'), value: '1', icon: Clock, color: 'text-foreground', bg: 'bg-stat-yellow', cardBg: 'bg-stat-yellow-bg' },
-  ];
+  const period = `${selectedYear}-${selectedMonth}`;
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
-      draft: { variant: 'secondary', label: t('salaries.status.draft') },
-      processing: { variant: 'outline', label: t('salaries.status.processing') },
-      completed: { variant: 'default', label: t('salaries.status.completed') },
-      approved: { variant: 'default', label: t('salaries.status.approved') },
+  const salaryRecord = useMemo(() => {
+    if (!selectedEmployee) return null;
+    return getSalaryRecord(selectedEmployee, selectedYear);
+  }, [selectedEmployee, selectedYear, getSalaryRecord]);
+
+  const gross = useMemo(() => {
+    if (!salaryRecord) return 0;
+    return calcGross(salaryRecord);
+  }, [salaryRecord]);
+
+  // Bonus calculation
+  const bonusAmount = useMemo(() => {
+    if (bonusType === 'amount') return bonusValue;
+    return Math.round((bonusValue / 100) * gross);
+  }, [bonusType, bonusValue, gross]);
+
+  // Deductions
+  const employeeInsurance = salaryRecord?.employeeInsurance || 0;
+
+  const loanPayment = useMemo(() => {
+    const loan = mockLoans.find(l => l.employeeId === selectedEmployee && l.status === 'active');
+    return loan?.monthlyPayment || 0;
+  }, [selectedEmployee]);
+
+  const advanceAmount = useMemo(() => {
+    const adv = mockAdvances.find(a => a.employeeId === selectedEmployee && a.deductionMonth === period && a.status === 'approved');
+    return adv?.amount || 0;
+  }, [selectedEmployee, period]);
+
+  const mobileBill = useMemo(() => {
+    const bill = mockMobileBills.find(b => b.employeeId === selectedEmployee && b.deductionMonth === period);
+    return bill?.billAmount || 0;
+  }, [selectedEmployee, period]);
+
+  const dailyRate = useMemo(() => gross / 30, [gross]);
+
+  const leaveDeduction = useMemo(() => Math.round(dailyRate * leaveDays), [dailyRate, leaveDays]);
+
+  const penaltyAmount = useMemo(() => {
+    if (penaltyType === 'amount') return penaltyValue;
+    if (penaltyType === 'days') return Math.round(dailyRate * penaltyValue);
+    if (penaltyType === 'percentage') return Math.round((penaltyValue / 100) * gross);
+    return 0;
+  }, [penaltyType, penaltyValue, dailyRate, gross]);
+
+  const totalDeductions = employeeInsurance + loanPayment + advanceAmount + mobileBill + leaveDeduction + penaltyAmount;
+  const grossWithBonus = gross + bonusAmount;
+  const netSalary = grossWithBonus - totalDeductions;
+
+  // Employer contributions
+  const employerSocialIns = salaryRecord?.employerSocialInsurance || 0;
+  const healthIns = salaryRecord?.healthInsurance || 0;
+  const incomeTax = salaryRecord?.incomeTax || 0;
+
+  const handleSave = () => {
+    if (!selectedEmployee || !salaryRecord) {
+      toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'يرجى اختيار موظف لديه بيانات راتب' : 'Select an employee with salary data', variant: 'destructive' });
+      return;
+    }
+    const entry: PayrollEntry = {
+      employeeId: selectedEmployee, month: selectedMonth, year: selectedYear,
+      bonusType, bonusValue, leaveDays, penaltyType, penaltyValue, saved: true,
     };
-    const config = variants[status] || variants.draft;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    setSavedEntries(prev => {
+      const idx = prev.findIndex(e => e.employeeId === selectedEmployee && e.month === selectedMonth && e.year === selectedYear);
+      if (idx >= 0) { const u = [...prev]; u[idx] = entry; return u; }
+      return [...prev, entry];
+    });
+    toast({ title: ar ? 'تم الحفظ' : 'Saved', description: ar ? 'تم حفظ بيانات الراتب الشهري' : 'Monthly payroll saved' });
   };
 
-  const handleRunPayroll = () => {
-    toast({
-      title: t('salaries.payrollStarted'),
-      description: t('salaries.payrollStartedDesc'),
-    });
+  const handleReset = () => {
+    setBonusType('amount');
+    setBonusValue(0);
+    setLeaveDays(0);
+    setPenaltyType('amount');
+    setPenaltyValue(0);
   };
+
+  const activeEmployees = mockEmployees.filter(e => e.status === 'active');
 
   const months = [
-    { value: '01', label: t('months.jan') }, { value: '02', label: t('months.feb') },
-    { value: '03', label: t('months.mar') }, { value: '04', label: t('months.apr') },
-    { value: '05', label: t('months.may') }, { value: '06', label: t('months.jun') },
-    { value: '07', label: t('salaries.months.jul') }, { value: '08', label: t('salaries.months.aug') },
-    { value: '09', label: t('salaries.months.sep') }, { value: '10', label: t('salaries.months.oct') },
-    { value: '11', label: t('salaries.months.nov') }, { value: '12', label: t('salaries.months.dec') },
+    { value: '01', label: ar ? 'يناير' : 'January' }, { value: '02', label: ar ? 'فبراير' : 'February' },
+    { value: '03', label: ar ? 'مارس' : 'March' }, { value: '04', label: ar ? 'أبريل' : 'April' },
+    { value: '05', label: ar ? 'مايو' : 'May' }, { value: '06', label: ar ? 'يونيو' : 'June' },
+    { value: '07', label: ar ? 'يوليو' : 'July' }, { value: '08', label: ar ? 'أغسطس' : 'August' },
+    { value: '09', label: ar ? 'سبتمبر' : 'September' }, { value: '10', label: ar ? 'أكتوبر' : 'October' },
+    { value: '11', label: ar ? 'نوفمبر' : 'November' }, { value: '12', label: ar ? 'ديسمبر' : 'December' },
   ];
+
+  // Stats
+  const totalSaved = savedEntries.filter(e => e.month === selectedMonth && e.year === selectedYear).length;
+
+  const stats = [
+    { label: ar ? 'إجمالي الموظفين' : 'Total Employees', value: String(activeEmployees.length), icon: Users, bg: 'bg-stat-blue', cardBg: 'bg-stat-blue-bg' },
+    { label: ar ? 'تم المعالجة' : 'Processed', value: String(totalSaved), icon: FileText, bg: 'bg-stat-green', cardBg: 'bg-stat-green-bg' },
+    { label: ar ? 'المتبقي' : 'Remaining', value: String(activeEmployees.length - totalSaved), icon: Clock, bg: 'bg-stat-yellow', cardBg: 'bg-stat-yellow-bg' },
+    { label: ar ? 'إجمالي المبالغ' : 'Total Net', value: '—', icon: Wallet, bg: 'bg-stat-purple', cardBg: 'bg-stat-purple-bg' },
+  ];
+
+  const readOnlyField = (label: string, value: number | string, disabled = true) => (
+    <div className="space-y-1.5">
+      <Label className={cn("text-xs", isRTL && "text-right block")}>{label}</Label>
+      <Input value={typeof value === 'number' ? value.toLocaleString() : value} readOnly={disabled} disabled={disabled} className={cn("h-9 text-sm bg-muted/30", isRTL && "text-right")} />
+    </div>
+  );
 
   return (
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <div key={index} className={cn("rounded-xl p-5 flex items-center gap-4 shadow-sm border border-border/30", stat.cardBg, isRTL && "flex-row-reverse")}>
+        {stats.map((stat, i) => (
+          <div key={i} className={cn("rounded-xl p-5 flex items-center gap-4 shadow-sm border border-border/30", stat.cardBg, isRTL && "flex-row-reverse")}>
             <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", stat.bg)}>
-              <stat.icon className={cn("w-6 h-6", stat.color)} />
+              <stat.icon className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{stat.label}</p>
@@ -109,133 +187,257 @@ export const PayrollProcessing = () => {
         ))}
       </div>
 
-      {/* Run Payroll */}
+      {/* Employee & Period Selection */}
       <Card>
-        <CardHeader>
-          <CardTitle className={cn(isRTL && "text-right")}>{t('salaries.runPayroll')}</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className={cn("flex flex-wrap gap-4 items-end", isRTL && "flex-row-reverse")}>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t('salaries.month')}</label>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
+            <div className="space-y-2 flex-1 min-w-[200px]">
+              <Label>{ar ? 'اختر الموظف' : 'Select Employee'}</Label>
+              <Select value={selectedEmployee} onValueChange={(v) => { setSelectedEmployee(v); handleReset(); }}>
+                <SelectTrigger><SelectValue placeholder={ar ? '-- اختر الموظف --' : '-- Select Employee --'} /></SelectTrigger>
                 <SelectContent>
-                  {months.map(m => (
-                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  {activeEmployees.map(e => (
+                    <SelectItem key={e.employeeId} value={e.employeeId}>{ar ? e.nameAr : e.nameEn} ({e.employeeId})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('salaries.year')}</label>
+              <Label>{ar ? 'الشهر' : 'Month'}</Label>
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{ar ? 'السنة' : 'Year'}</Label>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="2026">2026</SelectItem>
                   <SelectItem value="2025">2025</SelectItem>
-                  <SelectItem value="2024">2024</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleRunPayroll} className="gap-2">
-              <Play className="w-4 h-4" />
-              {t('salaries.processPayroll')}
-            </Button>
-            <Dialog open={showDetails} onOpenChange={setShowDetails}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <FileText className="w-4 h-4" />
-                  {t('salaries.viewDetails')}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
-                <DialogHeader>
-                  <DialogTitle className={cn(isRTL && "text-right")}>
-                    {t('salaries.payrollDetails')} - {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
-                  </DialogTitle>
-                </DialogHeader>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className={cn(isRTL && "text-right")}>{t('salaries.employee')}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{t('salaries.department')}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{t('salaries.basicSalary')}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{t('salaries.allowancesTotal')}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{t('salaries.deductionsTotal')}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{t('salaries.netSalary')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {payrollEmployees.map(emp => (
-                      <TableRow key={emp.id}>
-                        <TableCell className={cn(isRTL && "text-right")}>{emp.name}</TableCell>
-                        <TableCell className={cn(isRTL && "text-right")}>{emp.dept}</TableCell>
-                        <TableCell className={cn(isRTL && "text-right")}>{emp.basic.toLocaleString()}</TableCell>
-                        <TableCell className={cn(isRTL && "text-right")}>{emp.allowances.toLocaleString()}</TableCell>
-                        <TableCell className={cn(isRTL && "text-right")}>{emp.deductions.toLocaleString()}</TableCell>
-                        <TableCell className={cn("font-bold", isRTL && "text-right")}>{emp.net.toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </DialogContent>
-            </Dialog>
           </div>
         </CardContent>
       </Card>
 
-      {/* Recent Payroll Runs */}
-      <Card>
-        <CardHeader>
-          <CardTitle className={cn(isRTL && "text-right")}>{t('salaries.recentRuns')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.period')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.employeesCount')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.totalBasic')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.allowancesTotal')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.deductionsTotal')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.netSalary')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.statusLabel')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('common.actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payrollRuns.map(run => (
-                <TableRow key={run.id}>
-                  <TableCell className={cn(isRTL && "text-right")}>
-                    {months.find(m => m.value === run.month)?.label} {run.year}
-                  </TableCell>
-                  <TableCell className={cn(isRTL && "text-right")}>{run.totalEmployees}</TableCell>
-                  <TableCell className={cn(isRTL && "text-right")}>{(run.totalBasic / 1000).toFixed(0)}K</TableCell>
-                  <TableCell className={cn(isRTL && "text-right")}>{(run.totalAllowances / 1000).toFixed(0)}K</TableCell>
-                  <TableCell className={cn(isRTL && "text-right")}>{(run.totalDeductions / 1000).toFixed(0)}K</TableCell>
-                  <TableCell className={cn("font-bold", isRTL && "text-right")}>{(run.totalNet / 1000).toFixed(0)}K</TableCell>
-                  <TableCell>{getStatusBadge(run.status)}</TableCell>
-                  <TableCell>
-                    <div className={cn("flex gap-1", isRTL && "flex-row-reverse")}>
-                      {run.status === 'completed' && (
-                        <Button size="sm" variant="outline" className="gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          {t('salaries.approve')}
-                        </Button>
-                      )}
+      {selectedEmployee && !salaryRecord && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="p-4 text-center">
+            <p className="text-destructive font-medium">
+              {ar ? `لا توجد بيانات راتب لهذا الموظف في سنة ${selectedYear}. يرجى إدخال بيانات الراتب أولاً من ملف الموظف.` : `No salary data for this employee in ${selectedYear}. Please enter salary data first from the employee profile.`}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {salaryRecord && (
+        <>
+          {/* === مكونات الراتب === */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
+                <Wallet className="h-5 w-5 text-primary" />
+                {ar ? 'مكونات الراتب' : 'Salary Components'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {readOnlyField(ar ? 'الراتب الأساسي * (ج.م)' : 'Basic Salary * (EGP)', salaryRecord.basicSalary)}
+                {readOnlyField(ar ? 'بدل المواصلات (ج.م)' : 'Transport (EGP)', salaryRecord.transportAllowance)}
+                {readOnlyField(ar ? 'الحوافز (ج.م)' : 'Incentives (EGP)', salaryRecord.incentives)}
+                {readOnlyField(ar ? 'بدل المعيشة (ج.م)' : 'Living (EGP)', salaryRecord.livingAllowance)}
+                {readOnlyField(ar ? 'بدل سكن المحطة (ج.م)' : 'Station (EGP)', salaryRecord.stationAllowance)}
+                {readOnlyField(ar ? 'بدل الجوال (ج.م)' : 'Mobile (EGP)', salaryRecord.mobileAllowance)}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* === المكافآت === */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
+                <Gift className="h-5 w-5 text-green-600" />
+                {ar ? 'المكافآت' : 'Bonuses'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <RadioGroup value={bonusType} onValueChange={(v) => { setBonusType(v as any); setBonusValue(0); }} className={cn("flex gap-4", isRTL && "flex-row-reverse")}>
+                <div className={cn("flex-1 border rounded-lg p-4 cursor-pointer transition-colors", bonusType === 'amount' ? 'border-primary bg-primary/5' : 'border-border')}>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="amount" id="bonus-amount" />
+                    <Label htmlFor="bonus-amount" className="cursor-pointer">{ar ? 'مبلغ يدوي' : 'Manual Amount'}</Label>
+                  </div>
+                </div>
+                <div className={cn("flex-1 border rounded-lg p-4 cursor-pointer transition-colors", bonusType === 'percentage' ? 'border-primary bg-primary/5' : 'border-border')}>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="percentage" id="bonus-pct" />
+                    <Label htmlFor="bonus-pct" className="cursor-pointer">{ar ? 'نسبة مئوية' : 'Percentage'}</Label>
+                  </div>
+                </div>
+              </RadioGroup>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className={cn("text-xs", isRTL && "text-right block")}>
+                    {bonusType === 'amount' ? (ar ? 'قيمة المكافأة (ج.م)' : 'Bonus Amount (EGP)') : (ar ? 'النسبة المئوية %' : 'Percentage %')}
+                  </Label>
+                  <Input type="number" value={bonusValue || ''} onChange={e => setBonusValue(parseFloat(e.target.value) || 0)} className={cn("h-9 text-sm", isRTL && "text-right")} />
+                </div>
+                {bonusType === 'percentage' && (
+                  <div className="space-y-1.5">
+                    <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'قيمة المكافأة المحسوبة (ج.م)' : 'Calculated Bonus (EGP)'}</Label>
+                    <Input value={bonusAmount.toLocaleString()} readOnly disabled className={cn("h-9 text-sm bg-muted/30", isRTL && "text-right")} />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* === مساهمات صاحب العمل === */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
+                <Building2 className="h-5 w-5 text-blue-600" />
+                {ar ? 'مساهمات صاحب العمل' : 'Employer Contributions'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {readOnlyField(ar ? 'التأمينات الاجتماعية - صاحب العمل (ج.م)' : 'Social Insurance - Employer (EGP)', employerSocialIns)}
+                {readOnlyField(ar ? 'التأمين الصحي (ج.م)' : 'Health Insurance (EGP)', healthIns)}
+                {readOnlyField(ar ? 'ضريبة الدخل (ج.م)' : 'Income Tax (EGP)', incomeTax)}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* === الخصومات === */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
+                <TrendingDown className="h-5 w-5 text-destructive" />
+                {ar ? 'الخصومات' : 'Deductions'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Row 1: Fixed deductions */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {readOnlyField(ar ? 'التأمينات الاجتماعية - الموظف (ج.م)' : 'Social Insurance - Employee (EGP)', employeeInsurance)}
+                {readOnlyField(ar ? 'القروض (محسوب تلقائياً) (ج.م)' : 'Loans (Auto) (EGP)', loanPayment)}
+                {readOnlyField(ar ? 'السلف (ج.م)' : 'Advances (EGP)', advanceAmount)}
+                {readOnlyField(ar ? 'الجوال الشخصي (ج.م)' : 'Mobile Bill (EGP)', mobileBill)}
+              </div>
+
+              <Separator />
+
+              {/* Leave deduction */}
+              <div>
+                <h4 className={cn("font-semibold text-sm mb-3", isRTL && "text-right")}>{ar ? 'خصم الإجازة من الراتب' : 'Leave Salary Deduction'}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'عدد الأيام' : 'Number of Days'}</Label>
+                    <Input type="number" value={leaveDays || ''} onChange={e => setLeaveDays(parseFloat(e.target.value) || 0)} className={cn("h-9 text-sm", isRTL && "text-right")} min={0} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'قيمة الخصم (محسوب تلقائياً) (ج.م)' : 'Deduction Amount (Auto) (EGP)'}</Label>
+                    <Input value={leaveDeduction.toLocaleString()} readOnly disabled className={cn("h-9 text-sm bg-muted/30", isRTL && "text-right")} />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Penalties */}
+              <div>
+                <h4 className={cn("font-semibold text-sm mb-3", isRTL && "text-right")}>{ar ? 'الجزاءات' : 'Penalties'}</h4>
+                <RadioGroup value={penaltyType} onValueChange={(v) => { setPenaltyType(v as any); setPenaltyValue(0); }} className={cn("flex gap-3 mb-4", isRTL && "flex-row-reverse")}>
+                  <div className={cn("flex-1 border rounded-lg p-3 cursor-pointer transition-colors", penaltyType === 'amount' ? 'border-primary bg-primary/5' : 'border-border')}>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="amount" id="pen-amount" />
+                      <Label htmlFor="pen-amount" className="cursor-pointer text-sm">{ar ? 'مبلغ' : 'Amount'}</Label>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </div>
+                  <div className={cn("flex-1 border rounded-lg p-3 cursor-pointer transition-colors", penaltyType === 'days' ? 'border-primary bg-primary/5' : 'border-border')}>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="days" id="pen-days" />
+                      <Label htmlFor="pen-days" className="cursor-pointer text-sm">{ar ? 'أيام' : 'Days'}</Label>
+                    </div>
+                  </div>
+                  <div className={cn("flex-1 border rounded-lg p-3 cursor-pointer transition-colors", penaltyType === 'percentage' ? 'border-primary bg-primary/5' : 'border-border')}>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="percentage" id="pen-pct" />
+                      <Label htmlFor="pen-pct" className="cursor-pointer text-sm">{ar ? 'نسبة مئوية' : 'Percentage'}</Label>
+                    </div>
+                  </div>
+                </RadioGroup>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className={cn("text-xs", isRTL && "text-right block")}>
+                      {penaltyType === 'amount' ? (ar ? 'قيمة الجزاء (ج.م)' : 'Penalty Amount (EGP)') :
+                        penaltyType === 'days' ? (ar ? 'عدد الأيام' : 'Number of Days') :
+                          (ar ? 'النسبة المئوية %' : 'Percentage %')}
+                    </Label>
+                    <Input type="number" value={penaltyValue || ''} onChange={e => setPenaltyValue(parseFloat(e.target.value) || 0)} className={cn("h-9 text-sm", isRTL && "text-right")} min={0} />
+                  </div>
+                  {penaltyType !== 'amount' && (
+                    <div className="space-y-1.5">
+                      <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'قيمة الجزاء (ج.م)' : 'Penalty Value (EGP)'}</Label>
+                      <Input value={penaltyAmount.toLocaleString()} readOnly disabled className={cn("h-9 text-sm bg-muted/30", isRTL && "text-right")} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* === ملخص الحسابات === */}
+          <Card className="border-primary/30 bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
+                <FileText className="h-5 w-5 text-primary" />
+                {ar ? 'ملخص الحسابات' : 'Calculation Summary'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className={cn("flex justify-between items-center py-2", isRTL && "flex-row-reverse")}>
+                  <span className="text-sm text-muted-foreground">{ar ? 'إجمالي الراتب (Gross Salary)' : 'Gross Salary'}</span>
+                  <span className="font-bold text-lg">{gross.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
+                </div>
+                {bonusAmount > 0 && (
+                  <div className={cn("flex justify-between items-center py-2", isRTL && "flex-row-reverse")}>
+                    <span className="text-sm text-green-600">{ar ? '+ المكافآت' : '+ Bonuses'}</span>
+                    <span className="font-bold text-green-600">+{bonusAmount.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
+                  </div>
+                )}
+                <Separator />
+                <div className={cn("flex justify-between items-center py-2", isRTL && "flex-row-reverse")}>
+                  <span className="text-sm text-destructive font-medium">{ar ? 'إجمالي الخصومات' : 'Total Deductions'}</span>
+                  <span className="font-bold text-destructive">{totalDeductions.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
+                </div>
+                <Separator className="border-2" />
+                <div className={cn("flex justify-between items-center py-2", isRTL && "flex-row-reverse")}>
+                  <span className="text-base font-bold">{ar ? 'صافي الراتب (Net Salary)' : 'Net Salary'}</span>
+                  <span className="font-bold text-2xl text-primary">{netSalary.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className={cn("flex gap-3 sticky bottom-0 bg-background py-4 border-t", isRTL ? "flex-row-reverse" : "")}>
+            <Button onClick={handleSave} className="gap-2 flex-1 md:flex-none md:min-w-[200px]" size="lg">
+              <Save className="h-5 w-5" />
+              {ar ? 'حفظ الراتب' : 'Save Salary'}
+            </Button>
+            <Button variant="outline" onClick={handleReset} className="gap-2 flex-1 md:flex-none md:min-w-[150px]" size="lg">
+              <X className="h-5 w-5" />
+              {ar ? 'إلغاء' : 'Cancel'}
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
