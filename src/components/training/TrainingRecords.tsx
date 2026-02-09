@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Search, Plus, X, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { mockEmployees as systemEmployees } from '@/data/mockEmployees';
+import { stationLocations } from '@/data/stationLocations';
 
 interface Employee {
   id: string;
@@ -39,13 +41,18 @@ interface TrainingRecord {
   percentage?: number;
 }
 
-const mockEmployees: Employee[] = [
-  { id: '1', nameEn: 'Ibrahim Abdel Atty', nameAr: 'ابراهيم عبدالعاطي', department: 'Office Boy', station: 'HDQ - OPS', linkId: '031', hireDate: '22/12/2001', mobile: '01014192347', jobFunctions: ['WO'] },
-  { id: '2', nameEn: 'Abanoub Adel Fekry', nameAr: 'أبانوب عادل فكري', department: 'Operations', station: 'CAI', linkId: '045', hireDate: '15/03/2015', mobile: '01123456789', jobFunctions: ['OO', 'RO'] },
-  { id: '3', nameEn: 'Abdallah Ahmed Abdallah', nameAr: 'عبدالله احمد عبدالله', department: 'HR', station: 'HDQ', linkId: '067', hireDate: '10/06/2018', mobile: '01098765432', jobFunctions: ['AD'] },
-  { id: '4', nameEn: 'Ahmed Fathy Ali Morsy', nameAr: 'احمد فتحي علي مرسي', department: 'Finance', station: 'HDQ', linkId: '089', hireDate: '01/09/2020', mobile: '01234567890', jobFunctions: ['AC'] },
-  { id: '5', nameEn: 'Abdallah Badawy Saied', nameAr: 'عبدالله بدوي سعيد', department: 'IT', station: 'HDQ', linkId: '102', hireDate: '20/11/2019', mobile: '01555555555', jobFunctions: ['SC'] },
-];
+
+const mockEmployees: Employee[] = systemEmployees.map((emp, i) => ({
+  id: emp.id,
+  nameEn: emp.nameEn,
+  nameAr: emp.nameAr,
+  department: emp.department,
+  station: 'HDQ',
+  linkId: emp.employeeId.replace('Emp', ''),
+  hireDate: '',
+  mobile: emp.phone || '',
+  jobFunctions: [],
+}));
 
 const mockTrainingRecords: TrainingRecord[] = [
   { id: '1', employeeId: '1', courseName: 'Emergency Response - R', provider: 'Link Aero Training Agency', location: 'Operations Control Center - OCC', startDate: '20/05/2018', endDate: '30/05/2018', plannedDate: '', result: 'passed', percentage: 85 },
@@ -136,8 +143,9 @@ export const TrainingRecords = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('common.all')}</SelectItem>
-                <SelectItem value="HDQ">HDQ</SelectItem>
-                <SelectItem value="CAI">CAI</SelectItem>
+                {stationLocations.map(s => (
+                  <SelectItem key={s.value} value={s.value}>{language === 'ar' ? s.labelAr : s.labelEn}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </CardContent>

@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Search, Plus, Edit, Eye, Trash2, DollarSign, Users, Clock, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { mockEmployees as systemEmployees } from '@/data/mockEmployees';
+import { stationLocations } from '@/data/stationLocations';
 
 interface Loan {
   id: string;
@@ -92,17 +94,12 @@ const mockLoans: Loan[] = [
   },
 ];
 
-const mockEmployees = [
-  { id: 'EMP001', name: 'أحمد محمد علي', department: 'تقنية المعلومات' },
-  { id: 'EMP002', name: 'فاطمة أحمد حسن', department: 'الموارد البشرية' },
-  { id: 'EMP003', name: 'خالد عبدالله محمد', department: 'المبيعات' },
-  { id: 'EMP004', name: 'سارة علي أحمد', department: 'المالية' },
-];
 
 export const LoansList = () => {
   const { t, isRTL } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [stationFilter, setStationFilter] = useState<string>('all');
   const [loans, setLoans] = useState<Loan[]>(mockLoans);
   const [showDialog, setShowDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
@@ -144,14 +141,14 @@ export const LoansList = () => {
       return;
     }
 
-    const employee = mockEmployees.find(e => e.id === formData.employeeId);
+    const employee = systemEmployees.find(e => e.employeeId === formData.employeeId);
     const amount = parseFloat(formData.amount);
     const installments = parseInt(formData.installments);
 
     const newLoan: Loan = {
       id: `LN${String(loans.length + 1).padStart(3, '0')}`,
       employeeId: formData.employeeId,
-      employeeName: employee?.name || '',
+      employeeName: employee?.nameAr || '',
       department: employee?.department || '',
       loanType: formData.loanType,
       amount,
@@ -272,6 +269,17 @@ export const LoansList = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={stationFilter} onValueChange={setStationFilter}>
+                <SelectTrigger className="w-full md:w-44">
+                  <SelectValue placeholder={isRTL ? 'المحطة/الموقع' : 'Station'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{isRTL ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  {stationLocations.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{isRTL ? s.labelAr : s.labelEn}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button onClick={() => setShowDialog(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 {t('loans.addLoan')}
@@ -363,8 +371,10 @@ export const LoansList = () => {
                   <SelectValue placeholder={t('loans.selectEmployee')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockEmployees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                  {systemEmployees.map((emp) => (
+                    <SelectItem key={emp.employeeId} value={emp.employeeId}>
+                      {isRTL ? emp.nameAr : emp.nameEn} - {emp.department}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

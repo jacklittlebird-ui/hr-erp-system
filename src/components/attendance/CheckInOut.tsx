@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/dialog';
 import { Clock, LogIn, LogOut, Calendar, Timer, User, MapPin, Building2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { mockEmployees as systemEmployees } from '@/data/mockEmployees';
+import { stationLocations } from '@/data/stationLocations';
 import { AttendanceRecord } from '@/pages/Attendance';
 import { toast } from '@/hooks/use-toast';
 
@@ -38,17 +40,15 @@ interface CheckInOutProps {
   onCheckOut: (recordId: string) => void;
 }
 
-// Sample employees data
-const sampleEmployees: Employee[] = [
-  { id: 'EMP001', name: 'Ahmed Mohamed', nameAr: 'أحمد محمد', department: 'IT', location: 'HQ' },
-  { id: 'EMP002', name: 'Sara Ali', nameAr: 'سارة علي', department: 'HR', location: 'HQ' },
-  { id: 'EMP003', name: 'Mohamed Hassan', nameAr: 'محمد حسن', department: 'Finance', location: 'HQ' },
-  { id: 'EMP004', name: 'Fatima Omar', nameAr: 'فاطمة عمر', department: 'Sales', location: 'Airport-T1' },
-  { id: 'EMP005', name: 'Ali Mahmoud', nameAr: 'علي محمود', department: 'Marketing', location: 'HQ' },
-  { id: 'EMP006', name: 'Nour Ahmed', nameAr: 'نور أحمد', department: 'Operations', location: 'Airport-T2' },
-  { id: 'EMP007', name: 'Khaled Ibrahim', nameAr: 'خالد إبراهيم', department: 'Security', location: 'Airport-T1' },
-  { id: 'EMP008', name: 'Mona Saeed', nameAr: 'منى سعيد', department: 'Security', location: 'Airport-T3' },
-];
+
+// Build employees from system data
+const sampleEmployees: Employee[] = systemEmployees.map(emp => ({
+  id: emp.employeeId,
+  name: emp.nameEn,
+  nameAr: emp.nameAr,
+  department: emp.department,
+  location: 'HQ',
+}));
 
 export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) => {
   const { t, isRTL, language } = useLanguage();
