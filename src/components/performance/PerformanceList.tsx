@@ -8,24 +8,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { Search, Eye, Edit, Star, FileText, Plus, Printer, Download, FileSpreadsheet } from 'lucide-react';
+import { Search, Eye, Edit, Star, FileText, Printer, Download, FileSpreadsheet, Save, Send, Target, TrendingUp, Lightbulb, MessageSquare } from 'lucide-react';
 import { useReportExport } from '@/hooks/useReportExport';
 import { mockEmployees } from '@/data/mockEmployees';
+import { stationLocations } from '@/data/stationLocations';
+import { toast } from 'sonner';
 
-const stationLocations = [
-  { value: 'aswan', labelAr: 'أسوان', labelEn: 'Aswan' },
-  { value: 'asyut', labelAr: 'أسيوط', labelEn: 'Asyut' },
-  { value: 'alex', labelAr: 'الإسكندرية', labelEn: 'Alexandria' },
-  { value: 'luxor', labelAr: 'الأقصر', labelEn: 'Luxor' },
-  { value: 'cairo', labelAr: 'القاهرة', labelEn: 'Cairo' },
-  { value: 'hurghada', labelAr: 'الغردقة', labelEn: 'Hurghada' },
-  { value: 'hq1', labelAr: 'المركز الرئيسي 1', labelEn: 'HQ 1' },
-  { value: 'hq2', labelAr: 'المركز الرئيسي 2', labelEn: 'HQ 2' },
-  { value: 'sharm', labelAr: 'شرم الشيخ', labelEn: 'Sharm El Sheikh' },
-  { value: 'sohag', labelAr: 'سوهاج', labelEn: 'Sohag' },
-  { value: 'marsa', labelAr: 'مرسى علم', labelEn: 'Marsa Alam' },
-];
+interface CriteriaItem {
+  name: string;
+  nameEn: string;
+  score: number;
+  weight: number;
+}
 
 interface PerformanceReview {
   id: string;
@@ -43,12 +40,21 @@ interface PerformanceReview {
   improvements?: string;
   goals?: string;
   managerComments?: string;
-  criteria?: { name: string; score: number; weight: number }[];
+  criteria?: CriteriaItem[];
 }
 
-const mockReviews: PerformanceReview[] = [
-  { id: '1', employeeId: 'Emp001', employeeName: 'جلال عبد الرازق عبد العليم', department: 'الإدارة', station: 'cairo', quarter: 'Q4', year: '2025', score: 4.5, status: 'approved', reviewer: 'محمد السيد', reviewDate: '2025-12-15', strengths: 'أداء ممتاز في إدارة الفريق', improvements: 'تحسين مهارات العرض', goals: 'قيادة مشروع جديد', managerComments: 'موظف متميز', criteria: [{ name: 'جودة العمل', score: 5, weight: 25 }, { name: 'الإنتاجية', score: 4, weight: 20 }, { name: 'العمل الجماعي', score: 5, weight: 20 }, { name: 'التواصل', score: 4, weight: 15 }, { name: 'المبادرة', score: 4, weight: 10 }, { name: 'الحضور والالتزام', score: 5, weight: 10 }] },
-  { id: '2', employeeId: 'Emp002', employeeName: 'أحمد محمد علي', department: 'تقنية المعلومات', station: 'hq1', quarter: 'Q4', year: '2025', score: 4.2, status: 'approved', reviewer: 'أحمد حسن', reviewDate: '2025-12-14', strengths: 'إتقان البرمجة', improvements: 'التوثيق', goals: 'تعلم تقنيات جديدة', criteria: [{ name: 'جودة العمل', score: 4, weight: 25 }, { name: 'الإنتاجية', score: 4, weight: 20 }, { name: 'العمل الجماعي', score: 5, weight: 20 }, { name: 'التواصل', score: 4, weight: 15 }, { name: 'المبادرة', score: 4, weight: 10 }, { name: 'الحضور والالتزام', score: 4, weight: 10 }] },
+const defaultCriteria: CriteriaItem[] = [
+  { name: 'جودة العمل', nameEn: 'Work Quality', score: 3, weight: 25 },
+  { name: 'الإنتاجية', nameEn: 'Productivity', score: 3, weight: 20 },
+  { name: 'العمل الجماعي', nameEn: 'Teamwork', score: 3, weight: 20 },
+  { name: 'التواصل', nameEn: 'Communication', score: 3, weight: 15 },
+  { name: 'المبادرة', nameEn: 'Initiative', score: 3, weight: 10 },
+  { name: 'الحضور والالتزام', nameEn: 'Attendance', score: 3, weight: 10 },
+];
+
+const initialReviews: PerformanceReview[] = [
+  { id: '1', employeeId: 'Emp001', employeeName: 'جلال عبد الرازق عبد العليم', department: 'الإدارة', station: 'cairo', quarter: 'Q4', year: '2025', score: 4.5, status: 'approved', reviewer: 'محمد السيد', reviewDate: '2025-12-15', strengths: 'أداء ممتاز في إدارة الفريق', improvements: 'تحسين مهارات العرض', goals: 'قيادة مشروع جديد', managerComments: 'موظف متميز', criteria: [{ name: 'جودة العمل', nameEn: 'Work Quality', score: 5, weight: 25 }, { name: 'الإنتاجية', nameEn: 'Productivity', score: 4, weight: 20 }, { name: 'العمل الجماعي', nameEn: 'Teamwork', score: 5, weight: 20 }, { name: 'التواصل', nameEn: 'Communication', score: 4, weight: 15 }, { name: 'المبادرة', nameEn: 'Initiative', score: 4, weight: 10 }, { name: 'الحضور والالتزام', nameEn: 'Attendance', score: 5, weight: 10 }] },
+  { id: '2', employeeId: 'Emp002', employeeName: 'أحمد محمد علي', department: 'تقنية المعلومات', station: 'hq1', quarter: 'Q4', year: '2025', score: 4.2, status: 'approved', reviewer: 'أحمد حسن', reviewDate: '2025-12-14', strengths: 'إتقان البرمجة', improvements: 'التوثيق', goals: 'تعلم تقنيات جديدة', criteria: [{ name: 'جودة العمل', nameEn: 'Work Quality', score: 4, weight: 25 }, { name: 'الإنتاجية', nameEn: 'Productivity', score: 4, weight: 20 }, { name: 'العمل الجماعي', nameEn: 'Teamwork', score: 5, weight: 20 }, { name: 'التواصل', nameEn: 'Communication', score: 4, weight: 15 }, { name: 'المبادرة', nameEn: 'Initiative', score: 4, weight: 10 }, { name: 'الحضور والالتزام', nameEn: 'Attendance', score: 4, weight: 10 }] },
   { id: '3', employeeId: 'Emp003', employeeName: 'سارة أحمد حسن', department: 'الإدارة', station: 'alex', quarter: 'Q4', year: '2025', score: 3.8, status: 'submitted', reviewer: 'علي محمود', reviewDate: '2025-12-13' },
   { id: '4', employeeId: 'Emp004', employeeName: 'شريف منير', department: 'المبيعات', station: 'hurghada', quarter: 'Q4', year: '2025', score: 4.0, status: 'submitted', reviewer: 'هدى علي', reviewDate: '2025-12-12' },
   { id: '5', employeeId: 'Emp001', employeeName: 'جلال عبد الرازق عبد العليم', department: 'الإدارة', station: 'cairo', quarter: 'Q3', year: '2025', score: 3.5, status: 'draft', reviewer: 'محمد عبدالله', reviewDate: '2025-09-11' },
@@ -61,14 +67,62 @@ const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
 export const PerformanceList = () => {
   const { t, isRTL, language } = useLanguage();
   const { exportToCSV, exportToPDF, handlePrint, reportRef } = useReportExport();
+  const [reviews, setReviews] = useState<PerformanceReview[]>(initialReviews);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [quarterFilter, setQuarterFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>('all');
   const [stationFilter, setStationFilter] = useState<string>('all');
   const [viewReview, setViewReview] = useState<PerformanceReview | null>(null);
+  const [editReview, setEditReview] = useState<PerformanceReview | null>(null);
 
-  const filteredReviews = mockReviews.filter(review => {
+  // Edit form state
+  const [editCriteria, setEditCriteria] = useState<CriteriaItem[]>([]);
+  const [editStrengths, setEditStrengths] = useState('');
+  const [editImprovements, setEditImprovements] = useState('');
+  const [editGoals, setEditGoals] = useState('');
+  const [editManagerComments, setEditManagerComments] = useState('');
+
+  const openEditDialog = (review: PerformanceReview) => {
+    setEditReview(review);
+    setEditCriteria(review.criteria ? [...review.criteria] : defaultCriteria.map(c => ({ ...c })));
+    setEditStrengths(review.strengths || '');
+    setEditImprovements(review.improvements || '');
+    setEditGoals(review.goals || '');
+    setEditManagerComments(review.managerComments || '');
+  };
+
+  const calculateScore = (criteria: CriteriaItem[]) => {
+    const totalWeight = criteria.reduce((s, c) => s + c.weight, 0);
+    const weightedSum = criteria.reduce((s, c) => s + (c.score * c.weight), 0);
+    return parseFloat((weightedSum / totalWeight).toFixed(2));
+  };
+
+  const handleSaveEdit = () => {
+    if (!editReview) return;
+    const newScore = calculateScore(editCriteria);
+    setReviews(prev => prev.map(r =>
+      r.id === editReview.id
+        ? { ...r, criteria: editCriteria, score: newScore, strengths: editStrengths, improvements: editImprovements, goals: editGoals, managerComments: editManagerComments }
+        : r
+    ));
+    setEditReview(null);
+    toast.success(language === 'ar' ? 'تم حفظ التعديلات بنجاح' : 'Changes saved successfully');
+  };
+
+  const handleSubmitEdit = () => {
+    if (!editReview) return;
+    const newScore = calculateScore(editCriteria);
+    setReviews(prev => prev.map(r =>
+      r.id === editReview.id
+        ? { ...r, criteria: editCriteria, score: newScore, strengths: editStrengths, improvements: editImprovements, goals: editGoals, managerComments: editManagerComments, status: 'submitted' as const }
+        : r
+    ));
+    setEditReview(null);
+    toast.success(language === 'ar' ? 'تم إرسال التقييم بنجاح' : 'Review submitted successfully');
+  };
+
+  const filteredReviews = reviews.filter(review => {
     const matchesSearch = review.employeeName.includes(searchQuery) || 
                          review.department.includes(searchQuery) ||
                          review.employeeId.toLowerCase().includes(searchQuery.toLowerCase());
@@ -81,14 +135,10 @@ export const PerformanceList = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'approved':
-        return <Badge className="bg-stat-green/10 text-stat-green hover:bg-stat-green/20">{t('performance.status.approved')}</Badge>;
-      case 'submitted':
-        return <Badge className="bg-stat-blue/10 text-stat-blue hover:bg-stat-blue/20">{t('performance.status.submitted')}</Badge>;
-      case 'draft':
-        return <Badge variant="secondary">{t('performance.status.draft')}</Badge>;
-      default:
-        return null;
+      case 'approved': return <Badge className="bg-stat-green/10 text-stat-green hover:bg-stat-green/20">{t('performance.status.approved')}</Badge>;
+      case 'submitted': return <Badge className="bg-stat-blue/10 text-stat-blue hover:bg-stat-blue/20">{t('performance.status.submitted')}</Badge>;
+      case 'draft': return <Badge variant="secondary">{t('performance.status.draft')}</Badge>;
+      default: return null;
     }
   };
 
@@ -183,18 +233,14 @@ export const PerformanceList = () => {
               />
             </div>
             <Select value={yearFilter} onValueChange={setYearFilter}>
-              <SelectTrigger className="w-full sm:w-32">
-                <SelectValue placeholder={language === 'ar' ? 'السنة' : 'Year'} />
-              </SelectTrigger>
+              <SelectTrigger className="w-full sm:w-32"><SelectValue placeholder={language === 'ar' ? 'السنة' : 'Year'} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{language === 'ar' ? 'جميع السنوات' : 'All Years'}</SelectItem>
                 {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={quarterFilter} onValueChange={setQuarterFilter}>
-              <SelectTrigger className="w-full sm:w-32">
-                <SelectValue placeholder={t('performance.list.quarter')} />
-              </SelectTrigger>
+              <SelectTrigger className="w-full sm:w-32"><SelectValue placeholder={t('performance.list.quarter')} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('performance.list.allQuarters')}</SelectItem>
                 <SelectItem value="Q4">Q4</SelectItem>
@@ -204,9 +250,7 @@ export const PerformanceList = () => {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder={t('performance.list.status')} />
-              </SelectTrigger>
+              <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('performance.list.status')} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('performance.list.allStatuses')}</SelectItem>
                 <SelectItem value="approved">{t('performance.status.approved')}</SelectItem>
@@ -215,9 +259,7 @@ export const PerformanceList = () => {
               </SelectContent>
             </Select>
             <Select value={stationFilter} onValueChange={setStationFilter}>
-              <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder={language === 'ar' ? 'المحطة/الموقع' : 'Station/Location'} />
-              </SelectTrigger>
+              <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder={language === 'ar' ? 'المحطة/الموقع' : 'Station/Location'} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{language === 'ar' ? 'جميع المحطات' : 'All Stations'}</SelectItem>
                 {stationLocations.map(s => (
@@ -263,7 +305,7 @@ export const PerformanceList = () => {
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewReview(review)} title={language === 'ar' ? 'عرض' : 'View'}>
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title={language === 'ar' ? 'تعديل' : 'Edit'}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(review)} title={language === 'ar' ? 'تعديل' : 'Edit'}>
                           <Edit className="w-4 h-4" />
                         </Button>
                       </div>
@@ -275,12 +317,9 @@ export const PerformanceList = () => {
           </div>
 
           {filteredReviews.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              {t('performance.list.noResults')}
-            </div>
+            <div className="text-center py-8 text-muted-foreground">{t('performance.list.noResults')}</div>
           )}
 
-          {/* Summary */}
           <div className={cn("flex gap-4 text-sm text-muted-foreground pt-2 border-t", isRTL && "flex-row-reverse")}>
             <span>{language === 'ar' ? 'إجمالي النتائج:' : 'Total Results:'} <strong className="text-foreground">{filteredReviews.length}</strong></span>
             <span>{language === 'ar' ? 'متوسط التقييم:' : 'Average Score:'} <strong className="text-foreground">{filteredReviews.length > 0 ? (filteredReviews.reduce((s, r) => s + r.score, 0) / filteredReviews.length).toFixed(1) : '0'}</strong></span>
@@ -299,7 +338,6 @@ export const PerformanceList = () => {
           </DialogHeader>
           {viewReview && (
             <div className="space-y-5">
-              {/* Header Info */}
               <div className="grid grid-cols-2 gap-4 p-4 rounded-lg bg-muted/50">
                 <div className={cn(isRTL && "text-right")}>
                   <p className="text-sm text-muted-foreground">{t('performance.list.employee')}</p>
@@ -327,7 +365,6 @@ export const PerformanceList = () => {
                 </div>
               </div>
 
-              {/* Overall Score */}
               <div className={cn("flex items-center justify-between p-4 rounded-lg bg-primary/5 border border-primary/20", isRTL && "flex-row-reverse")}>
                 <span className="font-semibold text-lg">{language === 'ar' ? 'التقييم الإجمالي' : 'Overall Score'}</span>
                 <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
@@ -338,7 +375,6 @@ export const PerformanceList = () => {
                 </div>
               </div>
 
-              {/* Criteria breakdown */}
               {viewReview.criteria && (
                 <div className="space-y-3">
                   <h4 className={cn("font-semibold", isRTL && "text-right")}>{language === 'ar' ? 'تفصيل المعايير' : 'Criteria Breakdown'}</h4>
@@ -356,7 +392,6 @@ export const PerformanceList = () => {
                 </div>
               )}
 
-              {/* Comments sections */}
               {viewReview.strengths && (
                 <div className={cn("space-y-1", isRTL && "text-right")}>
                   <h4 className="font-semibold text-stat-green">{language === 'ar' ? 'نقاط القوة' : 'Strengths'}</h4>
@@ -381,6 +416,113 @@ export const PerformanceList = () => {
                   <p className="text-sm bg-muted/50 p-3 rounded-lg">{viewReview.managerComments}</p>
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Review Dialog */}
+      <Dialog open={!!editReview} onOpenChange={() => setEditReview(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+              <Edit className="w-5 h-5 text-primary" />
+              {language === 'ar' ? 'تعديل التقييم' : 'Edit Review'}
+            </DialogTitle>
+          </DialogHeader>
+          {editReview && (
+            <div className="space-y-5">
+              {/* Employee Info (read-only) */}
+              <div className="grid grid-cols-2 gap-4 p-4 rounded-lg bg-muted/50">
+                <div className={cn(isRTL && "text-right")}>
+                  <p className="text-sm text-muted-foreground">{t('performance.list.employee')}</p>
+                  <p className="font-semibold">{editReview.employeeName}</p>
+                </div>
+                <div className={cn(isRTL && "text-right")}>
+                  <p className="text-sm text-muted-foreground">{language === 'ar' ? 'الفترة' : 'Period'}</p>
+                  <p className="font-semibold">{editReview.quarter} {editReview.year}</p>
+                </div>
+              </div>
+
+              {/* Criteria Scoring */}
+              <div className="space-y-4">
+                <h4 className={cn("font-semibold flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                  <Target className="w-4 h-4 text-primary" />
+                  {language === 'ar' ? 'معايير التقييم' : 'Evaluation Criteria'}
+                </h4>
+                {editCriteria.map((criterion, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+                      <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                        <Label className="text-sm font-medium">{language === 'ar' ? criterion.name : criterion.nameEn}</Label>
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{criterion.weight}%</span>
+                      </div>
+                      <div className={cn("flex items-center gap-1", isRTL && "flex-row-reverse")}>
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <Star
+                            key={star}
+                            className={cn("w-5 h-5 cursor-pointer transition-colors hover:scale-110", star <= criterion.score ? "text-stat-yellow fill-stat-yellow" : "text-muted-foreground hover:text-stat-yellow/50")}
+                            onClick={() => {
+                              setEditCriteria(prev => prev.map((c, i) => i === idx ? { ...c, score: star } : c));
+                            }}
+                          />
+                        ))}
+                        <span className="font-bold text-sm w-6 text-center">{criterion.score}</span>
+                      </div>
+                    </div>
+                    <Progress value={criterion.score * 20} className="h-1.5" />
+                  </div>
+                ))}
+                {/* Overall score */}
+                <div className={cn("flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20", isRTL && "flex-row-reverse")}>
+                  <span className="font-semibold">{language === 'ar' ? 'التقييم الإجمالي' : 'Overall Score'}</span>
+                  <span className={cn("font-bold text-xl", getScoreColor(calculateScore(editCriteria)))}>{calculateScore(editCriteria)}/5</span>
+                </div>
+              </div>
+
+              {/* Text Fields */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className={cn("flex items-center gap-1.5 text-stat-green", isRTL && "flex-row-reverse")}>
+                    <TrendingUp className="w-4 h-4" />
+                    {language === 'ar' ? 'نقاط القوة' : 'Strengths'}
+                  </Label>
+                  <Textarea value={editStrengths} onChange={e => setEditStrengths(e.target.value)} className="min-h-[80px]" />
+                </div>
+                <div className="space-y-2">
+                  <Label className={cn("flex items-center gap-1.5 text-stat-coral", isRTL && "flex-row-reverse")}>
+                    <Lightbulb className="w-4 h-4" />
+                    {language === 'ar' ? 'مجالات التحسين' : 'Improvements'}
+                  </Label>
+                  <Textarea value={editImprovements} onChange={e => setEditImprovements(e.target.value)} className="min-h-[80px]" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}>
+                  <Target className="w-4 h-4 text-primary" />
+                  {language === 'ar' ? 'الأهداف القادمة' : 'Next Goals'}
+                </Label>
+                <Textarea value={editGoals} onChange={e => setEditGoals(e.target.value)} className="min-h-[70px]" />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}>
+                  <MessageSquare className="w-4 h-4 text-primary" />
+                  {language === 'ar' ? 'ملاحظات المدير' : 'Manager Comments'}
+                </Label>
+                <Textarea value={editManagerComments} onChange={e => setEditManagerComments(e.target.value)} className="min-h-[70px]" />
+              </div>
+
+              {/* Actions */}
+              <div className={cn("flex gap-3 pt-2", isRTL ? "flex-row-reverse justify-start" : "justify-end")}>
+                <Button variant="outline" onClick={handleSaveEdit} className="gap-2">
+                  <Save className="w-4 h-4" />
+                  {language === 'ar' ? 'حفظ كمسودة' : 'Save Draft'}
+                </Button>
+                <Button onClick={handleSubmitEdit} className="gap-2 bg-stat-green hover:bg-stat-green/90">
+                  <Send className="w-4 h-4" />
+                  {language === 'ar' ? 'إرسال التقييم' : 'Submit Review'}
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

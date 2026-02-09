@@ -7,10 +7,13 @@ import { cn } from '@/lib/utils';
 import { Star, Award, TrendingUp, Users, Download, Printer, FileText } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LineChart, Line } from 'recharts';
 import { useReportExport } from '@/hooks/useReportExport';
+import { stationLocations } from '@/data/stationLocations';
 
 export const PerformanceReports = () => {
   const { t, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const [period, setPeriod] = useState('year');
+  const [station, setStation] = useState('all');
   const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
 
   const ratingDistribution = [
@@ -74,6 +77,15 @@ export const PerformanceReports = () => {
                 <SelectContent>
                   <SelectItem value="quarter">{t('reports.thisQuarter')}</SelectItem>
                   <SelectItem value="year">{t('reports.thisYear')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={station} onValueChange={setStation}>
+                <SelectTrigger className="w-44"><SelectValue placeholder={language === 'ar' ? 'المحطة/الموقع' : 'Station'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'ar' ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  {stationLocations.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{language === 'ar' ? s.labelAr : s.labelEn}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
