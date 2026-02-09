@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { initialDepartments } from '@/data/departments';
 
 interface JobInfoTabProps {
   employee: Employee;
@@ -22,15 +23,16 @@ export const JobInfoTab = ({ employee }: JobInfoTabProps) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.department')}</Label>
-          <Select>
+          <Select defaultValue={employee.department ? initialDepartments.find(d => d.nameAr === employee.department)?.id : undefined}>
             <SelectTrigger className={cn(isRTL && "text-right")}>
               <SelectValue placeholder={t('employees.selectDepartment')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="it">{t('dept.it')}</SelectItem>
-              <SelectItem value="hr">{t('dept.hr')}</SelectItem>
-              <SelectItem value="finance">{t('dept.finance')}</SelectItem>
-              <SelectItem value="sales">{t('dept.sales')}</SelectItem>
+              {initialDepartments.map((dept) => (
+                <SelectItem key={dept.id} value={dept.id}>
+                  {isRTL ? dept.nameAr : dept.nameEn}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

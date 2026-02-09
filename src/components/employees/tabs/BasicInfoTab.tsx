@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { Input } from '@/components/ui/input';
@@ -6,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface BasicInfoTabProps {
   employee: Employee;
@@ -13,14 +15,38 @@ interface BasicInfoTabProps {
 
 export const BasicInfoTab = ({ employee }: BasicInfoTabProps) => {
   const { t, isRTL } = useLanguage();
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(employee.avatar);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(isRTL ? 'يرجى اختيار ملف صورة صالح' : 'Please select a valid image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(isRTL ? 'حجم الصورة يجب أن يكون أقل من 5 ميجابايت' : 'Image size must be less than 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setAvatarUrl(event.target?.result as string);
+      toast.success(isRTL ? 'تم تحميل الصورة بنجاح' : 'Photo uploaded successfully');
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="p-6 space-y-8">
       {/* Avatar Section */}
       <div className="bg-primary py-8 rounded-lg flex flex-col items-center justify-center">
-        <div className="relative">
+        <div className="relative cursor-pointer" onClick={() => fileInputRef.current?.click()}>
           <Avatar className="w-24 h-24 border-4 border-primary-foreground/20">
-            <AvatarImage src={employee.avatar} />
+            <AvatarImage src={avatarUrl} />
             <AvatarFallback className="bg-primary-foreground/20 text-primary-foreground text-2xl">
               {employee.nameAr.slice(0, 2)}
             </AvatarFallback>
@@ -28,6 +54,13 @@ export const BasicInfoTab = ({ employee }: BasicInfoTabProps) => {
           <button className="absolute bottom-0 right-0 w-8 h-8 bg-primary-foreground rounded-full flex items-center justify-center shadow-lg">
             <Camera className="w-4 h-4 text-primary" />
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoUpload}
+          />
         </div>
         <p className="mt-4 text-primary-foreground text-sm">
           {t('employees.clickToUpload')}
@@ -36,13 +69,10 @@ export const BasicInfoTab = ({ employee }: BasicInfoTabProps) => {
 
       {/* Form Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Employee ID */}
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.employeeId')}</Label>
           <Input defaultValue={employee.employeeId} className={cn(isRTL && "text-right")} />
         </div>
-
-        {/* Station/Location */}
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.stationLocation')} *</Label>
           <Select>
@@ -64,8 +94,6 @@ export const BasicInfoTab = ({ employee }: BasicInfoTabProps) => {
             </SelectContent>
           </Select>
         </div>
-
-        {/* Photo Upload */}
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.enterStation')}</Label>
           <Input placeholder={t('employees.fields.enterStation')} className={cn(isRTL && "text-right")} />
