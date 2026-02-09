@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { Upload, Trash2, Smartphone, Search, Printer, FileText, FileSpreadsheet, Phone, Users, DollarSign, Calendar } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { mockEmployees } from '@/data/mockEmployees';
+import { stationLocations } from '@/data/stationLocations';
 import { useReportExport } from '@/hooks/useReportExport';
 
 interface MobileBillEntry {
@@ -19,6 +20,7 @@ interface MobileBillEntry {
   employeeId: string;
   employeeName: string;
   department: string;
+  station: string;
   billAmount: number;
   deductionMonth: string;
   status: 'pending' | 'deducted';
@@ -40,10 +42,12 @@ export const MobileBills = () => {
   const [deductionMonth, setDeductionMonth] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [stationFilter, setStationFilter] = useState('all');
+  const [monthFilter, setMonthFilter] = useState('all');
   const [entries, setEntries] = useState<MobileBillEntry[]>([
-    { id: '1', employeeId: 'Emp001', employeeName: 'جلال عبد الرازق عبد العليم', department: 'تقنية المعلومات', billAmount: 350, deductionMonth: '2026-02', status: 'pending', uploadDate: '2026-02-01', batchId: 'B001' },
-    { id: '2', employeeId: 'Emp002', employeeName: 'أحمد محمد علي', department: 'الموارد البشرية', billAmount: 280, deductionMonth: '2026-02', status: 'pending', uploadDate: '2026-02-01', batchId: 'B001' },
-    { id: '3', employeeId: 'Emp003', employeeName: 'سارة أحمد حسن', department: 'المالية', billAmount: 420, deductionMonth: '2026-01', status: 'deducted', uploadDate: '2026-01-05', batchId: 'B000' },
+    { id: '1', employeeId: 'Emp001', employeeName: 'جلال عبد الرازق عبد العليم', department: 'تقنية المعلومات', station: 'capital', billAmount: 350, deductionMonth: '2026-02', status: 'pending', uploadDate: '2026-02-01', batchId: 'B001' },
+    { id: '2', employeeId: 'Emp002', employeeName: 'أحمد محمد علي', department: 'الموارد البشرية', station: 'cairo', billAmount: 280, deductionMonth: '2026-02', status: 'pending', uploadDate: '2026-02-01', batchId: 'B001' },
+    { id: '3', employeeId: 'Emp003', employeeName: 'سارة أحمد حسن', department: 'المالية', station: 'cairo', billAmount: 420, deductionMonth: '2026-01', status: 'deducted', uploadDate: '2026-01-05', batchId: 'B000' },
   ]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -99,6 +103,7 @@ export const MobileBills = () => {
           employeeId: empId,
           employeeName: employee?.nameAr || empId,
           department: employee?.department || '-',
+          station: employee?.stationLocation || '',
           billAmount: amount,
           deductionMonth,
           status: 'pending',
@@ -143,7 +148,9 @@ export const MobileBills = () => {
   const filteredEntries = entries.filter(e => {
     const matchesSearch = e.employeeName.includes(searchQuery) || e.employeeId.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || e.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesStation = stationFilter === 'all' || e.station === stationFilter;
+    const matchesMonth = monthFilter === 'all' || e.deductionMonth === monthFilter;
+    return matchesSearch && matchesStatus && matchesStation && matchesMonth;
   });
 
   const stats = useMemo(() => ({
@@ -268,6 +275,22 @@ export const MobileBills = () => {
                   <SelectItem value="all">{isRTL ? 'الكل' : 'All'}</SelectItem>
                   <SelectItem value="pending">{isRTL ? 'قيد الخصم' : 'Pending'}</SelectItem>
                   <SelectItem value="deducted">{isRTL ? 'تم الخصم' : 'Deducted'}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={stationFilter} onValueChange={setStationFilter}>
+                <SelectTrigger className="w-40"><SelectValue placeholder={isRTL ? 'المحطة' : 'Station'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{isRTL ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  {stationLocations.map(s => <SelectItem key={s.value} value={s.value}>{isRTL ? s.labelAr : s.labelEn}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={monthFilter} onValueChange={setMonthFilter}>
+                <SelectTrigger className="w-44"><SelectValue placeholder={isRTL ? 'شهر الخصم' : 'Month'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{isRTL ? 'جميع الأشهر' : 'All Months'}</SelectItem>
+                  {[...new Set(entries.map(e => e.deductionMonth))].sort().map(m => (
+                    <SelectItem key={m} value={m}>{getMonthLabel(m, language)}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="icon" onClick={() => handlePrint(exportTitle)}><Printer className="h-4 w-4" /></Button>
