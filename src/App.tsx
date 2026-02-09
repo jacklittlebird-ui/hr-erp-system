@@ -17,6 +17,7 @@ import Salaries from "./pages/Salaries";
 import Reports from "./pages/Reports";
 import SalaryReports from "./pages/SalaryReports";
 import Departments from "./pages/Departments";
+import Recruitment from "./pages/Recruitment";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/salaries" element={<Salaries />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/salary-reports" element={<SalaryReports />} />
+            <Route path="/recruitment" element={<Recruitment />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
