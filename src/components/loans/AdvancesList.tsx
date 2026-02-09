@@ -1,419 +1,325 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Plus, Eye, CheckCircle, XCircle, Banknote, TrendingUp, Clock } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Eye, Banknote, Clock, CheckCircle, TrendingUp, Printer, FileText, FileSpreadsheet } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { mockEmployees as systemEmployees } from '@/data/mockEmployees';
+import { stationLocations } from '@/data/stationLocations';
+import { useReportExport } from '@/hooks/useReportExport';
 
 interface Advance {
   id: string;
   employeeId: string;
   employeeName: string;
-  department: string;
+  station: string;
   amount: number;
   requestDate: string;
   deductionMonth: string;
   status: 'pending' | 'approved' | 'rejected' | 'deducted';
   reason: string;
-  approvedBy: string;
-  approvalDate: string;
 }
 
 const mockAdvances: Advance[] = [
-  {
-    id: 'ADV001',
-    employeeId: 'EMP001',
-    employeeName: 'أحمد محمد علي',
-    department: 'تقنية المعلومات',
-    amount: 3000,
-    requestDate: '2025-02-01',
-    deductionMonth: '2025-02',
-    status: 'approved',
-    reason: 'مصاريف طارئة',
-    approvedBy: 'محمد أحمد',
-    approvalDate: '2025-02-02',
-  },
-  {
-    id: 'ADV002',
-    employeeId: 'EMP002',
-    employeeName: 'فاطمة أحمد حسن',
-    department: 'الموارد البشرية',
-    amount: 2000,
-    requestDate: '2025-02-03',
-    deductionMonth: '2025-02',
-    status: 'pending',
-    reason: 'احتياجات شخصية',
-    approvedBy: '',
-    approvalDate: '',
-  },
-  {
-    id: 'ADV003',
-    employeeId: 'EMP003',
-    employeeName: 'خالد عبدالله محمد',
-    department: 'المبيعات',
-    amount: 5000,
-    requestDate: '2025-01-15',
-    deductionMonth: '2025-01',
-    status: 'deducted',
-    reason: 'مصاريف سفر',
-    approvedBy: 'محمد أحمد',
-    approvalDate: '2025-01-16',
-  },
+  { id: 'ADV001', employeeId: 'Emp001', employeeName: 'جلال عبد الرازق عبد العليم', station: 'capital', amount: 3000, requestDate: '2025-02-01', deductionMonth: '2025-03', status: 'approved', reason: 'مصاريف طارئة' },
+  { id: 'ADV002', employeeId: 'Emp002', employeeName: 'أحمد محمد علي', station: 'cairo', amount: 2000, requestDate: '2025-02-03', deductionMonth: '2025-02', status: 'pending', reason: 'احتياجات شخصية' },
+  { id: 'ADV003', employeeId: 'Emp003', employeeName: 'سارة أحمد حسن', station: 'cairo', amount: 5000, requestDate: '2025-01-15', deductionMonth: '2025-01', status: 'deducted', reason: 'مصاريف سفر' },
 ];
 
-const mockEmployees = [
-  { id: 'EMP001', name: 'أحمد محمد علي', department: 'تقنية المعلومات', salary: 15000 },
-  { id: 'EMP002', name: 'فاطمة أحمد حسن', department: 'الموارد البشرية', salary: 12000 },
-  { id: 'EMP003', name: 'خالد عبدالله محمد', department: 'المبيعات', salary: 10000 },
-  { id: 'EMP004', name: 'سارة علي أحمد', department: 'المالية', salary: 13000 },
-];
+const getMonthName = (dateStr: string, lang: string) => {
+  if (!dateStr) return '';
+  const [year, month] = dateStr.split('-');
+  const date = new Date(parseInt(year), parseInt(month) - 1);
+  return date.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' });
+};
 
 export const AdvancesList = () => {
-  const { t, isRTL } = useLanguage();
+  const { isRTL, language } = useLanguage();
+  const { handlePrint, exportToPDF, exportToCSV } = useReportExport();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [stationFilter, setStationFilter] = useState<string>('all');
   const [advances, setAdvances] = useState<Advance[]>(mockAdvances);
   const [showDialog, setShowDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
-  const [selectedAdvance, setSelectedAdvance] = useState<Advance | null>(null);
-  const [formData, setFormData] = useState({
-    employeeId: '',
-    amount: '',
-    deductionMonth: '',
-    reason: '',
-  });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [editingAdvance, setEditingAdvance] = useState<Advance | null>(null);
+  const [viewingAdvance, setViewingAdvance] = useState<Advance | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ employeeId: '', amount: '', deductionMonth: '', reason: '' });
 
-  const statusLabels: Record<string, { en: string; ar: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-    pending: { en: 'Pending', ar: 'قيد الانتظار', variant: 'outline' },
-    approved: { en: 'Approved', ar: 'موافق عليه', variant: 'default' },
-    rejected: { en: 'Rejected', ar: 'مرفوض', variant: 'destructive' },
-    deducted: { en: 'Deducted', ar: 'تم الخصم', variant: 'secondary' },
+  const selectedEmployee = useMemo(() => systemEmployees.find(e => e.employeeId === formData.employeeId), [formData.employeeId]);
+
+  const statusLabels: Record<string, { ar: string; en: string; color: string }> = {
+    pending: { ar: 'قيد الانتظار', en: 'Pending', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+    approved: { ar: 'موافق عليه', en: 'Approved', color: 'bg-blue-100 text-blue-700 border-blue-300' },
+    rejected: { ar: 'مرفوض', en: 'Rejected', color: 'bg-red-100 text-red-700 border-red-300' },
+    deducted: { ar: 'تم الخصم', en: 'Deducted', color: 'bg-green-100 text-green-700 border-green-300' },
   };
 
-  const filteredAdvances = advances.filter(advance => {
-    const matchesSearch = advance.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         advance.employeeId.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || advance.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  const filteredAdvances = advances.filter(a => {
+    const matchesSearch = a.employeeName.includes(searchQuery) || a.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
+    const matchesStation = stationFilter === 'all' || a.station === stationFilter;
+    return matchesSearch && matchesStatus && matchesStation;
   });
+
+  const stats = {
+    total: advances.length,
+    pending: advances.filter(a => a.status === 'pending').length,
+    approved: advances.filter(a => a.status === 'approved').reduce((s, a) => s + a.amount, 0),
+    deducted: advances.filter(a => a.status === 'deducted').reduce((s, a) => s + a.amount, 0),
+  };
+
+  const resetForm = () => { setFormData({ employeeId: '', amount: '', deductionMonth: '', reason: '' }); setEditingAdvance(null); };
 
   const handleSubmit = () => {
     if (!formData.employeeId || !formData.amount || !formData.deductionMonth) {
-      toast({ title: t('common.error'), description: t('loans.fillRequired'), variant: 'destructive' });
+      toast({ title: isRTL ? 'خطأ' : 'Error', description: isRTL ? 'يرجى ملء جميع الحقول' : 'Please fill all fields', variant: 'destructive' });
       return;
     }
-
-    const employee = mockEmployees.find(e => e.id === formData.employeeId);
+    const emp = systemEmployees.find(e => e.employeeId === formData.employeeId);
     const amount = parseFloat(formData.amount);
-    const maxAdvance = (employee?.salary || 0) * 0.5;
 
-    if (amount > maxAdvance) {
-      toast({ title: t('common.error'), description: t('loans.advanceExceedsLimit'), variant: 'destructive' });
-      return;
+    if (editingAdvance) {
+      setAdvances(advances.map(a => a.id === editingAdvance.id ? { ...a, employeeId: formData.employeeId, employeeName: emp?.nameAr || a.employeeName, station: emp?.department || a.station, amount, deductionMonth: formData.deductionMonth, reason: formData.reason } : a));
+      toast({ title: isRTL ? 'تم التحديث' : 'Updated' });
+    } else {
+      setAdvances([...advances, {
+        id: `ADV${String(advances.length + 1).padStart(3, '0')}`,
+        employeeId: formData.employeeId, employeeName: emp?.nameAr || '', station: emp?.department || '',
+        amount, requestDate: new Date().toISOString().split('T')[0], deductionMonth: formData.deductionMonth,
+        status: 'pending', reason: formData.reason,
+      }]);
+      toast({ title: isRTL ? 'تم الإضافة' : 'Added' });
     }
-
-    const newAdvance: Advance = {
-      id: `ADV${String(advances.length + 1).padStart(3, '0')}`,
-      employeeId: formData.employeeId,
-      employeeName: employee?.name || '',
-      department: employee?.department || '',
-      amount,
-      requestDate: new Date().toISOString().split('T')[0],
-      deductionMonth: formData.deductionMonth,
-      status: 'pending',
-      reason: formData.reason,
-      approvedBy: '',
-      approvalDate: '',
-    };
-
-    setAdvances([...advances, newAdvance]);
-    setShowDialog(false);
-    setFormData({ employeeId: '', amount: '', deductionMonth: '', reason: '' });
-    toast({ title: t('common.success'), description: t('loans.advanceAdded') });
+    setShowDialog(false); resetForm();
   };
 
-  const handleApprove = (advanceId: string) => {
-    setAdvances(advances.map(advance => 
-      advance.id === advanceId 
-        ? { ...advance, status: 'approved' as const, approvedBy: 'المدير', approvalDate: new Date().toISOString().split('T')[0] }
-        : advance
-    ));
-    toast({ title: t('common.success'), description: t('loans.advanceApproved') });
-  };
+  const handleApprove = (id: string) => { setAdvances(advances.map(a => a.id === id ? { ...a, status: 'approved' as const } : a)); toast({ title: isRTL ? 'تمت الموافقة' : 'Approved' }); };
+  const handleDeduct = (id: string) => { setAdvances(advances.map(a => a.id === id ? { ...a, status: 'deducted' as const } : a)); toast({ title: isRTL ? 'تم الخصم' : 'Deducted' }); };
+  const confirmDelete = () => { if (deletingId) setAdvances(advances.filter(a => a.id !== deletingId)); setShowDeleteDialog(false); setDeletingId(null); toast({ title: isRTL ? 'تم الحذف' : 'Deleted' }); };
 
-  const handleReject = (advanceId: string) => {
-    setAdvances(advances.map(advance => 
-      advance.id === advanceId ? { ...advance, status: 'rejected' as const } : advance
-    ));
-    toast({ title: t('common.success'), description: t('loans.advanceRejected') });
-  };
+  const getStationLabel = (v: string) => { const s = stationLocations.find(st => st.value === v); return s ? (isRTL ? s.labelAr : s.labelEn) : v; };
 
-  const stats = {
-    totalAdvances: advances.length,
-    pendingAdvances: advances.filter(a => a.status === 'pending').length,
-    approvedAmount: advances.filter(a => a.status === 'approved').reduce((sum, a) => sum + a.amount, 0),
-    deductedAmount: advances.filter(a => a.status === 'deducted').reduce((sum, a) => sum + a.amount, 0),
-  };
+  const exportTitle = isRTL ? 'تقرير السلف' : 'Advances Report';
+  const exportColumns = [
+    { header: isRTL ? 'الموظف' : 'Employee', key: 'employeeName' },
+    { header: isRTL ? 'المحطة' : 'Station', key: 'stationLabel' },
+    { header: isRTL ? 'المبلغ' : 'Amount', key: 'amount' },
+    { header: isRTL ? 'شهر الخصم' : 'Deduction Month', key: 'deductionMonth' },
+    { header: isRTL ? 'الحالة' : 'Status', key: 'statusLabel' },
+  ];
+  const exportData = filteredAdvances.map(a => ({ ...a, stationLabel: getStationLabel(a.station), statusLabel: isRTL ? statusLabels[a.status].ar : statusLabels[a.status].en }));
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('loans.advances.total')}</p>
-                <p className="text-2xl font-bold">{stats.totalAdvances}</p>
-              </div>
-              <Banknote className="h-8 w-8 text-primary" />
+        {[
+          { label: isRTL ? 'إجمالي السلف' : 'Total Advances', value: stats.total, icon: Banknote, bgClass: 'bg-stat-purple-bg', iconBg: 'bg-stat-purple' },
+          { label: isRTL ? 'قيد الانتظار' : 'Pending', value: stats.pending, icon: Clock, bgClass: 'bg-stat-yellow-bg', iconBg: 'bg-stat-yellow' },
+          { label: isRTL ? 'مبلغ الموافق عليه' : 'Approved Amount', value: stats.approved.toLocaleString(), icon: CheckCircle, bgClass: 'bg-stat-green-bg', iconBg: 'bg-stat-green' },
+          { label: isRTL ? 'مبلغ المخصوم' : 'Deducted Amount', value: stats.deducted.toLocaleString(), icon: TrendingUp, bgClass: 'bg-stat-blue-bg', iconBg: 'bg-stat-blue' },
+        ].map((s, i) => (
+          <div key={i} className={`rounded-xl p-5 ${s.bgClass} flex items-center gap-4 shadow-sm border border-border/30`}>
+            <div className={`w-12 h-12 rounded-xl ${s.iconBg} flex items-center justify-center shrink-0`}>
+              <s.icon className="h-6 w-6 text-primary-foreground" />
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('loans.advances.pending')}</p>
-                <p className="text-2xl font-bold">{stats.pendingAdvances}</p>
-              </div>
-              <Clock className="h-8 w-8 text-yellow-500" />
+            <div>
+              <p className="text-sm text-muted-foreground">{s.label}</p>
+              <p className="text-2xl font-bold text-foreground">{s.value}</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('loans.advances.approved')}</p>
-                <p className="text-2xl font-bold">{stats.approvedAmount.toLocaleString()}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('loans.advances.deducted')}</p>
-                <p className="text-2xl font-bold">{stats.deductedAmount.toLocaleString()}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        ))}
       </div>
 
-      {/* Main Card */}
+      {/* Main */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <CardTitle>{t('loans.advances.title')}</CardTitle>
-            <div className="flex flex-col md:flex-row gap-4">
+            <CardTitle>{isRTL ? 'قائمة السلف' : 'Advances List'}</CardTitle>
+            <div className="flex flex-wrap gap-3">
               <div className="relative">
                 <Search className={`absolute top-3 h-4 w-4 text-muted-foreground ${isRTL ? 'right-3' : 'left-3'}`} />
-                <Input
-                  placeholder={t('loans.search')}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full md:w-64 ${isRTL ? 'pr-9' : 'pl-9'}`}
-                />
+                <Input placeholder={isRTL ? 'بحث...' : 'Search...'} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className={`w-full md:w-48 ${isRTL ? 'pr-9' : 'pl-9'}`} />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-40">
-                  <SelectValue placeholder={t('loans.filterStatus')} />
-                </SelectTrigger>
+                <SelectTrigger className="w-36"><SelectValue placeholder={isRTL ? 'الحالة' : 'Status'} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t('common.all')}</SelectItem>
-                  {Object.entries(statusLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {isRTL ? label.ar : label.en}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">{isRTL ? 'الكل' : 'All'}</SelectItem>
+                  {Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{isRTL ? v.ar : v.en}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Button onClick={() => setShowDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                {t('loans.advances.add')}
-              </Button>
+              <Select value={stationFilter} onValueChange={setStationFilter}>
+                <SelectTrigger className="w-40"><SelectValue placeholder={isRTL ? 'المحطة' : 'Station'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{isRTL ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  {stationLocations.map(s => <SelectItem key={s.value} value={s.value}>{isRTL ? s.labelAr : s.labelEn}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" onClick={() => handlePrint(exportTitle)}><Printer className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" onClick={() => exportToPDF({ title: exportTitle, data: exportData, columns: exportColumns })}><FileText className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" onClick={() => exportToCSV({ title: exportTitle, data: exportData, columns: exportColumns, fileName: 'advances' })}><FileSpreadsheet className="h-4 w-4" /></Button>
+              <Button onClick={() => { resetForm(); setShowDialog(true); }}><Plus className="h-4 w-4 mr-1" />{isRTL ? 'إضافة سلفة' : 'Add Advance'}</Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('loans.advanceId')}</TableHead>
-                <TableHead>{t('loans.employee')}</TableHead>
-                <TableHead>{t('loans.amount')}</TableHead>
-                <TableHead>{t('loans.advances.requestDate')}</TableHead>
-                <TableHead>{t('loans.advances.deductionMonth')}</TableHead>
-                <TableHead>{t('loans.status')}</TableHead>
-                <TableHead>{t('common.actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAdvances.map((advance) => (
-                <TableRow key={advance.id}>
-                  <TableCell className="font-medium">{advance.id}</TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{advance.employeeName}</p>
-                      <p className="text-sm text-muted-foreground">{advance.department}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{advance.amount.toLocaleString()}</TableCell>
-                  <TableCell>{advance.requestDate}</TableCell>
-                  <TableCell>{advance.deductionMonth}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusLabels[advance.status].variant}>
-                      {isRTL ? statusLabels[advance.status].ar : statusLabels[advance.status].en}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredAdvances.map(adv => (
+              <Card key={adv.id} className="relative overflow-hidden border">
+                <CardContent className="p-5 space-y-3">
+                  <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <Badge variant="outline" className={statusLabels[adv.status].color}>
+                      {isRTL ? statusLabels[adv.status].ar : statusLabels[adv.status].en}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => { setSelectedAdvance(advance); setShowViewDialog(true); }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {advance.status === 'pending' && (
-                        <>
-                          <Button variant="ghost" size="icon" onClick={() => handleApprove(advance.id)}>
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleReject(advance.id)}>
-                            <XCircle className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </>
-                      )}
+                    <h3 className="font-bold text-lg">{adv.employeeName}</h3>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <span className="text-muted-foreground">{isRTL ? 'المحطة' : 'Station'}</span>
+                      <span className="font-semibold">{getStationLabel(adv.station)}</span>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <span className="text-muted-foreground">{isRTL ? 'مبلغ السلفة' : 'Amount'}</span>
+                      <span className="font-semibold">{adv.amount.toLocaleString()} {isRTL ? 'ج.م' : 'EGP'}</span>
+                    </div>
+                    <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <span className="text-muted-foreground">{isRTL ? 'شهر الخصم' : 'Deduction Month'}</span>
+                      <span className="font-semibold">{getMonthName(adv.deductionMonth, language)}</span>
+                    </div>
+                    <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <span className="text-muted-foreground">{isRTL ? 'تاريخ الطلب' : 'Request Date'}</span>
+                      <span className="font-semibold">{adv.requestDate}</span>
+                    </div>
+                    <div className="bg-muted/50 rounded p-2 text-xs">
+                      <span className="text-muted-foreground">{isRTL ? 'ملاحظة: ' : 'Note: '}</span>
+                      <span className="text-destructive font-medium">{isRTL ? 'يتم خصم السلفة بالكامل في شهر الخصم المحدد' : 'Full deduction in the specified month'}</span>
+                    </div>
+                  </div>
+
+                  <div className={`flex gap-2 pt-2 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => { setViewingAdvance(adv); setShowViewDialog(true); }}>
+                      <Eye className="h-3 w-3" />{isRTL ? 'عرض' : 'View'}
+                    </Button>
+                    {adv.status === 'pending' && (
+                      <Button size="sm" variant="outline" className="text-xs gap-1 text-green-600" onClick={() => handleApprove(adv.id)}>
+                        <CheckCircle className="h-3 w-3" />{isRTL ? 'موافقة' : 'Approve'}
+                      </Button>
+                    )}
+                    {adv.status === 'approved' && (
+                      <Button size="sm" variant="outline" className="text-xs gap-1 text-blue-600" onClick={() => handleDeduct(adv.id)}>
+                        <TrendingUp className="h-3 w-3" />{isRTL ? 'خصم' : 'Deduct'}
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => { setEditingAdvance(adv); setFormData({ employeeId: adv.employeeId, amount: String(adv.amount), deductionMonth: adv.deductionMonth, reason: adv.reason }); setShowDialog(true); }}>
+                      <Edit className="h-3 w-3" />{isRTL ? 'تعديل' : 'Edit'}
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-xs gap-1 text-destructive hover:text-destructive" onClick={() => { setDeletingId(adv.id); setShowDeleteDialog(true); }}>
+                      <Trash2 className="h-3 w-3" />{isRTL ? 'حذف' : 'Delete'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          {filteredAdvances.length === 0 && <div className="text-center py-12 text-muted-foreground">{isRTL ? 'لا توجد سلف' : 'No advances found'}</div>}
         </CardContent>
       </Card>
 
-      {/* Add Advance Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+      {/* Add/Edit Dialog */}
+      <Dialog open={showDialog} onOpenChange={o => { if (!o) resetForm(); setShowDialog(o); }}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t('loans.advances.add')}</DialogTitle>
+          <DialogHeader className="bg-gradient-to-r from-red-500 to-blue-500 -m-6 mb-4 p-6 rounded-t-lg">
+            <DialogTitle className="text-white text-center text-xl">
+              {editingAdvance ? (isRTL ? 'تعديل السلفة' : 'Edit Advance') : (isRTL ? 'إضافة سلفة جديدة' : 'Add New Advance')}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label>{t('loans.employee')}</Label>
-              <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('loans.selectEmployee')} />
-                </SelectTrigger>
+              <Label>{isRTL ? 'اختر الموظف *' : 'Select Employee *'}</Label>
+              <Select value={formData.employeeId} onValueChange={v => setFormData({ ...formData, employeeId: v })}>
+                <SelectTrigger><SelectValue placeholder={isRTL ? '-- اختر الموظف --' : '-- Select --'} /></SelectTrigger>
                 <SelectContent>
-                  {mockEmployees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.name} - {t('loans.maxAdvance')}: {(emp.salary * 0.5).toLocaleString()}
-                    </SelectItem>
-                  ))}
+                  {systemEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{isRTL ? emp.nameAr : emp.nameEn}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {selectedEmployee && <p className="text-sm text-muted-foreground">{isRTL ? 'المحطة/الموقع: ' : 'Station: '}{selectedEmployee.department || '-'}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? 'مبلغ السلفة * (ج.م)' : 'Advance Amount * (EGP)'}</Label>
+                <Input type="number" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? 'شهر الخصم *' : 'Deduction Month *'}</Label>
+                <Input type="month" value={formData.deductionMonth} onChange={e => setFormData({ ...formData, deductionMonth: e.target.value })} />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label>{t('loans.amount')}</Label>
-              <Input
-                type="number"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('loans.advances.deductionMonth')}</Label>
-              <Input
-                type="month"
-                value={formData.deductionMonth}
-                onChange={(e) => setFormData({ ...formData, deductionMonth: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('loans.reason')}</Label>
-              <Textarea
-                value={formData.reason}
-                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                rows={3}
-              />
+              <Label>{isRTL ? 'السبب' : 'Reason'}</Label>
+              <Textarea value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })} rows={3} />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>{t('common.cancel')}</Button>
-            <Button onClick={handleSubmit}>{t('common.save')}</Button>
+          <DialogFooter className="gap-2 mt-4">
+            <Button variant="outline" onClick={() => { setShowDialog(false); resetForm(); }}>{isRTL ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleSubmit} className="bg-gradient-to-r from-blue-500 to-blue-600">
+              {editingAdvance ? (isRTL ? 'تحديث' : 'Update') : (isRTL ? 'حفظ' : 'Save')}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* View Advance Dialog */}
+      {/* View Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t('loans.advances.details')}</DialogTitle>
-          </DialogHeader>
-          {selectedAdvance && (
+          <DialogHeader><DialogTitle>{isRTL ? 'تفاصيل السلفة' : 'Advance Details'}</DialogTitle></DialogHeader>
+          {viewingAdvance && (
             <div className="grid grid-cols-2 gap-4 py-4">
-              <div>
-                <Label className="text-muted-foreground">{t('loans.advanceId')}</Label>
-                <p className="font-medium">{selectedAdvance.id}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">{t('loans.employee')}</Label>
-                <p className="font-medium">{selectedAdvance.employeeName}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">{t('loans.amount')}</Label>
-                <p className="font-medium">{selectedAdvance.amount.toLocaleString()}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">{t('loans.status')}</Label>
-                <Badge variant={statusLabels[selectedAdvance.status].variant}>
-                  {isRTL ? statusLabels[selectedAdvance.status].ar : statusLabels[selectedAdvance.status].en}
-                </Badge>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">{t('loans.advances.requestDate')}</Label>
-                <p className="font-medium">{selectedAdvance.requestDate}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">{t('loans.advances.deductionMonth')}</Label>
-                <p className="font-medium">{selectedAdvance.deductionMonth}</p>
-              </div>
+              {[
+                [isRTL ? 'رقم السلفة' : 'ID', viewingAdvance.id],
+                [isRTL ? 'الموظف' : 'Employee', viewingAdvance.employeeName],
+                [isRTL ? 'المحطة' : 'Station', getStationLabel(viewingAdvance.station)],
+                [isRTL ? 'المبلغ' : 'Amount', `${viewingAdvance.amount.toLocaleString()} ${isRTL ? 'ج.م' : 'EGP'}`],
+                [isRTL ? 'شهر الخصم' : 'Deduction', getMonthName(viewingAdvance.deductionMonth, language)],
+                [isRTL ? 'تاريخ الطلب' : 'Request Date', viewingAdvance.requestDate],
+              ].map(([label, value], i) => (
+                <div key={i}>
+                  <Label className="text-muted-foreground">{label}</Label>
+                  <p className="font-medium">{value}</p>
+                </div>
+              ))}
               <div className="col-span-2">
-                <Label className="text-muted-foreground">{t('loans.reason')}</Label>
-                <p className="font-medium">{selectedAdvance.reason}</p>
+                <Label className="text-muted-foreground">{isRTL ? 'السبب' : 'Reason'}</Label>
+                <p className="font-medium">{viewingAdvance.reason || '-'}</p>
               </div>
-              {selectedAdvance.approvedBy && (
-                <>
-                  <div>
-                    <Label className="text-muted-foreground">{t('loans.approvedBy')}</Label>
-                    <p className="font-medium">{selectedAdvance.approvedBy}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">{t('loans.approvalDate')}</Label>
-                    <p className="font-medium">{selectedAdvance.approvalDate}</p>
-                  </div>
-                </>
-              )}
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{isRTL ? 'تأكيد الحذف' : 'Confirm Delete'}</AlertDialogTitle>
+            <AlertDialogDescription>{isRTL ? 'هل أنت متأكد من حذف هذه السلفة؟' : 'Are you sure you want to delete this advance?'}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isRTL ? 'إلغاء' : 'Cancel'}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{isRTL ? 'حذف' : 'Delete'}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
