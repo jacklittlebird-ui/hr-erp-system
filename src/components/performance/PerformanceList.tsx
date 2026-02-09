@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { Search, Eye, Edit, Star, FileText, Printer, Download, FileSpreadsheet, Save, Send, Target, TrendingUp, Lightbulb, MessageSquare } from 'lucide-react';
+import { Search, Eye, Edit, Star, FileText, Printer, Download, FileSpreadsheet, Save, Send, Target, TrendingUp, Lightbulb, MessageSquare, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useReportExport } from '@/hooks/useReportExport';
 import { mockEmployees } from '@/data/mockEmployees';
 import { stationLocations } from '@/data/stationLocations';
@@ -75,6 +76,7 @@ export const PerformanceList = () => {
   const [stationFilter, setStationFilter] = useState<string>('all');
   const [viewReview, setViewReview] = useState<PerformanceReview | null>(null);
   const [editReview, setEditReview] = useState<PerformanceReview | null>(null);
+  const [deleteReviewId, setDeleteReviewId] = useState<string | null>(null);
 
   // Edit form state
   const [editCriteria, setEditCriteria] = useState<CriteriaItem[]>([]);
@@ -308,6 +310,9 @@ export const PerformanceList = () => {
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(review)} title={language === 'ar' ? 'تعديل' : 'Edit'}>
                           <Edit className="w-4 h-4" />
                         </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteReviewId(review.id)} title={language === 'ar' ? 'حذف' : 'Delete'}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -527,6 +532,30 @@ export const PerformanceList = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteReviewId} onOpenChange={() => setDeleteReviewId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{language === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === 'ar' ? 'هل أنت متأكد من حذف هذا التقييم؟ لا يمكن التراجع عن هذا الإجراء.' : 'Are you sure you want to delete this review? This action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{language === 'ar' ? 'إلغاء' : 'Cancel'}</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => {
+              if (deleteReviewId) {
+                setReviews(prev => prev.filter(r => r.id !== deleteReviewId));
+                toast.success(language === 'ar' ? 'تم حذف التقييم بنجاح' : 'Review deleted successfully');
+                setDeleteReviewId(null);
+              }
+            }}>
+              {language === 'ar' ? 'حذف' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
