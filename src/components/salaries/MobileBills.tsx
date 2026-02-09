@@ -170,11 +170,11 @@ export const MobileBills = () => {
 
   const generateMonths = () => {
     const months: { value: string; label: string }[] = [];
-    const now = new Date();
-    for (let i = -2; i <= 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() + i);
-      const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      months.push({ value: val, label: getMonthLabel(val, language) });
+    for (let year = 2025; year <= 2050; year++) {
+      for (let month = 1; month <= 12; month++) {
+        const val = `${year}-${String(month).padStart(2, '0')}`;
+        months.push({ value: val, label: getMonthLabel(val, language) });
+      }
     }
     return months;
   };
