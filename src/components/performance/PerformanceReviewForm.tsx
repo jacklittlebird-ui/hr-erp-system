@@ -2,14 +2,15 @@ import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { Star, Save, Send, Users, Target, Lightbulb, TrendingUp, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
+import { mockEmployees } from '@/data/mockEmployees';
 
 interface CriteriaScore {
   id: string;
@@ -28,23 +29,13 @@ const initialCriteria: CriteriaScore[] = [
   { id: 'attendance', name: 'Attendance & Punctuality', nameAr: 'الحضور والالتزام', score: 3, weight: 10 },
 ];
 
-const mockEmployees = [
-  { id: '1', name: 'أحمد محمد علي', department: 'تقنية المعلومات' },
-  { id: '2', name: 'فاطمة علي حسن', department: 'الموارد البشرية' },
-  { id: '3', name: 'محمد حسن أحمد', department: 'المبيعات' },
-  { id: '4', name: 'سارة أحمد محمد', department: 'المالية' },
-];
-
-const quarters = [
-  { value: 'Q1-2024', label: 'Q1 2024 (يناير - مارس)' },
-  { value: 'Q2-2024', label: 'Q2 2024 (أبريل - يونيو)' },
-  { value: 'Q3-2024', label: 'Q3 2024 (يوليو - سبتمبر)' },
-  { value: 'Q4-2024', label: 'Q4 2024 (أكتوبر - ديسمبر)' },
-];
+const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
+const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
 
 export const PerformanceReviewForm = () => {
   const { t, isRTL, language } = useLanguage();
   const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
   const [selectedQuarter, setSelectedQuarter] = useState('');
   const [criteria, setCriteria] = useState<CriteriaScore[]>(initialCriteria);
   const [strengths, setStrengths] = useState('');
@@ -80,16 +71,29 @@ export const PerformanceReviewForm = () => {
   };
 
   const handleSubmit = () => {
-    if (!selectedEmployee || !selectedQuarter) {
+    if (!selectedEmployee || !selectedYear || !selectedQuarter) {
       toast.error(t('performance.form.fillRequired'));
       return;
     }
     toast.success(t('performance.form.submitted'));
   };
 
+  const getQuarterLabel = (q: string) => {
+    const labels: Record<string, { ar: string; en: string }> = {
+      'Q1': { ar: 'Q1 (يناير - مارس)', en: 'Q1 (Jan - Mar)' },
+      'Q2': { ar: 'Q2 (أبريل - يونيو)', en: 'Q2 (Apr - Jun)' },
+      'Q3': { ar: 'Q3 (يوليو - سبتمبر)', en: 'Q3 (Jul - Sep)' },
+      'Q4': { ar: 'Q4 (أكتوبر - ديسمبر)', en: 'Q4 (Oct - Dec)' },
+    };
+    return language === 'ar' ? labels[q].ar : labels[q].en;
+  };
+
+  // Filter only active employees
+  const activeEmployees = mockEmployees.filter(e => e.status === 'active');
+
   return (
     <div className="space-y-6">
-      {/* Employee & Quarter Selection */}
+      {/* Employee & Period Selection */}
       <Card>
         <CardHeader>
           <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
@@ -98,7 +102,7 @@ export const PerformanceReviewForm = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>{t('performance.form.employee')}</Label>
               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
@@ -106,10 +110,23 @@ export const PerformanceReviewForm = () => {
                   <SelectValue placeholder={t('performance.form.selectEmployeePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockEmployees.map(emp => (
+                  {activeEmployees.map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>
-                      {emp.name} - {emp.department}
+                      {language === 'ar' ? emp.nameAr : emp.nameEn} - {emp.department}
                     </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{language === 'ar' ? 'السنة' : 'Year'}</Label>
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger>
+                  <SelectValue placeholder={language === 'ar' ? 'اختر السنة...' : 'Select year...'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map(y => (
+                    <SelectItem key={y} value={y}>{y}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -122,7 +139,7 @@ export const PerformanceReviewForm = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {quarters.map(q => (
-                    <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>
+                    <SelectItem key={q} value={q}>{getQuarterLabel(q)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -142,7 +159,7 @@ export const PerformanceReviewForm = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           {criteria.map((criterion) => (
-            <div key={criterion.id} className="space-y-3">
+            <div key={criterion.id} className="space-y-2">
               <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
                 <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
                   <Label className="text-base font-medium">
@@ -157,10 +174,10 @@ export const PerformanceReviewForm = () => {
                     <Star
                       key={star}
                       className={cn(
-                        "w-5 h-5 cursor-pointer transition-colors",
+                        "w-6 h-6 cursor-pointer transition-colors hover:scale-110",
                         star <= criterion.score 
                           ? "text-stat-yellow fill-stat-yellow" 
-                          : "text-muted-foreground"
+                          : "text-muted-foreground hover:text-stat-yellow/50"
                       )}
                       onClick={() => handleScoreChange(criterion.id, [star])}
                     />
@@ -168,14 +185,7 @@ export const PerformanceReviewForm = () => {
                   <span className="font-bold text-lg w-8 text-center">{criterion.score}</span>
                 </div>
               </div>
-              <Slider
-                value={[criterion.score]}
-                min={1}
-                max={5}
-                step={0.5}
-                onValueChange={(value) => handleScoreChange(criterion.id, value)}
-                className="w-full"
-              />
+              <Progress value={criterion.score * 20} className="h-2" />
             </div>
           ))}
 
@@ -190,9 +200,9 @@ export const PerformanceReviewForm = () => {
             </div>
             <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
               <span className={cn("font-bold text-2xl", scoreInfo.color)}>{overallScore}</span>
-              <span className={cn("text-sm font-medium px-2 py-1 rounded", scoreInfo.color, "bg-current/10")}>
+              <Badge variant="outline" className={cn(scoreInfo.color, "border-current")}>
                 {scoreInfo.label}
-              </span>
+              </Badge>
             </div>
           </div>
         </CardContent>
@@ -208,12 +218,7 @@ export const PerformanceReviewForm = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Textarea
-              value={strengths}
-              onChange={(e) => setStrengths(e.target.value)}
-              placeholder={t('performance.form.strengthsPlaceholder')}
-              className="min-h-[120px]"
-            />
+            <Textarea value={strengths} onChange={(e) => setStrengths(e.target.value)} placeholder={t('performance.form.strengthsPlaceholder')} className="min-h-[120px]" />
           </CardContent>
         </Card>
 
@@ -225,12 +230,7 @@ export const PerformanceReviewForm = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Textarea
-              value={improvements}
-              onChange={(e) => setImprovements(e.target.value)}
-              placeholder={t('performance.form.improvementsPlaceholder')}
-              className="min-h-[120px]"
-            />
+            <Textarea value={improvements} onChange={(e) => setImprovements(e.target.value)} placeholder={t('performance.form.improvementsPlaceholder')} className="min-h-[120px]" />
           </CardContent>
         </Card>
       </div>
@@ -244,12 +244,7 @@ export const PerformanceReviewForm = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea
-            value={goals}
-            onChange={(e) => setGoals(e.target.value)}
-            placeholder={t('performance.form.goalsPlaceholder')}
-            className="min-h-[100px]"
-          />
+          <Textarea value={goals} onChange={(e) => setGoals(e.target.value)} placeholder={t('performance.form.goalsPlaceholder')} className="min-h-[100px]" />
         </CardContent>
       </Card>
 
@@ -261,12 +256,7 @@ export const PerformanceReviewForm = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea
-            value={managerComments}
-            onChange={(e) => setManagerComments(e.target.value)}
-            placeholder={t('performance.form.managerCommentsPlaceholder')}
-            className="min-h-[100px]"
-          />
+          <Textarea value={managerComments} onChange={(e) => setManagerComments(e.target.value)} placeholder={t('performance.form.managerCommentsPlaceholder')} className="min-h-[100px]" />
         </CardContent>
       </Card>
 
