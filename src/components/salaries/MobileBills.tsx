@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { Upload, Trash2, Smartphone, Search, Printer, FileText, FileSpreadsheet, Phone, Users, DollarSign, Calendar } from 'lucide-react';
+import { Upload, Trash2, Smartphone, Search, Printer, FileText, FileSpreadsheet, Phone, Users, DollarSign, Calendar, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { mockEmployees } from '@/data/mockEmployees';
 import { stationLocations } from '@/data/stationLocations';
@@ -51,6 +52,9 @@ export const MobileBills = () => {
   ]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<MobileBillEntry | null>(null);
+  const [editAmount, setEditAmount] = useState('');
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -329,11 +333,14 @@ export const MobileBills = () => {
                   </TableCell>
                   <TableCell>
                     <div className={cn("flex gap-1", isRTL && "flex-row-reverse")}>
-                      {entry.status === 'pending' && (
+                       {entry.status === 'pending' && (
                         <Button size="sm" variant="outline" className="text-xs gap-1 text-green-600" onClick={() => handleMarkDeducted(entry.id)}>
                           {isRTL ? 'خصم' : 'Deduct'}
                         </Button>
                       )}
+                      <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => { setEditingEntry(entry); setEditAmount(String(entry.billAmount)); setShowEditDialog(true); }}>
+                        <Edit className="h-3 w-3" />{isRTL ? 'تعديل' : 'Edit'}
+                      </Button>
                       <Button size="sm" variant="outline" className="text-xs gap-1 text-destructive hover:text-destructive" onClick={() => { setDeletingId(entry.id); setShowDeleteDialog(true); }}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -361,6 +368,36 @@ export const MobileBills = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{isRTL ? 'تعديل مبلغ الفاتورة' : 'Edit Bill Amount'}</DialogTitle>
+          </DialogHeader>
+          {editingEntry && (
+            <div className="space-y-4 py-2">
+              <div>
+                <Label className="text-muted-foreground">{isRTL ? 'الموظف' : 'Employee'}</Label>
+                <p className="font-medium">{editingEntry.employeeName}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? 'مبلغ الفاتورة (ج.م)' : 'Bill Amount (EGP)'}</Label>
+                <Input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)} />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>{isRTL ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={() => {
+              const newAmount = parseFloat(editAmount);
+              if (!editingEntry || isNaN(newAmount) || newAmount <= 0) return;
+              setEntries(prev => prev.map(e => e.id === editingEntry.id ? { ...e, billAmount: newAmount } : e));
+              setShowEditDialog(false);
+              toast({ title: isRTL ? 'تم التحديث' : 'Updated' });
+            }}>{isRTL ? 'حفظ' : 'Save'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
