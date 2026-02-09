@@ -36,8 +36,9 @@ export const useReportExport = () => {
       <html dir="${isRTL ? 'rtl' : 'ltr'}">
       <head>
         <title>${title}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
-          body { font-family: 'Cairo', 'Inter', sans-serif; padding: 20px; direction: ${isRTL ? 'rtl' : 'ltr'}; }
+          body { font-family: 'Baloo Bhaijaan 2', 'Cairo', sans-serif; padding: 20px; direction: ${isRTL ? 'rtl' : 'ltr'}; }
           h1 { text-align: center; margin-bottom: 20px; font-size: 24px; }
           .print-date { text-align: center; color: #666; margin-bottom: 30px; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -111,8 +112,9 @@ export const useReportExport = () => {
       <html dir="${isRTL ? 'rtl' : 'ltr'}">
       <head>
         <title>${title}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
-          body { font-family: 'Cairo', 'Inter', sans-serif; padding: 30px; direction: ${isRTL ? 'rtl' : 'ltr'}; }
+          body { font-family: 'Baloo Bhaijaan 2', 'Cairo', sans-serif; padding: 30px; direction: ${isRTL ? 'rtl' : 'ltr'}; }
           h1 { text-align: center; margin-bottom: 8px; font-size: 22px; color: #1f2937; }
           .subtitle { text-align: center; color: #6b7280; margin-bottom: 24px; font-size: 13px; }
           table { width: 100%; border-collapse: collapse; }
