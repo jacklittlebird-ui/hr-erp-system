@@ -50,8 +50,17 @@ export const BasicInfoTab = ({ employee }: BasicInfoTabProps) => {
               <SelectValue placeholder={t('employees.select')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="cairo">القاهرة</SelectItem>
+              <SelectItem value="aswan">أسوان</SelectItem>
+              <SelectItem value="asyut">أسيوط</SelectItem>
               <SelectItem value="alex">الإسكندرية</SelectItem>
+              <SelectItem value="luxor">الأقصر</SelectItem>
+              <SelectItem value="cairo">القاهرة</SelectItem>
+              <SelectItem value="hurghada">الغردقة</SelectItem>
+              <SelectItem value="hq1">المركز الرئيسي 1</SelectItem>
+              <SelectItem value="hq2">المركز الرئيسي 2</SelectItem>
+              <SelectItem value="sharm">شرم الشيخ</SelectItem>
+              <SelectItem value="sohag">سوهاج</SelectItem>
+              <SelectItem value="marsa">مرسى علم</SelectItem>
             </SelectContent>
           </Select>
         </div>
