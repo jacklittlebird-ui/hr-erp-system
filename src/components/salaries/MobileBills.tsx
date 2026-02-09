@@ -123,12 +123,27 @@ export const MobileBills = () => {
           variant: 'destructive',
         });
       } else {
-        setEntries(prev => [...prev, ...newEntries]);
+        let updatedCount = 0;
+        let addedCount = 0;
+        setEntries(prev => {
+          const updated = [...prev];
+          newEntries.forEach(ne => {
+            const existingIdx = updated.findIndex(e => e.employeeId === ne.employeeId && e.deductionMonth === ne.deductionMonth);
+            if (existingIdx !== -1) {
+              updated[existingIdx] = { ...updated[existingIdx], billAmount: ne.billAmount, uploadDate: ne.uploadDate, batchId: ne.batchId };
+              updatedCount++;
+            } else {
+              updated.push(ne);
+              addedCount++;
+            }
+          });
+          return updated;
+        });
         toast({
           title: isRTL ? 'تم الرفع بنجاح' : 'Upload Successful',
           description: isRTL
-            ? `تم إضافة ${newEntries.length} فاتورة${skippedCount > 0 ? ` (تم تخطي ${skippedCount} سطر غير صالح)` : ''}`
-            : `${newEntries.length} bills added${skippedCount > 0 ? ` (${skippedCount} invalid rows skipped)` : ''}`,
+            ? `تم إضافة ${addedCount} فاتورة${updatedCount > 0 ? ` وتحديث ${updatedCount} فاتورة موجودة` : ''}${skippedCount > 0 ? ` (تم تخطي ${skippedCount} سطر غير صالح)` : ''}`
+            : `${addedCount} added${updatedCount > 0 ? `, ${updatedCount} updated` : ''}${skippedCount > 0 ? ` (${skippedCount} skipped)` : ''}`,
         });
       }
 
