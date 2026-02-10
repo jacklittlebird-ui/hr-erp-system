@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSalaryData, calcGross } from '@/contexts/SalaryDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,79 +10,66 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Search, Download, Printer, Eye } from 'lucide-react';
-
-interface SalarySlip {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  department: string;
-  month: string;
-  year: string;
-  basicSalary: number;
-  housingAllowance: number;
-  transportAllowance: number;
-  mealAllowance: number;
-  otherAllowances: number;
-  socialInsurance: number;
-  taxes: number;
-  loanDeduction: number;
-  otherDeductions: number;
-  overtime: number;
-  bonus: number;
-  netSalary: number;
-}
+import { mockEmployees } from '@/data/mockEmployees';
+import { stationLocations } from '@/data/stationLocations';
 
 export const SalarySlips = () => {
-  const { t, isRTL } = useLanguage();
+  const { language, isRTL } = useLanguage();
+  const ar = language === 'ar';
+  const { getSalaryRecord } = useSalaryData();
   const [search, setSearch] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('01');
-  const [selectedSlip, setSelectedSlip] = useState<SalarySlip | null>(null);
-
-  const slips: SalarySlip[] = [
-    {
-      id: '1', employeeId: 'Emp001', employeeName: 'جلال عبد الرازق', department: 'تقنية المعلومات',
-      month: '01', year: '2026', basicSalary: 8500, housingAllowance: 1200, transportAllowance: 500,
-      mealAllowance: 300, otherAllowances: 500, socialInsurance: 450, taxes: 300, loanDeduction: 200,
-      otherDeductions: 0, overtime: 800, bonus: 0, netSalary: 10850,
-    },
-    {
-      id: '2', employeeId: 'Emp002', employeeName: 'محمد أحمد علي', department: 'الموارد البشرية',
-      month: '01', year: '2026', basicSalary: 7200, housingAllowance: 1000, transportAllowance: 400,
-      mealAllowance: 300, otherAllowances: 300, socialInsurance: 380, taxes: 250, loanDeduction: 0,
-      otherDeductions: 170, overtime: 0, bonus: 500, netSalary: 8900,
-    },
-    {
-      id: '3', employeeId: 'Emp003', employeeName: 'سارة حسن محمود', department: 'المالية',
-      month: '01', year: '2026', basicSalary: 9000, housingAllowance: 1500, transportAllowance: 600,
-      mealAllowance: 300, otherAllowances: 600, socialInsurance: 500, taxes: 350, loanDeduction: 500,
-      otherDeductions: 50, overtime: 400, bonus: 1000, netSalary: 12000,
-    },
-    {
-      id: '4', employeeId: 'Emp004', employeeName: 'أحمد يوسف', department: 'التسويق',
-      month: '01', year: '2026', basicSalary: 6800, housingAllowance: 900, transportAllowance: 400,
-      mealAllowance: 250, otherAllowances: 250, socialInsurance: 360, taxes: 220, loanDeduction: 0,
-      otherDeductions: 170, overtime: 200, bonus: 0, netSalary: 8050,
-    },
-    {
-      id: '5', employeeId: 'Emp005', employeeName: 'فاطمة عبدالله', department: 'العمليات',
-      month: '01', year: '2026', basicSalary: 7500, housingAllowance: 1100, transportAllowance: 450,
-      mealAllowance: 300, otherAllowances: 350, socialInsurance: 400, taxes: 270, loanDeduction: 300,
-      otherDeductions: 0, overtime: 600, bonus: 0, netSalary: 9330,
-    },
-  ];
-
-  const filteredSlips = slips.filter(s =>
-    s.employeeName.includes(search) || s.employeeId.toLowerCase().includes(search.toLowerCase())
-  );
+  const [selectedYear, setSelectedYear] = useState('2026');
+  const [selectedStation, setSelectedStation] = useState('all');
+  const [selectedSlipEmpId, setSelectedSlipEmpId] = useState<string | null>(null);
 
   const months = [
-    { value: '01', label: t('months.jan') }, { value: '02', label: t('months.feb') },
-    { value: '03', label: t('months.mar') }, { value: '04', label: t('months.apr') },
-    { value: '05', label: t('months.may') }, { value: '06', label: t('months.jun') },
-    { value: '07', label: t('salaries.months.jul') }, { value: '08', label: t('salaries.months.aug') },
-    { value: '09', label: t('salaries.months.sep') }, { value: '10', label: t('salaries.months.oct') },
-    { value: '11', label: t('salaries.months.nov') }, { value: '12', label: t('salaries.months.dec') },
+    { value: '01', label: ar ? 'يناير' : 'January' }, { value: '02', label: ar ? 'فبراير' : 'February' },
+    { value: '03', label: ar ? 'مارس' : 'March' }, { value: '04', label: ar ? 'أبريل' : 'April' },
+    { value: '05', label: ar ? 'مايو' : 'May' }, { value: '06', label: ar ? 'يونيو' : 'June' },
+    { value: '07', label: ar ? 'يوليو' : 'July' }, { value: '08', label: ar ? 'أغسطس' : 'August' },
+    { value: '09', label: ar ? 'سبتمبر' : 'September' }, { value: '10', label: ar ? 'أكتوبر' : 'October' },
+    { value: '11', label: ar ? 'نوفمبر' : 'November' }, { value: '12', label: ar ? 'ديسمبر' : 'December' },
   ];
+
+  const activeEmployees = mockEmployees.filter(e => e.status === 'active');
+
+  const slips = useMemo(() => {
+    return activeEmployees
+      .filter(emp => {
+        const nameMatch = emp.nameAr.includes(search) || emp.nameEn.toLowerCase().includes(search.toLowerCase()) || emp.employeeId.toLowerCase().includes(search.toLowerCase());
+        const stationMatch = selectedStation === 'all' || emp.stationLocation === selectedStation;
+        return nameMatch && stationMatch;
+      })
+      .map(emp => {
+        const record = getSalaryRecord(emp.employeeId, selectedYear);
+        if (!record) return null;
+        const gross = calcGross(record);
+        const totalDeductions = record.employeeInsurance;
+        const net = gross - totalDeductions;
+        return {
+          employeeId: emp.employeeId,
+          employeeName: ar ? emp.nameAr : emp.nameEn,
+          department: emp.department,
+          month: selectedMonth,
+          year: selectedYear,
+          basicSalary: record.basicSalary,
+          transportAllowance: record.transportAllowance,
+          incentives: record.incentives,
+          livingAllowance: record.livingAllowance,
+          stationAllowance: record.stationAllowance,
+          mobileAllowance: record.mobileAllowance,
+          employeeInsurance: record.employeeInsurance,
+          gross,
+          totalDeductions,
+          netSalary: net,
+        };
+      })
+      .filter(Boolean) as any[];
+  }, [activeEmployees, search, selectedStation, selectedYear, selectedMonth, getSalaryRecord, ar]);
+
+  const selectedSlip = selectedSlipEmpId ? slips.find(s => s.employeeId === selectedSlipEmpId) : null;
+  const monthLabel = months.find(m => m.value === selectedMonth)?.label || '';
 
   return (
     <div className="space-y-6">
@@ -92,29 +80,42 @@ export const SalarySlips = () => {
             <div className="relative flex-1 min-w-[200px]">
               <Search className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground", isRTL ? "right-3" : "left-3")} />
               <Input
-                placeholder={t('salaries.searchEmployee')}
+                placeholder={ar ? 'بحث عن موظف...' : 'Search employee...'}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className={cn(isRTL ? "pr-10 text-right" : "pl-10")}
               />
             </div>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
+            <Select value={selectedStation} onValueChange={setSelectedStation}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder={ar ? 'المحطة/الموقع' : 'Station'} />
               </SelectTrigger>
               <SelectContent>
-                {months.map(m => (
-                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                <SelectItem value="all">{ar ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                {stationLocations.map(s => (
+                  <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 11 }, (_, i) => String(2025 + i)).map(y => (
+                  <SelectItem key={y} value={y}>{y}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Button variant="outline" size="sm" className="gap-2">
               <Printer className="w-4 h-4" />
-              {t('salaries.printAll')}
+              {ar ? 'طباعة الكل' : 'Print All'}
             </Button>
             <Button variant="outline" size="sm" className="gap-2">
               <Download className="w-4 h-4" />
-              {t('salaries.exportAll')}
+              {ar ? 'تصدير الكل' : 'Export All'}
             </Button>
           </div>
         </CardContent>
@@ -123,61 +124,64 @@ export const SalarySlips = () => {
       {/* Slips Table */}
       <Card>
         <CardHeader>
-          <CardTitle className={cn(isRTL && "text-right")}>{t('salaries.slipsTitle')}</CardTitle>
+          <CardTitle className={cn(isRTL && "text-right")}>
+            {ar ? `قسائم الرواتب - ${monthLabel} ${selectedYear}` : `Salary Slips - ${monthLabel} ${selectedYear}`}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.employeeId')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.employee')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.department')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.basicSalary')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.totalEarnings')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.totalDeductionsLabel')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('salaries.netSalary')}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{t('common.actions')}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'كود الموظف' : 'Employee ID'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الموظف' : 'Employee'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'القسم' : 'Department'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الشهر' : 'Month'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الراتب الأساسي' : 'Basic Salary'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'إجمالي الراتب' : 'Gross Salary'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الخصومات' : 'Deductions'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'صافي الراتب' : 'Net Salary'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'إجراءات' : 'Actions'}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredSlips.map(slip => {
-                const totalEarnings = slip.basicSalary + slip.housingAllowance + slip.transportAllowance + slip.mealAllowance + slip.otherAllowances + slip.overtime + slip.bonus;
-                const totalDeductions = slip.socialInsurance + slip.taxes + slip.loanDeduction + slip.otherDeductions;
-                return (
-                  <TableRow key={slip.id}>
-                    <TableCell className={cn(isRTL && "text-right")}>{slip.employeeId}</TableCell>
-                    <TableCell className={cn("font-medium", isRTL && "text-right")}>{slip.employeeName}</TableCell>
-                    <TableCell className={cn(isRTL && "text-right")}>{slip.department}</TableCell>
-                    <TableCell className={cn(isRTL && "text-right")}>{slip.basicSalary.toLocaleString()}</TableCell>
-                    <TableCell className={cn("text-green-600", isRTL && "text-right")}>{totalEarnings.toLocaleString()}</TableCell>
-                    <TableCell className={cn("text-destructive", isRTL && "text-right")}>{totalDeductions.toLocaleString()}</TableCell>
-                    <TableCell className={cn("font-bold", isRTL && "text-right")}>{slip.netSalary.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <div className={cn("flex gap-1", isRTL && "flex-row-reverse")}>
-                        <Button size="sm" variant="ghost" onClick={() => setSelectedSlip(slip)}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost">
-                          <Printer className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost">
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {slips.map(slip => (
+                <TableRow key={slip.employeeId}>
+                  <TableCell className={cn(isRTL && "text-right")}>{slip.employeeId}</TableCell>
+                  <TableCell className={cn("font-medium", isRTL && "text-right")}>{slip.employeeName}</TableCell>
+                  <TableCell className={cn(isRTL && "text-right")}>{slip.department}</TableCell>
+                  <TableCell className={cn(isRTL && "text-right")}>{monthLabel} {slip.year}</TableCell>
+                  <TableCell className={cn(isRTL && "text-right")}>{slip.basicSalary.toLocaleString()}</TableCell>
+                  <TableCell className={cn("text-green-600", isRTL && "text-right")}>{slip.gross.toLocaleString()}</TableCell>
+                  <TableCell className={cn("text-destructive", isRTL && "text-right")}>{slip.totalDeductions.toLocaleString()}</TableCell>
+                  <TableCell className={cn("font-bold", isRTL && "text-right")}>{slip.netSalary.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <div className={cn("flex gap-1", isRTL && "flex-row-reverse")}>
+                      <Button size="sm" variant="ghost" onClick={() => setSelectedSlipEmpId(slip.employeeId)}>
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost"><Printer className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="ghost"><Download className="w-4 h-4" /></Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {slips.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                    {ar ? 'لا توجد بيانات رواتب لهذه الفترة' : 'No salary data for this period'}
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
       {/* Slip Detail Dialog */}
-      <Dialog open={!!selectedSlip} onOpenChange={() => setSelectedSlip(null)}>
+      <Dialog open={!!selectedSlip} onOpenChange={() => setSelectedSlipEmpId(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className={cn(isRTL && "text-right")}>{t('salaries.slipDetail')}</DialogTitle>
+            <DialogTitle className={cn(isRTL && "text-right")}>{ar ? 'تفاصيل القسيمة' : 'Slip Detail'}</DialogTitle>
           </DialogHeader>
           {selectedSlip && (
             <div className="space-y-4">
@@ -186,25 +190,21 @@ export const SalarySlips = () => {
                   <p className="font-bold text-lg">{selectedSlip.employeeName}</p>
                   <p className="text-sm text-muted-foreground">{selectedSlip.department} - {selectedSlip.employeeId}</p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {months.find(m => m.value === selectedSlip.month)?.label} {selectedSlip.year}
-                </p>
+                <p className="text-sm text-muted-foreground">{monthLabel} {selectedSlip.year}</p>
               </div>
 
               <Separator />
 
-              {/* Earnings */}
               <div>
-                <h4 className={cn("font-semibold text-green-600 mb-2", isRTL && "text-right")}>{t('salaries.earnings')}</h4>
+                <h4 className={cn("font-semibold text-green-600 mb-2", isRTL && "text-right")}>{ar ? 'المستحقات' : 'Earnings'}</h4>
                 <div className="space-y-1 text-sm">
                   {[
-                    { label: t('salaries.basicSalary'), value: selectedSlip.basicSalary },
-                    { label: t('salaries.housingAllowance'), value: selectedSlip.housingAllowance },
-                    { label: t('salaries.transportAllowance'), value: selectedSlip.transportAllowance },
-                    { label: t('salaries.mealAllowance'), value: selectedSlip.mealAllowance },
-                    { label: t('salaries.otherAllowances'), value: selectedSlip.otherAllowances },
-                    { label: t('salaries.overtime'), value: selectedSlip.overtime },
-                    { label: t('salaries.bonus'), value: selectedSlip.bonus },
+                    { label: ar ? 'الراتب الأساسي' : 'Basic Salary', value: selectedSlip.basicSalary },
+                    { label: ar ? 'بدل المواصلات' : 'Transport', value: selectedSlip.transportAllowance },
+                    { label: ar ? 'الحوافز' : 'Incentives', value: selectedSlip.incentives },
+                    { label: ar ? 'بدل المعيشة' : 'Living', value: selectedSlip.livingAllowance },
+                    { label: ar ? 'بدل سكن المحطة' : 'Station', value: selectedSlip.stationAllowance },
+                    { label: ar ? 'بدل الجوال' : 'Mobile', value: selectedSlip.mobileAllowance },
                   ].filter(item => item.value > 0).map((item, i) => (
                     <div key={i} className={cn("flex justify-between", isRTL && "flex-row-reverse")}>
                       <span>{item.label}</span>
@@ -216,41 +216,26 @@ export const SalarySlips = () => {
 
               <Separator />
 
-              {/* Deductions */}
               <div>
-                <h4 className={cn("font-semibold text-destructive mb-2", isRTL && "text-right")}>{t('salaries.deductionsLabel')}</h4>
+                <h4 className={cn("font-semibold text-destructive mb-2", isRTL && "text-right")}>{ar ? 'الخصومات' : 'Deductions'}</h4>
                 <div className="space-y-1 text-sm">
-                  {[
-                    { label: t('salaries.socialInsurance'), value: selectedSlip.socialInsurance },
-                    { label: t('salaries.taxes'), value: selectedSlip.taxes },
-                    { label: t('salaries.loanDeduction'), value: selectedSlip.loanDeduction },
-                    { label: t('salaries.otherDeductions'), value: selectedSlip.otherDeductions },
-                  ].filter(item => item.value > 0).map((item, i) => (
-                    <div key={i} className={cn("flex justify-between", isRTL && "flex-row-reverse")}>
-                      <span>{item.label}</span>
-                      <span className="text-destructive">{item.value.toLocaleString()}</span>
-                    </div>
-                  ))}
+                  <div className={cn("flex justify-between", isRTL && "flex-row-reverse")}>
+                    <span>{ar ? 'التأمينات الاجتماعية' : 'Social Insurance'}</span>
+                    <span className="text-destructive">{selectedSlip.employeeInsurance.toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
 
               <Separator />
 
-              {/* Net */}
               <div className={cn("flex justify-between items-center text-lg font-bold", isRTL && "flex-row-reverse")}>
-                <span>{t('salaries.netSalary')}</span>
+                <span>{ar ? 'صافي الراتب' : 'Net Salary'}</span>
                 <span className="text-primary">{selectedSlip.netSalary.toLocaleString()}</span>
               </div>
 
               <div className={cn("flex gap-2 pt-2", isRTL && "flex-row-reverse")}>
-                <Button variant="outline" className="flex-1 gap-2">
-                  <Printer className="w-4 h-4" />
-                  {t('salaries.print')}
-                </Button>
-                <Button variant="outline" className="flex-1 gap-2">
-                  <Download className="w-4 h-4" />
-                  {t('salaries.download')}
-                </Button>
+                <Button variant="outline" className="flex-1 gap-2"><Printer className="w-4 h-4" />{ar ? 'طباعة' : 'Print'}</Button>
+                <Button variant="outline" className="flex-1 gap-2"><Download className="w-4 h-4" />{ar ? 'تحميل' : 'Download'}</Button>
               </div>
             </div>
           )}
