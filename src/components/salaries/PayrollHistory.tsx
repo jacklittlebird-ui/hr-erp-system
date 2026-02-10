@@ -9,11 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Search, Download, Printer, TrendingUp, TrendingDown, Wallet, Calendar } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { stationLocations } from '@/data/stationLocations';
 
 export const PayrollHistory = () => {
-  const { t, isRTL } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
+  const ar = language === 'ar';
   const [search, setSearch] = useState('');
   const [selectedYear, setSelectedYear] = useState('2025');
+  const [selectedStation, setSelectedStation] = useState('all');
 
   const monthlyData = [
     { month: t('months.jan'), basic: 830000, allowances: 160000, deductions: 88000, net: 902000 },
@@ -129,14 +132,25 @@ export const PayrollHistory = () => {
                   className={cn("w-48", isRTL ? "pr-10 text-right" : "pl-10")}
                 />
               </div>
+              <Select value={selectedStation} onValueChange={setSelectedStation}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder={ar ? 'المحطة/الموقع' : 'Station'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  {stationLocations.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
                 <SelectTrigger className="w-28">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="2026">2026</SelectItem>
-                  <SelectItem value="2025">2025</SelectItem>
-                  <SelectItem value="2024">2024</SelectItem>
+                  {Array.from({ length: 11 }, (_, i) => String(2025 + i)).map(y => (
+                    <SelectItem key={y} value={y}>{y}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm">
