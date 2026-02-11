@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSalaryData, calcGross } from '@/contexts/SalaryDataContext';
+import { usePayrollData, ProcessedPayroll } from '@/contexts/PayrollDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,60 +9,49 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { Wallet, Gift, TrendingDown, Building2, Save, X, FileText, Users, TrendingUp, Clock, Search } from 'lucide-react';
+import { Wallet, Gift, TrendingDown, Building2, Save, X, FileText, Users, Clock, Search, PlayCircle, Zap } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { mockEmployees } from '@/data/mockEmployees';
 import { stationLocations } from '@/data/stationLocations';
 
-// Mock data references
 const mockLoans = [
   { employeeId: 'Emp001', monthlyPayment: 2500, status: 'active' },
   { employeeId: 'Emp002', monthlyPayment: 2000, status: 'active' },
 ];
-
 const mockAdvances = [
   { employeeId: 'Emp002', amount: 2000, deductionMonth: '2026-02', status: 'approved' },
 ];
-
 const mockMobileBills = [
   { employeeId: 'Emp001', billAmount: 350, deductionMonth: '2026-02' },
   { employeeId: 'Emp002', billAmount: 280, deductionMonth: '2026-02' },
 ];
 
-interface PayrollEntry {
-  employeeId: string;
-  month: string;
-  year: string;
-  bonusType: 'amount' | 'percentage';
-  bonusValue: number;
-  leaveDays: number;
-  penaltyType: 'amount' | 'days' | 'percentage';
-  penaltyValue: number;
-  saved: boolean;
-}
-
 export const PayrollProcessing = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
-  const { getSalaryRecord } = useSalaryData();
+  const { getSalaryRecord, salaryRecords } = useSalaryData();
+  const { savePayrollEntry, savePayrollEntries, getPayrollEntry, getMonthlyPayroll } = usePayrollData();
 
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('02');
   const [selectedYear, setSelectedYear] = useState('2026');
-
-  // Sidebar filters
   const [searchName, setSearchName] = useState('');
   const [searchStation, setSearchStation] = useState('');
 
-  // Payroll-specific fields
+  // Monthly manual entries
+  const [livingAllowance, setLivingAllowance] = useState(0);
+  const [overtimePay, setOvertimePay] = useState(0);
   const [bonusType, setBonusType] = useState<'amount' | 'percentage'>('amount');
   const [bonusValue, setBonusValue] = useState(0);
   const [leaveDays, setLeaveDays] = useState(0);
   const [penaltyType, setPenaltyType] = useState<'amount' | 'days' | 'percentage'>('amount');
   const [penaltyValue, setPenaltyValue] = useState(0);
 
-  const [savedEntries, setSavedEntries] = useState<PayrollEntry[]>([]);
+  // Bulk processing
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedBulk, setSelectedBulk] = useState<string[]>([]);
 
   const period = `${selectedYear}-${selectedMonth}`;
 
@@ -70,10 +60,13 @@ export const PayrollProcessing = () => {
     return getSalaryRecord(selectedEmployee, selectedYear);
   }, [selectedEmployee, selectedYear, getSalaryRecord]);
 
-  const gross = useMemo(() => {
+  const baseGross = useMemo(() => {
     if (!salaryRecord) return 0;
     return calcGross(salaryRecord);
   }, [salaryRecord]);
+
+  // Gross includes base + livingAllowance (manual) + overtimePay
+  const gross = baseGross + livingAllowance + overtimePay;
 
   const bonusAmount = useMemo(() => {
     if (bonusType === 'amount') return bonusValue;
@@ -81,30 +74,16 @@ export const PayrollProcessing = () => {
   }, [bonusType, bonusValue, gross]);
 
   const employeeInsurance = salaryRecord?.employeeInsurance || 0;
+  const loanPayment = useMemo(() => mockLoans.find(l => l.employeeId === selectedEmployee && l.status === 'active')?.monthlyPayment || 0, [selectedEmployee]);
+  const advanceAmount = useMemo(() => mockAdvances.find(a => a.employeeId === selectedEmployee && a.deductionMonth === period && a.status === 'approved')?.amount || 0, [selectedEmployee, period]);
+  const mobileBill = useMemo(() => mockMobileBills.find(b => b.employeeId === selectedEmployee && b.deductionMonth === period)?.billAmount || 0, [selectedEmployee, period]);
 
-  const loanPayment = useMemo(() => {
-    const loan = mockLoans.find(l => l.employeeId === selectedEmployee && l.status === 'active');
-    return loan?.monthlyPayment || 0;
-  }, [selectedEmployee]);
-
-  const advanceAmount = useMemo(() => {
-    const adv = mockAdvances.find(a => a.employeeId === selectedEmployee && a.deductionMonth === period && a.status === 'approved');
-    return adv?.amount || 0;
-  }, [selectedEmployee, period]);
-
-  const mobileBill = useMemo(() => {
-    const bill = mockMobileBills.find(b => b.employeeId === selectedEmployee && b.deductionMonth === period);
-    return bill?.billAmount || 0;
-  }, [selectedEmployee, period]);
-
-  const dailyRate = useMemo(() => gross / 30, [gross]);
-  const leaveDeduction = useMemo(() => Math.round(dailyRate * leaveDays), [dailyRate, leaveDays]);
-
+  const dailyRate = gross / 30;
+  const leaveDeduction = Math.round(dailyRate * leaveDays);
   const penaltyAmount = useMemo(() => {
     if (penaltyType === 'amount') return penaltyValue;
     if (penaltyType === 'days') return Math.round(dailyRate * penaltyValue);
-    if (penaltyType === 'percentage') return Math.round((penaltyValue / 100) * gross);
-    return 0;
+    return Math.round((penaltyValue / 100) * gross);
   }, [penaltyType, penaltyValue, dailyRate, gross]);
 
   const totalDeductions = employeeInsurance + loanPayment + advanceAmount + mobileBill + leaveDeduction + penaltyAmount;
@@ -115,24 +94,21 @@ export const PayrollProcessing = () => {
   const healthIns = salaryRecord?.healthInsurance || 0;
   const incomeTax = salaryRecord?.incomeTax || 0;
 
-  const handleSave = () => {
-    if (!selectedEmployee || !salaryRecord) {
-      toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'يرجى اختيار موظف لديه بيانات راتب' : 'Select an employee with salary data', variant: 'destructive' });
-      return;
-    }
-    const entry: PayrollEntry = {
-      employeeId: selectedEmployee, month: selectedMonth, year: selectedYear,
-      bonusType, bonusValue, leaveDays, penaltyType, penaltyValue, saved: true,
-    };
-    setSavedEntries(prev => {
-      const idx = prev.findIndex(e => e.employeeId === selectedEmployee && e.month === selectedMonth && e.year === selectedYear);
-      if (idx >= 0) { const u = [...prev]; u[idx] = entry; return u; }
-      return [...prev, entry];
-    });
-    toast({ title: ar ? 'تم الحفظ' : 'Saved', description: ar ? 'تم حفظ بيانات الراتب الشهري' : 'Monthly payroll saved' });
-  };
+  const activeEmployees = mockEmployees.filter(e => e.status === 'active');
+
+  // Filter by station from salary records
+  const filteredEmployees = activeEmployees.filter(emp => {
+    const nameMatch = emp.nameEn.toLowerCase().includes(searchName.toLowerCase()) || emp.nameAr.includes(searchName);
+    if (!searchStation || searchStation === 'all') return nameMatch;
+    const sr = getSalaryRecord(emp.employeeId, selectedYear);
+    return nameMatch && sr?.stationLocation === searchStation;
+  });
+
+  const processedThisMonth = getMonthlyPayroll(selectedMonth, selectedYear);
 
   const handleReset = () => {
+    setLivingAllowance(0);
+    setOvertimePay(0);
     setBonusType('amount');
     setBonusValue(0);
     setLeaveDays(0);
@@ -140,14 +116,95 @@ export const PayrollProcessing = () => {
     setPenaltyValue(0);
   };
 
-  const activeEmployees = mockEmployees.filter(e => e.status === 'active');
+  const handleSelectEmployee = (empId: string) => {
+    setSelectedEmployee(empId);
+    handleReset();
+    // Load existing processed data
+    const existing = getPayrollEntry(empId, selectedMonth, selectedYear);
+    if (existing) {
+      setLivingAllowance(existing.livingAllowance);
+      setOvertimePay(existing.overtimePay);
+      setBonusType(existing.bonusType);
+      setBonusValue(existing.bonusValue);
+      setLeaveDays(existing.leaveDays);
+      setPenaltyType(existing.penaltyType);
+      setPenaltyValue(existing.penaltyValue);
+    } else {
+      // Pre-fill living allowance from salary record
+      const sr = getSalaryRecord(empId, selectedYear);
+      if (sr) setLivingAllowance(sr.livingAllowance);
+    }
+  };
 
-  // Filter employees by name and station
-  const filteredEmployees = activeEmployees.filter(emp => {
-    const nameMatch = emp.nameEn.toLowerCase().includes(searchName.toLowerCase()) || emp.nameAr.includes(searchName);
-    const stationMatch = !searchStation || searchStation === 'all' || emp.stationLocation === searchStation;
-    return nameMatch && stationMatch;
-  });
+  const buildPayrollEntry = (empId: string): ProcessedPayroll | null => {
+    const sr = getSalaryRecord(empId, selectedYear);
+    const emp = activeEmployees.find(e => e.employeeId === empId);
+    if (!sr || !emp) return null;
+
+    const bg = calcGross(sr);
+    const la = empId === selectedEmployee ? livingAllowance : sr.livingAllowance;
+    const ot = empId === selectedEmployee ? overtimePay : 0;
+    const g = bg + la + ot;
+    const bt = empId === selectedEmployee ? bonusType : 'amount';
+    const bv = empId === selectedEmployee ? bonusValue : 0;
+    const ba = bt === 'amount' ? bv : Math.round((bv / 100) * g);
+    const lp = mockLoans.find(l => l.employeeId === empId && l.status === 'active')?.monthlyPayment || 0;
+    const aa = mockAdvances.find(a => a.employeeId === empId && a.deductionMonth === period && a.status === 'approved')?.amount || 0;
+    const mb = mockMobileBills.find(b => b.employeeId === empId && b.deductionMonth === period)?.billAmount || 0;
+    const ld = empId === selectedEmployee ? leaveDays : 0;
+    const dr = g / 30;
+    const lded = Math.round(dr * ld);
+    const pt = empId === selectedEmployee ? penaltyType : 'amount';
+    const pv = empId === selectedEmployee ? penaltyValue : 0;
+    const pa = pt === 'amount' ? pv : pt === 'days' ? Math.round(dr * pv) : Math.round((pv / 100) * g);
+    const td = sr.employeeInsurance + lp + aa + mb + lded + pa;
+
+    return {
+      employeeId: empId,
+      employeeName: emp.nameAr,
+      employeeNameEn: emp.nameEn,
+      department: emp.department,
+      stationLocation: sr.stationLocation,
+      month: selectedMonth, year: selectedYear,
+      basicSalary: sr.basicSalary, transportAllowance: sr.transportAllowance,
+      incentives: sr.incentives, stationAllowance: sr.stationAllowance, mobileAllowance: sr.mobileAllowance,
+      livingAllowance: la, overtimePay: ot,
+      bonusType: bt, bonusValue: bv, bonusAmount: ba,
+      gross: g,
+      employeeInsurance: sr.employeeInsurance, loanPayment: lp, advanceAmount: aa, mobileBill: mb,
+      leaveDays: ld, leaveDeduction: lded,
+      penaltyType: pt, penaltyValue: pv, penaltyAmount: pa,
+      totalDeductions: td, netSalary: g + ba - td,
+      employerSocialInsurance: sr.employerSocialInsurance, healthInsurance: sr.healthInsurance, incomeTax: sr.incomeTax,
+      processedAt: new Date().toISOString().split('T')[0],
+    };
+  };
+
+  const handleSave = () => {
+    const entry = buildPayrollEntry(selectedEmployee);
+    if (!entry) {
+      toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'يرجى اختيار موظف لديه بيانات راتب' : 'Select an employee with salary data', variant: 'destructive' });
+      return;
+    }
+    savePayrollEntry(entry);
+    toast({ title: ar ? 'تم الحفظ' : 'Saved', description: ar ? 'تم حفظ بيانات الراتب الشهري' : 'Monthly payroll saved' });
+  };
+
+  const handleBulkProcess = () => {
+    const entries: ProcessedPayroll[] = [];
+    const targets = selectedBulk.length > 0 ? selectedBulk : filteredEmployees.map(e => e.employeeId);
+    targets.forEach(empId => {
+      const entry = buildPayrollEntry(empId);
+      if (entry) entries.push(entry);
+    });
+    if (entries.length === 0) {
+      toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'لا يوجد موظفين لديهم بيانات راتب' : 'No employees with salary data', variant: 'destructive' });
+      return;
+    }
+    savePayrollEntries(entries);
+    toast({ title: ar ? 'تم التشغيل' : 'Processed', description: ar ? `تم معالجة ${entries.length} موظف` : `Processed ${entries.length} employees` });
+    setSelectedBulk([]);
+  };
 
   const months = [
     { value: '01', label: ar ? 'يناير' : 'January' }, { value: '02', label: ar ? 'فبراير' : 'February' },
@@ -158,23 +215,26 @@ export const PayrollProcessing = () => {
     { value: '11', label: ar ? 'نوفمبر' : 'November' }, { value: '12', label: ar ? 'ديسمبر' : 'December' },
   ];
 
-  const totalSaved = savedEntries.filter(e => e.month === selectedMonth && e.year === selectedYear).length;
+  const totalSaved = processedThisMonth.length;
+  const selectedEmpData = activeEmployees.find(e => e.employeeId === selectedEmployee);
 
   const stats = [
     { label: ar ? 'إجمالي الموظفين' : 'Total Employees', value: String(activeEmployees.length), icon: Users, bg: 'bg-stat-blue', cardBg: 'bg-stat-blue-bg' },
     { label: ar ? 'تم المعالجة' : 'Processed', value: String(totalSaved), icon: FileText, bg: 'bg-stat-green', cardBg: 'bg-stat-green-bg' },
     { label: ar ? 'المتبقي' : 'Remaining', value: String(activeEmployees.length - totalSaved), icon: Clock, bg: 'bg-stat-yellow', cardBg: 'bg-stat-yellow-bg' },
-    { label: ar ? 'إجمالي المبالغ' : 'Total Net', value: '—', icon: Wallet, bg: 'bg-stat-purple', cardBg: 'bg-stat-purple-bg' },
+    { label: ar ? 'إجمالي الصافي' : 'Total Net', value: processedThisMonth.reduce((s, e) => s + e.netSalary, 0).toLocaleString(), icon: Wallet, bg: 'bg-stat-purple', cardBg: 'bg-stat-purple-bg' },
   ];
 
-  const readOnlyField = (label: string, value: number | string, disabled = true) => (
+  const readOnlyField = (label: string, value: number | string) => (
     <div className="space-y-1.5">
       <Label className={cn("text-xs", isRTL && "text-right block")}>{label}</Label>
-      <Input value={typeof value === 'number' ? value.toLocaleString() : value} readOnly={disabled} disabled={disabled} className={cn("h-9 text-sm bg-muted/30", isRTL && "text-right")} />
+      <Input value={typeof value === 'number' ? value.toLocaleString() : value} readOnly disabled className={cn("h-9 text-sm bg-muted/30", isRTL && "text-right")} />
     </div>
   );
 
-  const selectedEmpData = activeEmployees.find(e => e.employeeId === selectedEmployee);
+  const toggleBulkSelect = (empId: string) => {
+    setSelectedBulk(prev => prev.includes(empId) ? prev.filter(id => id !== empId) : [...prev, empId]);
+  };
 
   return (
     <div className="space-y-6">
@@ -193,33 +253,47 @@ export const PayrollProcessing = () => {
         ))}
       </div>
 
-      {/* Period Selection */}
+      {/* Period + Bulk */}
       <Card>
         <CardContent className="pt-6">
-          <div className={cn("flex flex-wrap gap-4 items-end", isRTL && "flex-row-reverse")}>
-            <div className="space-y-2">
-              <Label>{ar ? 'الشهر' : 'Month'}</Label>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
-              </Select>
+          <div className={cn("flex flex-wrap gap-4 items-end justify-between", isRTL && "flex-row-reverse")}>
+            <div className={cn("flex gap-4 items-end", isRTL && "flex-row-reverse")}>
+              <div className="space-y-2">
+                <Label>{ar ? 'الشهر' : 'Month'}</Label>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                  <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? 'السنة' : 'Year'}</Label>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 11 }, (_, i) => String(2025 + i)).map(y => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>{ar ? 'السنة' : 'Year'}</Label>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 11 }, (_, i) => String(2025 + i)).map(y => (
-                    <SelectItem key={y} value={y}>{y}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
+              <Button variant={bulkMode ? "default" : "outline"} onClick={() => { setBulkMode(!bulkMode); setSelectedBulk([]); }} className="gap-2">
+                <Users className="h-4 w-4" />
+                {ar ? 'تشغيل جماعي' : 'Bulk Process'}
+              </Button>
+              {bulkMode && (
+                <Button onClick={handleBulkProcess} className="gap-2">
+                  <PlayCircle className="h-4 w-4" />
+                  {ar ? `تشغيل (${selectedBulk.length || filteredEmployees.length})` : `Run (${selectedBulk.length || filteredEmployees.length})`}
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Main Layout: Sidebar + Content */}
+      {/* Main Layout */}
       <div className="grid grid-cols-12 gap-6">
         {/* Employee Sidebar */}
         <div className={cn("col-span-3 space-y-4", isRTL && "order-last")}>
@@ -227,22 +301,13 @@ export const PayrollProcessing = () => {
             <CardContent className="p-4 space-y-3">
               <div className="relative">
                 <Search className={cn("absolute top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground", isRTL ? "right-3" : "left-3")} />
-                <Input
-                  placeholder={ar ? 'بحث بالاسم...' : 'Search by name...'}
-                  value={searchName}
-                  onChange={(e) => setSearchName(e.target.value)}
-                  className={cn(isRTL ? "pr-10" : "pl-10")}
-                />
+                <Input placeholder={ar ? 'بحث بالاسم...' : 'Search...'} value={searchName} onChange={(e) => setSearchName(e.target.value)} className={cn(isRTL ? "pr-10" : "pl-10")} />
               </div>
               <Select value={searchStation} onValueChange={setSearchStation}>
-                <SelectTrigger>
-                  <SelectValue placeholder={ar ? 'المحطة/الموقع' : 'Station'} />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={ar ? 'المحطة/الموقع' : 'Station'} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{ar ? 'جميع المحطات' : 'All Stations'}</SelectItem>
-                  {stationLocations.map(s => (
-                    <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>
-                  ))}
+                  {stationLocations.map(s => <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>)}
                 </SelectContent>
               </Select>
             </CardContent>
@@ -250,21 +315,27 @@ export const PayrollProcessing = () => {
 
           <div className="space-y-1 max-h-[500px] overflow-y-auto">
             {filteredEmployees.map(emp => {
-              const isSaved = savedEntries.some(e => e.employeeId === emp.employeeId && e.month === selectedMonth && e.year === selectedYear);
+              const isSaved = processedThisMonth.some(e => e.employeeId === emp.employeeId);
               return (
-                <button
-                  key={emp.id}
-                  onClick={() => { setSelectedEmployee(emp.employeeId); handleReset(); }}
-                  className={cn(
-                    "w-full text-start px-3 py-2 rounded-lg transition-colors text-sm flex items-center justify-between",
-                    selectedEmployee === emp.employeeId
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted text-foreground"
+                <div key={emp.id} className="flex items-center gap-1">
+                  {bulkMode && (
+                    <Checkbox
+                      checked={selectedBulk.includes(emp.employeeId)}
+                      onCheckedChange={() => toggleBulkSelect(emp.employeeId)}
+                      className="shrink-0"
+                    />
                   )}
-                >
-                  <span>{ar ? emp.nameAr : emp.nameEn}</span>
-                  {isSaved && <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />}
-                </button>
+                  <button
+                    onClick={() => { if (!bulkMode) handleSelectEmployee(emp.employeeId); }}
+                    className={cn(
+                      "w-full text-start px-3 py-2 rounded-lg transition-colors text-sm flex items-center justify-between",
+                      !bulkMode && selectedEmployee === emp.employeeId ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                    )}
+                  >
+                    <span>{ar ? emp.nameAr : emp.nameEn}</span>
+                    {isSaved && <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />}
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -276,24 +347,32 @@ export const PayrollProcessing = () => {
             <Card className="border-destructive/50 bg-destructive/5">
               <CardContent className="p-4 text-center">
                 <p className="text-destructive font-medium">
-                  {ar ? `لا توجد بيانات راتب لهذا الموظف في سنة ${selectedYear}. يرجى إدخال بيانات الراتب أولاً من ملف الموظف.` : `No salary data for this employee in ${selectedYear}. Please enter salary data first from the employee profile.`}
+                  {ar ? `لا توجد بيانات راتب لهذا الموظف في سنة ${selectedYear}` : `No salary data for ${selectedYear}`}
                 </p>
               </CardContent>
             </Card>
           )}
 
-          {!selectedEmployee && (
+          {!selectedEmployee && !bulkMode && (
             <Card>
               <CardContent className="p-12 text-center text-muted-foreground">
                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>{ar ? 'اختر موظفاً من القائمة لعرض بيانات الراتب' : 'Select an employee from the list to view salary data'}</p>
+                <p>{ar ? 'اختر موظفاً من القائمة لعرض بيانات الراتب' : 'Select an employee'}</p>
               </CardContent>
             </Card>
           )}
 
-          {salaryRecord && (
+          {bulkMode && !selectedEmployee && (
+            <Card>
+              <CardContent className="p-12 text-center text-muted-foreground">
+                <PlayCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>{ar ? 'وضع التشغيل الجماعي - اختر موظفين من القائمة أو اضغط تشغيل لمعالجة الكل' : 'Bulk mode - select employees or run all'}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {salaryRecord && !bulkMode && (
             <>
-              {/* Employee Info Header */}
               {selectedEmpData && (
                 <Card>
                   <CardContent className="p-4">
@@ -310,7 +389,7 @@ export const PayrollProcessing = () => {
                 </Card>
               )}
 
-              {/* مكونات الراتب */}
+              {/* Salary Components (read-only from record) */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
@@ -320,18 +399,29 @@ export const PayrollProcessing = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {readOnlyField(ar ? 'الراتب الأساسي (ج.م)' : 'Basic Salary (EGP)', salaryRecord.basicSalary)}
-                    {readOnlyField(ar ? 'بدل المواصلات (ج.م)' : 'Transport (EGP)', salaryRecord.transportAllowance)}
-                    {readOnlyField(ar ? 'الحوافز (ج.م)' : 'Incentives (EGP)', salaryRecord.incentives)}
-                    {readOnlyField(ar ? 'بدل المعيشة (ج.م)' : 'Living (EGP)', salaryRecord.livingAllowance)}
-                    {readOnlyField(ar ? 'بدل سكن المحطة (ج.م)' : 'Station (EGP)', salaryRecord.stationAllowance)}
-                    {readOnlyField(ar ? 'بدل الجوال (ج.م)' : 'Mobile (EGP)', salaryRecord.mobileAllowance)}
-                    {readOnlyField(ar ? 'إجمالي الراتب (ج.م)' : 'Gross Salary (EGP)', gross)}
+                    {readOnlyField(ar ? 'الراتب الأساسي' : 'Basic Salary', salaryRecord.basicSalary)}
+                    {readOnlyField(ar ? 'بدل المواصلات' : 'Transport', salaryRecord.transportAllowance)}
+                    {readOnlyField(ar ? 'الحوافز' : 'Incentives', salaryRecord.incentives)}
+                    {readOnlyField(ar ? 'بدل سكن المحطة' : 'Station', salaryRecord.stationAllowance)}
+                    {readOnlyField(ar ? 'بدل الجوال' : 'Mobile', salaryRecord.mobileAllowance)}
+                  </div>
+                  <Separator className="my-4" />
+                  <h4 className={cn("font-semibold text-sm mb-3", isRTL && "text-right")}>{ar ? 'إدخال يدوي شهري' : 'Monthly Manual Entry'}</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'بدل المعيشة (ج.م)' : 'Living Allowance (EGP)'}</Label>
+                      <Input type="number" value={livingAllowance || ''} onChange={e => setLivingAllowance(parseFloat(e.target.value) || 0)} className={cn("h-9 text-sm", isRTL && "text-right")} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'أجر إضافي (ج.م)' : 'Overtime Pay (EGP)'}</Label>
+                      <Input type="number" value={overtimePay || ''} onChange={e => setOvertimePay(parseFloat(e.target.value) || 0)} className={cn("h-9 text-sm", isRTL && "text-right")} />
+                    </div>
+                    {readOnlyField(ar ? 'إجمالي الراتب' : 'Gross Salary', gross)}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* المكافآت */}
+              {/* Bonuses */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
@@ -341,37 +431,24 @@ export const PayrollProcessing = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <RadioGroup value={bonusType} onValueChange={(v) => { setBonusType(v as any); setBonusValue(0); }} className={cn("flex gap-4", isRTL && "flex-row-reverse")}>
-                    <div className={cn("flex-1 border rounded-lg p-4 cursor-pointer transition-colors", bonusType === 'amount' ? 'border-primary bg-primary/5' : 'border-border')}>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="amount" id="bonus-amount" />
-                        <Label htmlFor="bonus-amount" className="cursor-pointer">{ar ? 'مبلغ يدوي' : 'Manual Amount'}</Label>
-                      </div>
+                    <div className={cn("flex-1 border rounded-lg p-4 cursor-pointer", bonusType === 'amount' ? 'border-primary bg-primary/5' : 'border-border')}>
+                      <div className="flex items-center gap-2"><RadioGroupItem value="amount" id="bonus-amount" /><Label htmlFor="bonus-amount" className="cursor-pointer">{ar ? 'مبلغ يدوي' : 'Manual Amount'}</Label></div>
                     </div>
-                    <div className={cn("flex-1 border rounded-lg p-4 cursor-pointer transition-colors", bonusType === 'percentage' ? 'border-primary bg-primary/5' : 'border-border')}>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="percentage" id="bonus-pct" />
-                        <Label htmlFor="bonus-pct" className="cursor-pointer">{ar ? 'نسبة مئوية من الإجمالي' : 'Percentage of Gross'}</Label>
-                      </div>
+                    <div className={cn("flex-1 border rounded-lg p-4 cursor-pointer", bonusType === 'percentage' ? 'border-primary bg-primary/5' : 'border-border')}>
+                      <div className="flex items-center gap-2"><RadioGroupItem value="percentage" id="bonus-pct" /><Label htmlFor="bonus-pct" className="cursor-pointer">{ar ? 'نسبة من الإجمالي' : '% of Gross'}</Label></div>
                     </div>
                   </RadioGroup>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label className={cn("text-xs", isRTL && "text-right block")}>
-                        {bonusType === 'amount' ? (ar ? 'قيمة المكافأة (ج.م)' : 'Bonus Amount (EGP)') : (ar ? 'النسبة المئوية %' : 'Percentage %')}
-                      </Label>
+                      <Label className={cn("text-xs", isRTL && "text-right block")}>{bonusType === 'amount' ? (ar ? 'قيمة المكافأة' : 'Amount') : (ar ? 'النسبة %' : 'Percentage %')}</Label>
                       <Input type="number" value={bonusValue || ''} onChange={e => setBonusValue(parseFloat(e.target.value) || 0)} className={cn("h-9 text-sm", isRTL && "text-right")} />
                     </div>
-                    {bonusType === 'percentage' && (
-                      <div className="space-y-1.5">
-                        <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'قيمة المكافأة المحسوبة (ج.م)' : 'Calculated Bonus (EGP)'}</Label>
-                        <Input value={bonusAmount.toLocaleString()} readOnly disabled className={cn("h-9 text-sm bg-muted/30", isRTL && "text-right")} />
-                      </div>
-                    )}
+                    {bonusType === 'percentage' && readOnlyField(ar ? 'قيمة المكافأة المحسوبة' : 'Calculated', bonusAmount)}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* مساهمات صاحب العمل */}
+              {/* Employer Contributions */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
@@ -381,14 +458,14 @@ export const PayrollProcessing = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {readOnlyField(ar ? 'التأمينات الاجتماعية - صاحب العمل (ج.م)' : 'Social Insurance - Employer (EGP)', employerSocialIns)}
-                    {readOnlyField(ar ? 'التأمين الصحي (ج.م)' : 'Health Insurance (EGP)', healthIns)}
-                    {readOnlyField(ar ? 'ضريبة الدخل (ج.م)' : 'Income Tax (EGP)', incomeTax)}
+                    {readOnlyField(ar ? 'التأمينات - صاحب العمل' : 'Social Ins. - Employer', employerSocialIns)}
+                    {readOnlyField(ar ? 'التأمين الصحي' : 'Health Insurance', healthIns)}
+                    {readOnlyField(ar ? 'ضريبة الدخل' : 'Income Tax', incomeTax)}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* الخصومات */}
+              {/* Deductions */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
@@ -398,117 +475,96 @@ export const PayrollProcessing = () => {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {readOnlyField(ar ? 'التأمينات الاجتماعية - الموظف (ج.م)' : 'Social Insurance - Employee (EGP)', employeeInsurance)}
-                    {readOnlyField(ar ? 'القروض (محسوب تلقائياً) (ج.م)' : 'Loans (Auto) (EGP)', loanPayment)}
-                    {readOnlyField(ar ? 'السلف (ج.م)' : 'Advances (EGP)', advanceAmount)}
-                    {readOnlyField(ar ? 'الجوال الشخصي (ج.م)' : 'Mobile Bill (EGP)', mobileBill)}
+                    {readOnlyField(ar ? 'التأمينات - الموظف' : 'Social Ins. - Employee', employeeInsurance)}
+                    {readOnlyField(ar ? 'القروض (تلقائي)' : 'Loans (Auto)', loanPayment)}
+                    {readOnlyField(ar ? 'السلف (تلقائي)' : 'Advances (Auto)', advanceAmount)}
+                    {readOnlyField(ar ? 'الجوال الشخصي' : 'Mobile Bill', mobileBill)}
                   </div>
-
                   <Separator />
-
-                  {/* Leave deduction */}
                   <div>
-                    <h4 className={cn("font-semibold text-sm mb-3", isRTL && "text-right")}>{ar ? 'خصم الإجازة من الراتب' : 'Leave Salary Deduction'}</h4>
+                    <h4 className={cn("font-semibold text-sm mb-3", isRTL && "text-right")}>{ar ? 'خصم الإجازة من الراتب' : 'Leave Deduction'}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'عدد الأيام' : 'Number of Days'}</Label>
+                        <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'عدد الأيام' : 'Days'}</Label>
                         <Input type="number" value={leaveDays || ''} onChange={e => setLeaveDays(parseFloat(e.target.value) || 0)} className={cn("h-9 text-sm", isRTL && "text-right")} min={0} />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'قيمة الخصم (محسوب تلقائياً) (ج.م)' : 'Deduction Amount (Auto) (EGP)'}</Label>
-                        <Input value={leaveDeduction.toLocaleString()} readOnly disabled className={cn("h-9 text-sm bg-muted/30", isRTL && "text-right")} />
-                      </div>
+                      {readOnlyField(ar ? 'قيمة الخصم (تلقائي)' : 'Deduction (Auto)', leaveDeduction)}
                     </div>
                   </div>
-
                   <Separator />
-
-                  {/* Penalties */}
                   <div>
                     <h4 className={cn("font-semibold text-sm mb-3", isRTL && "text-right")}>{ar ? 'الجزاءات' : 'Penalties'}</h4>
                     <RadioGroup value={penaltyType} onValueChange={(v) => { setPenaltyType(v as any); setPenaltyValue(0); }} className={cn("flex gap-3 mb-4", isRTL && "flex-row-reverse")}>
-                      <div className={cn("flex-1 border rounded-lg p-3 cursor-pointer transition-colors", penaltyType === 'amount' ? 'border-primary bg-primary/5' : 'border-border')}>
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="amount" id="pen-amount" />
-                          <Label htmlFor="pen-amount" className="cursor-pointer text-sm">{ar ? 'مبلغ' : 'Amount'}</Label>
+                      {[
+                        { v: 'amount', l: ar ? 'مبلغ' : 'Amount' },
+                        { v: 'days', l: ar ? 'أيام' : 'Days' },
+                        { v: 'percentage', l: ar ? 'نسبة' : '%' },
+                      ].map(opt => (
+                        <div key={opt.v} className={cn("flex-1 border rounded-lg p-3 cursor-pointer", penaltyType === opt.v ? 'border-primary bg-primary/5' : 'border-border')}>
+                          <div className="flex items-center gap-2"><RadioGroupItem value={opt.v} id={`pen-${opt.v}`} /><Label htmlFor={`pen-${opt.v}`} className="cursor-pointer text-sm">{opt.l}</Label></div>
                         </div>
-                      </div>
-                      <div className={cn("flex-1 border rounded-lg p-3 cursor-pointer transition-colors", penaltyType === 'days' ? 'border-primary bg-primary/5' : 'border-border')}>
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="days" id="pen-days" />
-                          <Label htmlFor="pen-days" className="cursor-pointer text-sm">{ar ? 'أيام' : 'Days'}</Label>
-                        </div>
-                      </div>
-                      <div className={cn("flex-1 border rounded-lg p-3 cursor-pointer transition-colors", penaltyType === 'percentage' ? 'border-primary bg-primary/5' : 'border-border')}>
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="percentage" id="pen-pct" />
-                          <Label htmlFor="pen-pct" className="cursor-pointer text-sm">{ar ? 'نسبة مئوية' : 'Percentage'}</Label>
-                        </div>
-                      </div>
+                      ))}
                     </RadioGroup>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <Label className={cn("text-xs", isRTL && "text-right block")}>
-                          {penaltyType === 'amount' ? (ar ? 'قيمة الجزاء (ج.م)' : 'Penalty Amount (EGP)') :
-                            penaltyType === 'days' ? (ar ? 'عدد الأيام' : 'Number of Days') :
-                              (ar ? 'النسبة المئوية %' : 'Percentage %')}
+                          {penaltyType === 'amount' ? (ar ? 'قيمة الجزاء' : 'Amount') : penaltyType === 'days' ? (ar ? 'عدد الأيام' : 'Days') : (ar ? 'النسبة %' : '%')}
                         </Label>
                         <Input type="number" value={penaltyValue || ''} onChange={e => setPenaltyValue(parseFloat(e.target.value) || 0)} className={cn("h-9 text-sm", isRTL && "text-right")} min={0} />
                       </div>
-                      {penaltyType !== 'amount' && (
-                        <div className="space-y-1.5">
-                          <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'قيمة الجزاء (ج.م)' : 'Penalty Value (EGP)'}</Label>
-                          <Input value={penaltyAmount.toLocaleString()} readOnly disabled className={cn("h-9 text-sm bg-muted/30", isRTL && "text-right")} />
-                        </div>
-                      )}
+                      {penaltyType !== 'amount' && readOnlyField(ar ? 'قيمة الجزاء' : 'Penalty Value', penaltyAmount)}
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* ملخص الحسابات */}
+              {/* Summary */}
               <Card className="border-primary/30 bg-primary/5">
                 <CardHeader className="pb-3">
                   <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
                     <FileText className="h-5 w-5 text-primary" />
-                    {ar ? 'ملخص الحسابات' : 'Calculation Summary'}
+                    {ar ? 'ملخص الحسابات' : 'Summary'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className={cn("flex justify-between items-center py-2", isRTL && "flex-row-reverse")}>
-                      <span className="text-sm text-muted-foreground">{ar ? 'إجمالي الراتب (Gross Salary)' : 'Gross Salary'}</span>
-                      <span className="font-bold text-lg">{gross.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
+                    <div className={cn("flex justify-between py-2", isRTL && "flex-row-reverse")}>
+                      <span className="text-sm text-muted-foreground">{ar ? 'إجمالي الراتب' : 'Gross'}</span>
+                      <span className="font-bold text-lg">{gross.toLocaleString()}</span>
                     </div>
                     {bonusAmount > 0 && (
-                      <div className={cn("flex justify-between items-center py-2", isRTL && "flex-row-reverse")}>
-                        <span className="text-sm text-green-600">{ar ? '+ المكافآت' : '+ Bonuses'}</span>
-                        <span className="font-bold text-green-600">+{bonusAmount.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
+                      <div className={cn("flex justify-between py-2", isRTL && "flex-row-reverse")}>
+                        <span className="text-sm text-green-600">{ar ? '+ المكافآت' : '+ Bonus'}</span>
+                        <span className="font-bold text-green-600">+{bonusAmount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {overtimePay > 0 && (
+                      <div className={cn("flex justify-between py-2", isRTL && "flex-row-reverse")}>
+                        <span className="text-sm text-blue-600">{ar ? '(مضمن) أجر إضافي' : '(Incl.) Overtime'}</span>
+                        <span className="font-bold text-blue-600">{overtimePay.toLocaleString()}</span>
                       </div>
                     )}
                     <Separator />
-                    <div className={cn("flex justify-between items-center py-2", isRTL && "flex-row-reverse")}>
+                    <div className={cn("flex justify-between py-2", isRTL && "flex-row-reverse")}>
                       <span className="text-sm text-destructive font-medium">{ar ? 'إجمالي الخصومات' : 'Total Deductions'}</span>
-                      <span className="font-bold text-destructive">{totalDeductions.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
+                      <span className="font-bold text-destructive">{totalDeductions.toLocaleString()}</span>
                     </div>
                     <Separator className="border-2" />
-                    <div className={cn("flex justify-between items-center py-2", isRTL && "flex-row-reverse")}>
-                      <span className="text-base font-bold">{ar ? 'صافي الراتب (Net Salary)' : 'Net Salary'}</span>
-                      <span className="font-bold text-2xl text-primary">{netSalary.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
+                    <div className={cn("flex justify-between py-2", isRTL && "flex-row-reverse")}>
+                      <span className="text-base font-bold">{ar ? 'صافي الراتب' : 'Net Salary'}</span>
+                      <span className="font-bold text-2xl text-primary">{netSalary.toLocaleString()}</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Action Buttons */}
+              {/* Actions */}
               <div className={cn("flex gap-3 sticky bottom-0 bg-background py-4 border-t", isRTL ? "flex-row-reverse" : "")}>
                 <Button onClick={handleSave} className="gap-2 flex-1 md:flex-none md:min-w-[200px]" size="lg">
-                  <Save className="h-5 w-5" />
-                  {ar ? 'حفظ الراتب' : 'Save Salary'}
+                  <Save className="h-5 w-5" />{ar ? 'حفظ الراتب' : 'Save Salary'}
                 </Button>
                 <Button variant="outline" onClick={handleReset} className="gap-2 flex-1 md:flex-none md:min-w-[150px]" size="lg">
-                  <X className="h-5 w-5" />
-                  {ar ? 'إلغاء' : 'Cancel'}
+                  <X className="h-5 w-5" />{ar ? 'إلغاء' : 'Cancel'}
                 </Button>
               </div>
             </>
