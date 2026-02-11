@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { SalaryDataProvider } from "@/contexts/SalaryDataContext";
+import { PayrollDataProvider } from "@/contexts/PayrollDataContext";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import EmployeeDetails from "./pages/EmployeeDetails";
@@ -28,6 +29,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <SalaryDataProvider>
+      <PayrollDataProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -52,6 +54,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </PayrollDataProvider>
       </SalaryDataProvider>
     </LanguageProvider>
   </QueryClientProvider>

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useSalaryData, calcGross, calcNet, SalaryRecord } from '@/contexts/SalaryDataContext';
+import { useSalaryData, calcFullGross, calcNet, SalaryRecord } from '@/contexts/SalaryDataContext';
 import { Employee } from '@/types/employee';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { cn } from '@/lib/utils';
 import { Save, Landmark, Calendar, Plus, Edit, Trash2, Wallet, TrendingUp, TrendingDown, Building2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { stationLocations } from '@/data/stationLocations';
 
 interface SalaryTabProps {
   employee: Employee;
@@ -35,7 +36,7 @@ const defaultBanks = [
 
 const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
 
-const calcEmployerContributions = (r: Omit<SalaryRecord, 'year' | 'employeeId'>) =>
+const calcEmployerContributions = (r: Pick<SalaryRecord, 'employerSocialInsurance' | 'healthInsurance' | 'incomeTax'>) =>
   r.employerSocialInsurance + r.healthInsurance + r.incomeTax;
 
 export const SalaryTab = ({ employee }: SalaryTabProps) => {
@@ -43,7 +44,6 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
   const ar = language === 'ar';
   const { salaryRecords, saveSalaryRecord, deleteSalaryRecord } = useSalaryData();
 
-  // Bank info (fixed)
   const [bankInfo, setBankInfo] = useState<BankInfo>({
     accountNumber: '', bankId: '', accountType: '', bankName: '',
   });
@@ -51,15 +51,14 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
   const [showAddBank, setShowAddBank] = useState(false);
   const [newBank, setNewBank] = useState({ labelAr: '', labelEn: '' });
 
-  // Form state
   const [selectedYear, setSelectedYear] = useState('');
   const [formData, setFormData] = useState({
+    stationLocation: employee.stationLocation || '',
     basicSalary: 0, transportAllowance: 0, incentives: 0, livingAllowance: 0,
     stationAllowance: 0, mobileAllowance: 0, employeeInsurance: 0,
     employerSocialInsurance: 0, healthInsurance: 0, incomeTax: 0,
   });
 
-  // Filter records for this employee
   const employeeRecords = useMemo(
     () => salaryRecords.filter(r => r.employeeId === employee.employeeId).sort((a, b) => b.year.localeCompare(a.year)),
     [salaryRecords, employee.employeeId]
@@ -78,19 +77,20 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
       setFormData(rest);
     } else {
       setFormData({
+        stationLocation: employee.stationLocation || '',
         basicSalary: 0, transportAllowance: 0, incentives: 0, livingAllowance: 0,
         stationAllowance: 0, mobileAllowance: 0, employeeInsurance: 0,
         employerSocialInsurance: 0, healthInsurance: 0, incomeTax: 0,
       });
     }
-  }, [salaryRecords, employee.employeeId]);
+  }, [salaryRecords, employee.employeeId, employee.stationLocation]);
 
   const updateField = (field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
+    setFormData(prev => ({ ...prev, [field]: field === 'stationLocation' ? value : (parseFloat(value) || 0) }));
   };
 
-  const gross = useMemo(() => calcGross({ ...formData }), [formData]);
-  const net = useMemo(() => calcNet({ ...formData }), [formData]);
+  const gross = useMemo(() => calcFullGross(formData), [formData]);
+  const net = useMemo(() => calcNet(formData), [formData]);
   const employerTotal = useMemo(() => calcEmployerContributions(formData), [formData]);
 
   const handleSaveSalary = () => {
@@ -123,12 +123,21 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
   const fieldRow = (label: string, field: keyof typeof formData) => (
     <div className="space-y-1.5">
       <Label className={cn("text-xs", isRTL && "text-right block")}>{label}</Label>
-      <Input
-        type="number"
-        value={formData[field] || ''}
-        onChange={e => updateField(field, e.target.value)}
-        className={cn("h-9 text-sm", isRTL && "text-right")}
-      />
+      {field === 'stationLocation' ? (
+        <Select value={formData.stationLocation} onValueChange={v => updateField('stationLocation', v)}>
+          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={ar ? 'اختر المحطة' : 'Select Station'} /></SelectTrigger>
+          <SelectContent>
+            {stationLocations.map(s => <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      ) : (
+        <Input
+          type="number"
+          value={formData[field] || ''}
+          onChange={e => updateField(field, e.target.value)}
+          className={cn("h-9 text-sm", isRTL && "text-right")}
+        />
+      )}
     </div>
   );
 
@@ -203,6 +212,13 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
+          {/* Station */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {fieldRow(ar ? 'المحطة/الموقع' : 'Station/Location', 'stationLocation')}
+          </div>
+
+          <Separator />
+
           <div>
             <h4 className={cn("font-semibold text-sm mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
               <TrendingUp className="h-4 w-4 text-green-600" />
@@ -238,15 +254,14 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
               {ar ? 'مساهمات صاحب العمل' : 'Employer Contributions'}
             </h4>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {fieldRow(ar ? 'التأمينات الاجتماعية - صاحب العمل (ج.م)' : 'Social Insurance - Employer (EGP)', 'employerSocialInsurance')}
-              {fieldRow(ar ? 'التأمين الصحي (ج.م)' : 'Health Insurance (EGP)', 'healthInsurance')}
-              {fieldRow(ar ? 'ضريبة الدخل (ج.م)' : 'Income Tax (EGP)', 'incomeTax')}
+              {fieldRow(ar ? 'التأمينات الاجتماعية - صاحب العمل' : 'Social Insurance - Employer', 'employerSocialInsurance')}
+              {fieldRow(ar ? 'التأمين الصحي' : 'Health Insurance', 'healthInsurance')}
+              {fieldRow(ar ? 'ضريبة الدخل' : 'Income Tax', 'incomeTax')}
             </div>
           </div>
 
           <Separator />
 
-          {/* Totals */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="bg-green-50 border-green-200">
               <CardContent className="p-4 text-center">
@@ -292,6 +307,7 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-center">{ar ? 'السنة' : 'Year'}</TableHead>
+                    <TableHead>{ar ? 'المحطة' : 'Station'}</TableHead>
                     <TableHead>{ar ? 'الأساسي' : 'Basic'}</TableHead>
                     <TableHead>{ar ? 'مواصلات' : 'Transport'}</TableHead>
                     <TableHead>{ar ? 'حوافز' : 'Incentives'}</TableHead>
@@ -306,31 +322,35 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {employeeRecords.map(r => (
-                    <TableRow key={r.year}>
-                      <TableCell className="text-center font-bold"><Badge variant="outline">{r.year}</Badge></TableCell>
-                      <TableCell>{r.basicSalary.toLocaleString()}</TableCell>
-                      <TableCell>{r.transportAllowance.toLocaleString()}</TableCell>
-                      <TableCell>{r.incentives.toLocaleString()}</TableCell>
-                      <TableCell>{r.livingAllowance.toLocaleString()}</TableCell>
-                      <TableCell>{r.stationAllowance.toLocaleString()}</TableCell>
-                      <TableCell>{r.mobileAllowance.toLocaleString()}</TableCell>
-                      <TableCell className="font-bold text-green-700">{calcGross(r).toLocaleString()}</TableCell>
-                      <TableCell className="text-destructive">{r.employeeInsurance.toLocaleString()}</TableCell>
-                      <TableCell className="font-bold text-blue-700">{calcNet(r).toLocaleString()}</TableCell>
-                      <TableCell className="text-purple-700">{calcEmployerContributions(r).toLocaleString()}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 justify-center">
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleYearChange(r.year)}>
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteRecord(r.year)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {employeeRecords.map(r => {
+                    const stLabel = stationLocations.find(s => s.value === r.stationLocation);
+                    return (
+                      <TableRow key={r.year}>
+                        <TableCell className="text-center font-bold"><Badge variant="outline">{r.year}</Badge></TableCell>
+                        <TableCell>{stLabel ? (ar ? stLabel.labelAr : stLabel.labelEn) : '-'}</TableCell>
+                        <TableCell>{r.basicSalary.toLocaleString()}</TableCell>
+                        <TableCell>{r.transportAllowance.toLocaleString()}</TableCell>
+                        <TableCell>{r.incentives.toLocaleString()}</TableCell>
+                        <TableCell>{r.livingAllowance.toLocaleString()}</TableCell>
+                        <TableCell>{r.stationAllowance.toLocaleString()}</TableCell>
+                        <TableCell>{r.mobileAllowance.toLocaleString()}</TableCell>
+                        <TableCell className="font-bold text-green-700">{calcFullGross(r).toLocaleString()}</TableCell>
+                        <TableCell className="text-destructive">{r.employeeInsurance.toLocaleString()}</TableCell>
+                        <TableCell className="font-bold text-blue-700">{calcNet(r).toLocaleString()}</TableCell>
+                        <TableCell className="text-purple-700">{calcEmployerContributions(r).toLocaleString()}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1 justify-center">
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleYearChange(r.year)}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteRecord(r.year)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -346,16 +366,15 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label>{ar ? 'اسم البنك بالعربية' : 'Bank Name (Arabic)'}</Label>
+              <Label>{ar ? 'اسم البنك (عربي)' : 'Bank Name (Arabic)'}</Label>
               <Input value={newBank.labelAr} onChange={e => setNewBank(p => ({ ...p, labelAr: e.target.value }))} className={cn(isRTL && "text-right")} />
             </div>
             <div className="space-y-1.5">
-              <Label>{ar ? 'اسم البنك بالإنجليزية' : 'Bank Name (English)'}</Label>
+              <Label>{ar ? 'اسم البنك (إنجليزي)' : 'Bank Name (English)'}</Label>
               <Input value={newBank.labelEn} onChange={e => setNewBank(p => ({ ...p, labelEn: e.target.value }))} />
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowAddBank(false)}>{ar ? 'إلغاء' : 'Cancel'}</Button>
+          <DialogFooter>
             <Button onClick={handleAddBank}>{ar ? 'إضافة' : 'Add'}</Button>
           </DialogFooter>
         </DialogContent>
