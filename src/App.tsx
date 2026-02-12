@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { SalaryDataProvider } from "@/contexts/SalaryDataContext";
 import { PayrollDataProvider } from "@/contexts/PayrollDataContext";
+import { EmployeeDataProvider } from "@/contexts/EmployeeDataContext";
+import { AttendanceDataProvider } from "@/contexts/AttendanceDataContext";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import EmployeeDetails from "./pages/EmployeeDetails";
@@ -28,8 +30,10 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
+      <EmployeeDataProvider>
       <SalaryDataProvider>
       <PayrollDataProvider>
+      <AttendanceDataProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -54,8 +58,10 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </AttendanceDataProvider>
       </PayrollDataProvider>
       </SalaryDataProvider>
+      </EmployeeDataProvider>
     </LanguageProvider>
   </QueryClientProvider>
 );

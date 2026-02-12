@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,7 +11,6 @@ import {
   BarChart3, AlertTriangle, FileText, Receipt, HandCoins, GraduationCap, StickyNote,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockEmployees } from '@/data/mockEmployees';
 import { BasicInfoTab } from '@/components/employees/tabs/BasicInfoTab';
 import { ContactInfoTab } from '@/components/employees/tabs/ContactInfoTab';
 import { IdentityTab } from '@/components/employees/tabs/IdentityTab';
@@ -24,6 +24,7 @@ import { LeaveRecordTab } from '@/components/employees/tabs/LeaveRecordTab';
 import { MissionRecordTab } from '@/components/employees/tabs/MissionRecordTab';
 import { SalaryTab } from '@/components/employees/tabs/SalaryTab';
 import { OtherTab } from '@/components/employees/tabs/OtherTab';
+import { toast } from '@/hooks/use-toast';
 
 const detailTabs = [
   { id: 'basic', icon: User, labelKey: 'employees.tabs.basicInfo' },
@@ -60,9 +61,10 @@ const EmployeeDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t, isRTL, language } = useLanguage();
+  const { getEmployee, updateEmployee } = useEmployeeData();
   const [activeTab, setActiveTab] = useState('basic');
 
-  const employee = mockEmployees.find(e => e.id === id);
+  const employee = getEmployee(id || '');
 
   if (!employee) {
     return (
@@ -74,9 +76,18 @@ const EmployeeDetails = () => {
     );
   }
 
+  const handleSave = () => {
+    // The individual tabs already save their data via contexts (SalaryData, etc.)
+    // This button confirms the overall save action
+    toast({
+      title: language === 'ar' ? 'تم الحفظ' : 'Saved',
+      description: language === 'ar' ? 'تم حفظ بيانات الموظف بنجاح' : 'Employee data saved successfully',
+    });
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'basic': return <BasicInfoTab employee={employee} />;
+      case 'basic': return <BasicInfoTab employee={employee} onUpdate={(updates) => updateEmployee(employee.id, updates)} />;
       case 'contact': return <ContactInfoTab employee={employee} />;
       case 'identity': return <IdentityTab employee={employee} />;
       case 'job': return <JobInfoTab employee={employee} />;
@@ -101,26 +112,19 @@ const EmployeeDetails = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="bg-primary rounded-xl p-6">
-          <div className={cn(
-            "flex items-center justify-between",
-            isRTL && "flex-row-reverse"
-          )}>
+          <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
             <h1 className="text-2xl font-bold text-primary-foreground">
               {t('employees.details.title')}
             </h1>
             <div className={cn("flex gap-3", isRTL && "flex-row-reverse")}>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="gap-2"
-                onClick={() => navigate('/employees')}
-              >
+              <Button variant="secondary" size="sm" className="gap-2" onClick={() => navigate('/employees')}>
                 <ArrowRight className={cn("w-4 h-4", !isRTL && "rotate-180")} />
                 {t('employees.details.backToList')}
               </Button>
               <Button
                 size="sm"
                 className="gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground"
+                onClick={handleSave}
               >
                 <Save className="w-4 h-4" />
                 {t('employees.save')}
@@ -131,10 +135,7 @@ const EmployeeDetails = () => {
 
         {/* Employee Info Card */}
         <div className="border-2 border-destructive/30 rounded-xl p-6 bg-card">
-          <div className={cn(
-            "flex items-center gap-6",
-            isRTL && "flex-row-reverse"
-          )}>
+          <div className={cn("flex items-center gap-6", isRTL && "flex-row-reverse")}>
             <Avatar className="w-24 h-24 border-4 border-primary/20">
               <AvatarImage src={employee.avatar} />
               <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
@@ -142,27 +143,13 @@ const EmployeeDetails = () => {
               </AvatarFallback>
             </Avatar>
             <div className={cn("flex-1 space-y-3", isRTL && "text-right")}>
-              <div className={cn(
-                "flex items-center gap-3",
-                isRTL && "flex-row-reverse"
-              )}>
-                <span className="text-muted-foreground font-medium">
-                  {t('employees.details.nameAr')} :
-                </span>
-                <span className="text-lg font-bold text-primary">
-                  {employee.nameAr}
-                </span>
+              <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+                <span className="text-muted-foreground font-medium">{t('employees.details.nameAr')} :</span>
+                <span className="text-lg font-bold text-primary">{employee.nameAr}</span>
               </div>
-              <div className={cn(
-                "flex items-center gap-3",
-                isRTL && "flex-row-reverse"
-              )}>
-                <span className="text-muted-foreground font-medium">
-                  {t('employees.details.nameEn')} :
-                </span>
-                <span className="text-lg font-bold text-primary">
-                  {employee.nameEn}
-                </span>
+              <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+                <span className="text-muted-foreground font-medium">{t('employees.details.nameEn')} :</span>
+                <span className="text-lg font-bold text-primary">{employee.nameEn}</span>
               </div>
             </div>
           </div>

@@ -1,51 +1,50 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { usePayrollData } from '@/contexts/PayrollDataContext';
+import { useAttendanceData } from '@/contexts/AttendanceDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Clock, Calendar, Wallet, Star, LogIn, LogOut, Timer } from 'lucide-react';
-import { useState } from 'react';
+import { Clock, Calendar, Wallet, Star, LogIn, LogOut } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { ar, enUS } from 'date-fns/locale';
+import { ar as arLocale, enUS } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
+
+const PORTAL_EMPLOYEE_ID = 'Emp001';
 
 export const PortalDashboard = () => {
   const { language, isRTL } = useLanguage();
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const [isCheckedIn, setIsCheckedIn] = useState(() => {
-    const saved = localStorage.getItem(`attendance_${today}`);
-    return saved ? JSON.parse(saved).isCheckedIn : false;
-  });
-  const [checkInTime, setCheckInTime] = useState<string | null>(() => {
-    const saved = localStorage.getItem(`attendance_${today}`);
-    return saved ? JSON.parse(saved).checkInTime : null;
-  });
-  const [checkOutTime, setCheckOutTime] = useState<string | null>(() => {
-    const saved = localStorage.getItem(`attendance_${today}`);
-    return saved ? JSON.parse(saved).checkOutTime : null;
-  });
+  const ar = language === 'ar';
+  const { getEmployeePayroll } = usePayrollData();
+  const { records, checkIn, checkOut, getMonthlyStats } = useAttendanceData();
 
-  const saveState = (ci: boolean, inT: string | null, outT: string | null) => {
-    localStorage.setItem(`attendance_${today}`, JSON.stringify({ isCheckedIn: ci, checkInTime: inT, checkOutTime: outT }));
-  };
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const todayRecord = records.find(r => r.employeeId === PORTAL_EMPLOYEE_ID && r.date === today);
+  const isCheckedIn = todayRecord?.checkIn && !todayRecord?.checkOut;
+
+  const monthlyStats = useMemo(() => getMonthlyStats(PORTAL_EMPLOYEE_ID, new Date().getFullYear(), new Date().getMonth()), [getMonthlyStats]);
+  const latestPayroll = useMemo(() => {
+    const p = getEmployeePayroll(PORTAL_EMPLOYEE_ID);
+    return p[0];
+  }, [getEmployeePayroll]);
 
   const handleCheckIn = () => {
-    const time = format(new Date(), 'HH:mm');
-    setIsCheckedIn(true); setCheckInTime(time);
-    saveState(true, time, null);
-    toast({ title: language === 'ar' ? 'تم تسجيل الحضور' : 'Checked In', description: time });
+    checkIn(PORTAL_EMPLOYEE_ID, 'Galal AbdelRazek AbdelHaliem', 'جلال عبد الرازق عبد العليم', 'الإدارة');
+    toast({ title: ar ? 'تم تسجيل الحضور' : 'Checked In', description: format(new Date(), 'HH:mm') });
   };
+
   const handleCheckOut = () => {
-    const time = format(new Date(), 'HH:mm');
-    setIsCheckedIn(false); setCheckOutTime(time);
-    saveState(false, checkInTime, time);
-    toast({ title: language === 'ar' ? 'تم تسجيل الانصراف' : 'Checked Out', description: time });
+    if (todayRecord) {
+      checkOut(todayRecord.id);
+      toast({ title: ar ? 'تم تسجيل الانصراف' : 'Checked Out', description: format(new Date(), 'HH:mm') });
+    }
   };
 
   const stats = [
-    { icon: Clock, labelAr: 'أيام الحضور هذا الشهر', labelEn: 'Attendance Days', value: '18', color: 'text-primary' },
+    { icon: Clock, labelAr: 'أيام الحضور هذا الشهر', labelEn: 'Attendance Days', value: String(monthlyStats.present), color: 'text-primary' },
     { icon: Calendar, labelAr: 'رصيد الإجازات', labelEn: 'Leave Balance', value: '15', color: 'text-success' },
-    { icon: Wallet, labelAr: 'صافي الراتب', labelEn: 'Net Salary', value: '8,500', color: 'text-warning' },
+    { icon: Wallet, labelAr: 'صافي الراتب', labelEn: 'Net Salary', value: latestPayroll ? latestPayroll.netSalary.toLocaleString() : '—', color: 'text-warning' },
     { icon: Star, labelAr: 'آخر تقييم', labelEn: 'Last Evaluation', value: '4.2/5', color: 'text-purple-500' },
   ];
 
@@ -53,10 +52,10 @@ export const PortalDashboard = () => {
     <div className="space-y-6">
       <div>
         <h1 className={cn("text-2xl font-bold", isRTL && "text-right")}>
-          {language === 'ar' ? 'لوحة التحكم' : 'Dashboard'}
+          {ar ? 'لوحة التحكم' : 'Dashboard'}
         </h1>
         <p className={cn("text-muted-foreground", isRTL && "text-right")}>
-          {format(new Date(), 'EEEE, d MMMM yyyy', { locale: language === 'ar' ? ar : enUS })}
+          {format(new Date(), 'EEEE, d MMMM yyyy', { locale: ar ? arLocale : enUS })}
         </p>
       </div>
 
@@ -65,19 +64,19 @@ export const PortalDashboard = () => {
         <CardContent className="p-6">
           <div className={cn("flex flex-col sm:flex-row items-center justify-center gap-6", isRTL && "sm:flex-row-reverse")}>
             <div className="flex flex-col items-center gap-2">
-              <Button size="lg" className="h-20 w-44 text-lg font-bold bg-success hover:bg-success/90 text-white" onClick={handleCheckIn} disabled={isCheckedIn}>
+              <Button size="lg" className="h-20 w-44 text-lg font-bold bg-success hover:bg-success/90 text-white" onClick={handleCheckIn} disabled={!!isCheckedIn}>
                 <LogIn className="w-6 h-6 ml-2" />
-                {language === 'ar' ? 'تسجيل حضور' : 'Check In'}
+                {ar ? 'تسجيل حضور' : 'Check In'}
               </Button>
-              {checkInTime && <Badge variant="outline" className="bg-success/10 text-success">{checkInTime}</Badge>}
+              {todayRecord?.checkIn && <Badge variant="outline" className="bg-success/10 text-success">{todayRecord.checkIn}</Badge>}
             </div>
             <div className="hidden sm:block w-px h-16 bg-border" />
             <div className="flex flex-col items-center gap-2">
               <Button size="lg" variant="destructive" className="h-20 w-44 text-lg font-bold" onClick={handleCheckOut} disabled={!isCheckedIn}>
                 <LogOut className="w-6 h-6 ml-2" />
-                {language === 'ar' ? 'تسجيل انصراف' : 'Check Out'}
+                {ar ? 'تسجيل انصراف' : 'Check Out'}
               </Button>
-              {checkOutTime && <Badge variant="outline" className="bg-destructive/10 text-destructive">{checkOutTime}</Badge>}
+              {todayRecord?.checkOut && <Badge variant="outline" className="bg-destructive/10 text-destructive">{todayRecord.checkOut}</Badge>}
             </div>
           </div>
         </CardContent>
@@ -90,7 +89,7 @@ export const PortalDashboard = () => {
             <CardContent className="p-5 text-center">
               <s.icon className={cn("w-8 h-8 mx-auto mb-2", s.color)} />
               <p className="text-2xl font-bold">{s.value}</p>
-              <p className="text-sm text-muted-foreground">{language === 'ar' ? s.labelAr : s.labelEn}</p>
+              <p className="text-sm text-muted-foreground">{ar ? s.labelAr : s.labelEn}</p>
             </CardContent>
           </Card>
         ))}

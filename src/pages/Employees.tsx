@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { EmployeeTable } from '@/components/employees/EmployeeTable';
 import { EmployeeStatsCards } from '@/components/employees/EmployeeStatsCards';
@@ -7,15 +8,15 @@ import { EmployeeFilters } from '@/components/employees/EmployeeFilters';
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw, Download, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockEmployees } from '@/data/mockEmployees';
+import { useState } from 'react';
 
 type FilterStatus = 'all' | 'active' | 'inactive' | 'suspended';
 
 const Employees = () => {
   const { t, isRTL } = useLanguage();
+  const { employees } = useEmployeeData();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
-  const [employees] = useState(mockEmployees);
 
   const counts = useMemo(() => ({
     all: employees.length,
@@ -37,9 +38,7 @@ const Employees = () => {
         emp.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         emp.department.includes(searchQuery) ||
         emp.jobTitle.includes(searchQuery);
-
       const matchesFilter = activeFilter === 'all' || emp.status === activeFilter;
-
       return matchesSearch && matchesFilter;
     });
   }, [employees, searchQuery, activeFilter]);
@@ -47,54 +46,19 @@ const Employees = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Page Header */}
         <div className="bg-primary rounded-xl p-6">
-          <div className={cn(
-            "flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center",
-            isRTL && "sm:flex-row-reverse"
-          )}>
-            <h1 className="text-2xl font-bold text-primary-foreground">
-              {t('employees.title')}
-            </h1>
+          <div className={cn("flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center", isRTL && "sm:flex-row-reverse")}>
+            <h1 className="text-2xl font-bold text-primary-foreground">{t('employees.title')}</h1>
             <div className={cn("flex flex-wrap gap-2", isRTL && "flex-row-reverse")}>
-              <Button variant="secondary" size="sm" className="gap-2">
-                <RefreshCw className="w-4 h-4" />
-                {t('employees.refresh')}
-              </Button>
-              <Button variant="secondary" size="sm" className="gap-2">
-                <Download className="w-4 h-4" />
-                {t('employees.exportExcel')}
-              </Button>
-              <Button variant="secondary" size="sm" className="gap-2">
-                <Upload className="w-4 h-4" />
-                {t('employees.importExcel')}
-              </Button>
-              <Button size="sm" className="gap-2 bg-success hover:bg-success/90 text-success-foreground">
-                <Plus className="w-4 h-4" />
-                {t('employees.addEmployee')}
-              </Button>
+              <Button variant="secondary" size="sm" className="gap-2"><RefreshCw className="w-4 h-4" />{t('employees.refresh')}</Button>
+              <Button variant="secondary" size="sm" className="gap-2"><Download className="w-4 h-4" />{t('employees.exportExcel')}</Button>
+              <Button variant="secondary" size="sm" className="gap-2"><Upload className="w-4 h-4" />{t('employees.importExcel')}</Button>
+              <Button size="sm" className="gap-2 bg-success hover:bg-success/90 text-success-foreground"><Plus className="w-4 h-4" />{t('employees.addEmployee')}</Button>
             </div>
           </div>
         </div>
-
-        {/* Stats Cards */}
-        <EmployeeStatsCards
-          total={counts.all}
-          active={counts.active}
-          departments={departments}
-          newThisMonth={1}
-        />
-
-        {/* Search & Filters */}
-        <EmployeeFilters
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          activeFilter={activeFilter}
-          onFilterChange={setActiveFilter}
-          counts={counts}
-        />
-
-        {/* Table */}
+        <EmployeeStatsCards total={counts.all} active={counts.active} departments={departments} newThisMonth={1} />
+        <EmployeeFilters searchQuery={searchQuery} onSearchChange={setSearchQuery} activeFilter={activeFilter} onFilterChange={setActiveFilter} counts={counts} />
         <EmployeeTable employees={filteredEmployees} />
       </div>
     </DashboardLayout>

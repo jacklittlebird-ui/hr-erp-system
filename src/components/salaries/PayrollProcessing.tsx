@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { Wallet, Gift, TrendingDown, Building2, Save, X, FileText, Users, Clock, Search, PlayCircle, Zap } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { mockEmployees } from '@/data/mockEmployees';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
 
 const mockLoans = [
@@ -94,14 +94,14 @@ export const PayrollProcessing = () => {
   const healthIns = salaryRecord?.healthInsurance || 0;
   const incomeTax = salaryRecord?.incomeTax || 0;
 
-  const activeEmployees = mockEmployees.filter(e => e.status === 'active');
+  const { employees: allEmployees } = useEmployeeData();
+  const activeEmployees = allEmployees.filter(e => e.status === 'active');
 
-  // Filter by station from salary records
+  // Filter by station from employee data
   const filteredEmployees = activeEmployees.filter(emp => {
     const nameMatch = emp.nameEn.toLowerCase().includes(searchName.toLowerCase()) || emp.nameAr.includes(searchName);
     if (!searchStation || searchStation === 'all') return nameMatch;
-    const sr = getSalaryRecord(emp.employeeId, selectedYear);
-    return nameMatch && sr?.stationLocation === searchStation;
+    return nameMatch && emp.stationLocation === searchStation;
   });
 
   const processedThisMonth = getMonthlyPayroll(selectedMonth, selectedYear);
