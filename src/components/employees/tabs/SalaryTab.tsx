@@ -53,7 +53,6 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
 
   const [selectedYear, setSelectedYear] = useState('');
   const [formData, setFormData] = useState({
-    stationLocation: employee.stationLocation || '',
     basicSalary: 0, transportAllowance: 0, incentives: 0, livingAllowance: 0,
     stationAllowance: 0, mobileAllowance: 0, employeeInsurance: 0,
     employerSocialInsurance: 0, healthInsurance: 0, incomeTax: 0,
@@ -73,11 +72,10 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
     setSelectedYear(year);
     const existing = salaryRecords.find(r => r.employeeId === employee.employeeId && r.year === year);
     if (existing) {
-      const { year: _, employeeId: __, ...rest } = existing;
+      const { year: _, employeeId: __, stationLocation: ___, ...rest } = existing;
       setFormData(rest);
     } else {
       setFormData({
-        stationLocation: employee.stationLocation || '',
         basicSalary: 0, transportAllowance: 0, incentives: 0, livingAllowance: 0,
         stationAllowance: 0, mobileAllowance: 0, employeeInsurance: 0,
         employerSocialInsurance: 0, healthInsurance: 0, incomeTax: 0,
@@ -86,7 +84,7 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
   }, [salaryRecords, employee.employeeId, employee.stationLocation]);
 
   const updateField = (field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: field === 'stationLocation' ? value : (parseFloat(value) || 0) }));
+    setFormData(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
   };
 
   const gross = useMemo(() => calcFullGross(formData), [formData]);
@@ -98,7 +96,7 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
       toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'اختر السنة أولاً' : 'Select a year first', variant: 'destructive' });
       return;
     }
-    saveSalaryRecord({ year: selectedYear, employeeId: employee.employeeId, ...formData });
+    saveSalaryRecord({ year: selectedYear, employeeId: employee.employeeId, stationLocation: employee.stationLocation || '', ...formData });
     toast({ title: ar ? 'تم الحفظ' : 'Saved', description: ar ? `تم حفظ راتب سنة ${selectedYear}` : `Salary for ${selectedYear} saved` });
   };
 
@@ -123,21 +121,12 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
   const fieldRow = (label: string, field: keyof typeof formData) => (
     <div className="space-y-1.5">
       <Label className={cn("text-xs", isRTL && "text-right block")}>{label}</Label>
-      {field === 'stationLocation' ? (
-        <Select value={formData.stationLocation} onValueChange={v => updateField('stationLocation', v)}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={ar ? 'اختر المحطة' : 'Select Station'} /></SelectTrigger>
-          <SelectContent>
-            {stationLocations.map(s => <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      ) : (
-        <Input
-          type="number"
-          value={formData[field] || ''}
-          onChange={e => updateField(field, e.target.value)}
-          className={cn("h-9 text-sm", isRTL && "text-right")}
-        />
-      )}
+      <Input
+        type="number"
+        value={formData[field] || ''}
+        onChange={e => updateField(field, e.target.value)}
+        className={cn("h-9 text-sm", isRTL && "text-right")}
+      />
     </div>
   );
 
@@ -212,13 +201,6 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Station */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {fieldRow(ar ? 'المحطة/الموقع' : 'Station/Location', 'stationLocation')}
-          </div>
-
-          <Separator />
-
           <div>
             <h4 className={cn("font-semibold text-sm mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
               <TrendingUp className="h-4 w-4 text-green-600" />
