@@ -68,23 +68,25 @@ export const PayrollProcessing = () => {
   // Gross includes base + livingAllowance (manual) + overtimePay
   const gross = baseGross + livingAllowance + overtimePay;
 
+  // baseGross excludes livingAllowance and overtimePay - used for bonus%, leave, penalty calculations
   const bonusAmount = useMemo(() => {
     if (bonusType === 'amount') return bonusValue;
-    return Math.round((bonusValue / 100) * gross);
-  }, [bonusType, bonusValue, gross]);
+    return Math.round((bonusValue / 100) * baseGross);
+  }, [bonusType, bonusValue, baseGross]);
 
   const employeeInsurance = salaryRecord?.employeeInsurance || 0;
   const loanPayment = useMemo(() => mockLoans.find(l => l.employeeId === selectedEmployee && l.status === 'active')?.monthlyPayment || 0, [selectedEmployee]);
   const advanceAmount = useMemo(() => mockAdvances.find(a => a.employeeId === selectedEmployee && a.deductionMonth === period && a.status === 'approved')?.amount || 0, [selectedEmployee, period]);
   const mobileBill = useMemo(() => mockMobileBills.find(b => b.employeeId === selectedEmployee && b.deductionMonth === period)?.billAmount || 0, [selectedEmployee, period]);
 
-  const dailyRate = gross / 30;
-  const leaveDeduction = Math.round(dailyRate * leaveDays);
+  // Daily rate based on baseGross (excluding livingAllowance and overtimePay)
+  const baseDailyRate = baseGross / 30;
+  const leaveDeduction = Math.round(baseDailyRate * leaveDays);
   const penaltyAmount = useMemo(() => {
     if (penaltyType === 'amount') return penaltyValue;
-    if (penaltyType === 'days') return Math.round(dailyRate * penaltyValue);
-    return Math.round((penaltyValue / 100) * gross);
-  }, [penaltyType, penaltyValue, dailyRate, gross]);
+    if (penaltyType === 'days') return Math.round(baseDailyRate * penaltyValue);
+    return Math.round((penaltyValue / 100) * baseGross);
+  }, [penaltyType, penaltyValue, baseDailyRate, baseGross]);
 
   const totalDeductions = employeeInsurance + loanPayment + advanceAmount + mobileBill + leaveDeduction + penaltyAmount;
   const grossWithBonus = gross + bonusAmount;
@@ -147,16 +149,17 @@ export const PayrollProcessing = () => {
     const g = bg + la + ot;
     const bt = empId === selectedEmployee ? bonusType : 'amount';
     const bv = empId === selectedEmployee ? bonusValue : 0;
-    const ba = bt === 'amount' ? bv : Math.round((bv / 100) * g);
+    const ba = bt === 'amount' ? bv : Math.round((bv / 100) * bg);
     const lp = mockLoans.find(l => l.employeeId === empId && l.status === 'active')?.monthlyPayment || 0;
     const aa = mockAdvances.find(a => a.employeeId === empId && a.deductionMonth === period && a.status === 'approved')?.amount || 0;
     const mb = mockMobileBills.find(b => b.employeeId === empId && b.deductionMonth === period)?.billAmount || 0;
     const ld = empId === selectedEmployee ? leaveDays : 0;
-    const dr = g / 30;
+    // Use baseGross (bg) for daily rate calculations (excludes livingAllowance and overtimePay)
+    const dr = bg / 30;
     const lded = Math.round(dr * ld);
     const pt = empId === selectedEmployee ? penaltyType : 'amount';
     const pv = empId === selectedEmployee ? penaltyValue : 0;
-    const pa = pt === 'amount' ? pv : pt === 'days' ? Math.round(dr * pv) : Math.round((pv / 100) * g);
+    const pa = pt === 'amount' ? pv : pt === 'days' ? Math.round(dr * pv) : Math.round((pv / 100) * bg);
     const td = sr.employeeInsurance + lp + aa + mb + lded + pa;
 
     return {
@@ -435,7 +438,7 @@ export const PayrollProcessing = () => {
                       <div className="flex items-center gap-2"><RadioGroupItem value="amount" id="bonus-amount" /><Label htmlFor="bonus-amount" className="cursor-pointer">{ar ? 'مبلغ يدوي' : 'Manual Amount'}</Label></div>
                     </div>
                     <div className={cn("flex-1 border rounded-lg p-4 cursor-pointer", bonusType === 'percentage' ? 'border-primary bg-primary/5' : 'border-border')}>
-                      <div className="flex items-center gap-2"><RadioGroupItem value="percentage" id="bonus-pct" /><Label htmlFor="bonus-pct" className="cursor-pointer">{ar ? 'نسبة من الإجمالي' : '% of Gross'}</Label></div>
+                      <div className="flex items-center gap-2"><RadioGroupItem value="percentage" id="bonus-pct" /><Label htmlFor="bonus-pct" className="cursor-pointer">{ar ? 'نسبة من الإجمالي الأساسي' : '% of Base Gross'}</Label></div>
                     </div>
                   </RadioGroup>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

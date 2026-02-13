@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Save } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { stationLocations } from '@/data/stationLocations';
@@ -222,13 +222,6 @@ export const BasicInfoTab = ({ employee, onUpdate }: BasicInfoTabProps) => {
         </div>
       </div>
 
-      {/* Save Button */}
-      <div className={cn("flex pt-4", isRTL ? "justify-start" : "justify-end")}>
-        <Button onClick={handleSave} className="gap-2">
-          <Save className="w-4 h-4" />
-          {ar ? 'حفظ البيانات الأساسية' : 'Save Basic Info'}
-        </Button>
-      </div>
     </div>
   );
 };

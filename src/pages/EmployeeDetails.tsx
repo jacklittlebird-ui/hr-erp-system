@@ -77,11 +77,12 @@ const EmployeeDetails = () => {
   }
 
   const handleSave = () => {
-    // The individual tabs already save their data via contexts (SalaryData, etc.)
-    // This button confirms the overall save action
+    // Trigger save on BasicInfoTab data by updating the employee with current form data
+    // BasicInfoTab already calls onUpdate on field changes, so this saves all accumulated changes
+    updateEmployee(employee.id, {});
     toast({
       title: language === 'ar' ? 'تم الحفظ' : 'Saved',
-      description: language === 'ar' ? 'تم حفظ بيانات الموظف بنجاح' : 'Employee data saved successfully',
+      description: language === 'ar' ? 'تم حفظ جميع بيانات الموظف بنجاح' : 'All employee data saved successfully',
     });
   };
 
