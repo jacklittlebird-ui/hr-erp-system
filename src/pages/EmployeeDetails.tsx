@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
@@ -25,6 +25,7 @@ import { MissionRecordTab } from '@/components/employees/tabs/MissionRecordTab';
 import { SalaryTab } from '@/components/employees/tabs/SalaryTab';
 import { OtherTab } from '@/components/employees/tabs/OtherTab';
 import { toast } from '@/hooks/use-toast';
+import { Employee } from '@/types/employee';
 
 const detailTabs = [
   { id: 'basic', icon: User, labelKey: 'employees.tabs.basicInfo' },
@@ -64,6 +65,13 @@ const EmployeeDetails = () => {
   const { getEmployee, updateEmployee } = useEmployeeData();
   const [activeTab, setActiveTab] = useState('basic');
 
+  // Accumulate all field changes from all tabs
+  const pendingUpdates = useRef<Partial<Employee>>({});
+
+  const handleFieldChange = useCallback((updates: Partial<Employee>) => {
+    pendingUpdates.current = { ...pendingUpdates.current, ...updates };
+  }, []);
+
   const employee = getEmployee(id || '');
 
   if (!employee) {
@@ -77,9 +85,11 @@ const EmployeeDetails = () => {
   }
 
   const handleSave = () => {
-    // Trigger save on BasicInfoTab data by updating the employee with current form data
-    // BasicInfoTab already calls onUpdate on field changes, so this saves all accumulated changes
-    updateEmployee(employee.id, {});
+    const updates = pendingUpdates.current;
+    if (Object.keys(updates).length > 0) {
+      updateEmployee(employee.id, updates);
+      pendingUpdates.current = {};
+    }
     toast({
       title: language === 'ar' ? 'تم الحفظ' : 'Saved',
       description: language === 'ar' ? 'تم حفظ جميع بيانات الموظف بنجاح' : 'All employee data saved successfully',
@@ -88,19 +98,19 @@ const EmployeeDetails = () => {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'basic': return <BasicInfoTab employee={employee} onUpdate={(updates) => updateEmployee(employee.id, updates)} />;
-      case 'contact': return <ContactInfoTab employee={employee} />;
-      case 'identity': return <IdentityTab employee={employee} />;
-      case 'job': return <JobInfoTab employee={employee} />;
+      case 'basic': return <BasicInfoTab employee={employee} onUpdate={handleFieldChange} />;
+      case 'contact': return <ContactInfoTab employee={employee} onUpdate={handleFieldChange} />;
+      case 'identity': return <IdentityTab employee={employee} onUpdate={handleFieldChange} />;
+      case 'job': return <JobInfoTab employee={employee} onUpdate={handleFieldChange} />;
       case 'salary': return <SalaryTab employee={employee} />;
       case 'leave': return <LeaveBalanceTab employee={employee} />;
       case 'leaveRecord': return <LeaveRecordTab employee={employee} />;
       case 'missionRecord': return <MissionRecordTab employee={employee} />;
-      case 'insurance': return <InsuranceTab employee={employee} />;
+      case 'insurance': return <InsuranceTab employee={employee} onUpdate={handleFieldChange} />;
       case 'permits': return <PermitsTab employee={employee} />;
       case 'certificates': return <CertificatesTab employee={employee} />;
       case 'departments': return <DepartmentsTab employee={employee} />;
-      case 'other': return <OtherTab employee={employee} />;
+      case 'other': return <OtherTab employee={employee} onUpdate={handleFieldChange} />;
       default: {
         const tab = detailTabs.find(t => t.id === activeTab);
         return <PlaceholderTab label={tab ? t(tab.labelKey) : activeTab} />;

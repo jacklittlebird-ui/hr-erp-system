@@ -49,9 +49,11 @@ export interface Employee {
   socialInsuranceEndDate?: string;
   healthInsuranceCardNo?: string;
   hasHealthInsurance?: boolean;
+  hasGovHealthInsurance?: boolean;
   hasGovernmentHealthInsurance?: boolean;
   hasSocialInsurance?: boolean;
   contractType?: string;
+  resigned?: boolean;
   hasCairoAirportTempPermit?: boolean;
   cairoAirportAnnualPermitNo?: string;
   hasCairoAirportAnnualPermit?: boolean;
