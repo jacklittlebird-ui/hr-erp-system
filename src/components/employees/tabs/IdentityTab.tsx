@@ -8,48 +8,63 @@ import { cn } from '@/lib/utils';
 
 interface IdentityTabProps {
   employee: Employee;
+  onUpdate?: (updates: Partial<Employee>) => void;
 }
 
-export const IdentityTab = ({ employee }: IdentityTabProps) => {
+export const IdentityTab = ({ employee, onUpdate }: IdentityTabProps) => {
   const { t, isRTL } = useLanguage();
-  const [issueDate, setIssueDate] = useState(employee.idIssueDate || '');
-  const [expiryDate, setExpiryDate] = useState(employee.idExpiryDate || '');
+
+  const [formData, setFormData] = useState({
+    nationalId: employee.nationalId || '',
+    idIssueDate: employee.idIssueDate || '',
+    idExpiryDate: employee.idExpiryDate || '',
+    issuingAuthority: employee.issuingAuthority || '',
+    issuingGovernorate: employee.issuingGovernorate || '',
+    militaryStatus: employee.militaryStatus || '',
+  });
 
   useEffect(() => {
-    if (issueDate) {
-      const issue = new Date(issueDate);
+    if (formData.idIssueDate) {
+      const issue = new Date(formData.idIssueDate);
       const expiry = new Date(issue);
       expiry.setFullYear(expiry.getFullYear() + 7);
-      setExpiryDate(expiry.toISOString().split('T')[0]);
+      const exp = expiry.toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, idExpiryDate: exp }));
+      onUpdate?.({ idExpiryDate: exp });
     }
-  }, [issueDate]);
+  }, [formData.idIssueDate]);
+
+  const updateField = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    onUpdate?.({ [field]: value });
+  };
 
   return (
     <div className="p-6 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.nationalId')}</Label>
-          <Input defaultValue={employee.nationalId} className={cn(isRTL && "text-right")} dir="ltr" />
+          <Input value={formData.nationalId} onChange={e => updateField('nationalId', e.target.value)} className={cn(isRTL && "text-right")} dir="ltr" />
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.idIssueDate')}</Label>
-          <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className={cn(isRTL && "text-right")} />
+          <Input type="date" value={formData.idIssueDate} onChange={e => updateField('idIssueDate', e.target.value)} className={cn(isRTL && "text-right")} />
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.idExpiryDate')}</Label>
-          <Input type="date" value={expiryDate} readOnly className={cn(isRTL && "text-right", "bg-muted")} />
+          <Input type="date" value={formData.idExpiryDate} readOnly className={cn(isRTL && "text-right", "bg-muted")} />
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.issuingAuthority')}</Label>
-          <Input defaultValue={employee.issuingAuthority} className={cn(isRTL && "text-right")} />
+          <Input value={formData.issuingAuthority} onChange={e => updateField('issuingAuthority', e.target.value)} className={cn(isRTL && "text-right")} />
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.issuingGovernorate')}</Label>
-          <Input defaultValue={employee.issuingGovernorate} className={cn(isRTL && "text-right")} />
+          <Input value={formData.issuingGovernorate} onChange={e => updateField('issuingGovernorate', e.target.value)} className={cn(isRTL && "text-right")} />
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.militaryStatus')}</Label>
-          <Select>
+          <Select value={formData.militaryStatus} onValueChange={v => updateField('militaryStatus', v)}>
             <SelectTrigger className={cn(isRTL && "text-right")}>
               <SelectValue placeholder={t('employees.select')} />
             </SelectTrigger>

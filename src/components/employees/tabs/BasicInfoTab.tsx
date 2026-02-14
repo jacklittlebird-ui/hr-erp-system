@@ -1,9 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
@@ -55,7 +54,9 @@ export const BasicInfoTab = ({ employee, onUpdate }: BasicInfoTabProps) => {
     }
     const reader = new FileReader();
     reader.onload = (event) => {
-      setAvatarUrl(event.target?.result as string);
+      const url = event.target?.result as string;
+      setAvatarUrl(url);
+      onUpdate?.({ avatar: url });
       toast.success(isRTL ? 'تم تحميل الصورة بنجاح' : 'Photo uploaded successfully');
     };
     reader.readAsDataURL(file);
@@ -63,17 +64,8 @@ export const BasicInfoTab = ({ employee, onUpdate }: BasicInfoTabProps) => {
 
   const updateField = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSave = () => {
-    if (onUpdate) {
-      onUpdate({
-        ...formData,
-        avatar: avatarUrl,
-        childrenCount: Number(formData.childrenCount),
-      });
-    }
-    toast.success(ar ? 'تم حفظ البيانات الأساسية' : 'Basic info saved');
+    // Push every change up immediately
+    onUpdate?.({ [field]: field === 'childrenCount' ? Number(value) : value });
   };
 
   return (
@@ -221,7 +213,6 @@ export const BasicInfoTab = ({ employee, onUpdate }: BasicInfoTabProps) => {
           <Input value={formData.graduationYear} onChange={e => updateField('graduationYear', e.target.value)} className={cn(isRTL && "text-right")} />
         </div>
       </div>
-
     </div>
   );
 };

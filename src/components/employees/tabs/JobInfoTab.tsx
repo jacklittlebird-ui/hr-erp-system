@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { Input } from '@/components/ui/input';
@@ -12,18 +13,40 @@ import { initialDepartments } from '@/data/departments';
 
 interface JobInfoTabProps {
   employee: Employee;
+  onUpdate?: (updates: Partial<Employee>) => void;
 }
 
-export const JobInfoTab = ({ employee }: JobInfoTabProps) => {
+export const JobInfoTab = ({ employee, onUpdate }: JobInfoTabProps) => {
   const { t, isRTL } = useLanguage();
+
+  const [formData, setFormData] = useState({
+    department: employee.department || '',
+    jobTitleAr: employee.jobTitleAr || employee.jobTitle || '',
+    jobTitleEn: employee.jobTitleEn || '',
+    jobDegree: employee.jobDegree || '',
+    jobLevel: employee.jobLevel || '',
+    hireDate: employee.hireDate || '',
+    recruitedBy: employee.recruitedBy || '',
+    status: employee.status || 'active',
+    resigned: employee.resigned || false,
+    resignationDate: employee.resignationDate || '',
+    resignationReason: employee.resignationReason || '',
+  });
+
+  const updateField = (field: string, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    onUpdate?.({ [field]: value } as Partial<Employee>);
+  };
 
   return (
     <div className="p-6 space-y-6">
-      {/* First Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.department')}</Label>
-          <Select defaultValue={employee.department ? initialDepartments.find(d => d.nameAr === employee.department)?.id : undefined}>
+          <Select value={formData.department} onValueChange={v => {
+            const dept = initialDepartments.find(d => d.id === v);
+            updateField('department', dept ? (isRTL ? dept.nameAr : dept.nameEn) : v);
+          }}>
             <SelectTrigger className={cn(isRTL && "text-right")}>
               <SelectValue placeholder={t('employees.selectDepartment')} />
             </SelectTrigger>
@@ -38,15 +61,15 @@ export const JobInfoTab = ({ employee }: JobInfoTabProps) => {
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.jobTitleAr')}</Label>
-          <Input defaultValue={employee.jobTitleAr || employee.jobTitle} className={cn(isRTL && "text-right")} />
+          <Input value={formData.jobTitleAr} onChange={e => updateField('jobTitleAr', e.target.value)} className={cn(isRTL && "text-right")} />
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.jobTitleEn')}</Label>
-          <Input defaultValue={employee.jobTitleEn || 'Employee'} className={cn(isRTL && "text-right")} />
+          <Input value={formData.jobTitleEn} onChange={e => updateField('jobTitleEn', e.target.value)} className={cn(isRTL && "text-right")} />
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.jobDegree')} *</Label>
-          <Select>
+          <Select value={formData.jobDegree} onValueChange={v => updateField('jobDegree', v)}>
             <SelectTrigger className={cn(isRTL && "text-right")}>
               <SelectValue placeholder={t('employees.selectDegree')} />
             </SelectTrigger>
@@ -60,7 +83,7 @@ export const JobInfoTab = ({ employee }: JobInfoTabProps) => {
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.jobLevel')}</Label>
-          <Select>
+          <Select value={formData.jobLevel} onValueChange={v => updateField('jobLevel', v)}>
             <SelectTrigger className={cn(isRTL && "text-right")}>
               <SelectValue placeholder={t('employees.select')} />
             </SelectTrigger>
@@ -77,19 +100,18 @@ export const JobInfoTab = ({ employee }: JobInfoTabProps) => {
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.hireDate')}</Label>
-          <Input type="date" defaultValue={employee.hireDate} className={cn(isRTL && "text-right")} />
+          <Input type="date" value={formData.hireDate} onChange={e => updateField('hireDate', e.target.value)} className={cn(isRTL && "text-right")} />
         </div>
       </div>
 
-      {/* Second Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.recruitedBy')}</Label>
-          <Input className={cn(isRTL && "text-right")} />
+          <Input value={formData.recruitedBy} onChange={e => updateField('recruitedBy', e.target.value)} className={cn(isRTL && "text-right")} />
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.employmentStatus')}</Label>
-          <Select>
+          <Select value={formData.status} onValueChange={v => updateField('status', v)}>
             <SelectTrigger className={cn(isRTL && "text-right")}>
               <SelectValue placeholder={t('employees.select')} />
             </SelectTrigger>
@@ -101,25 +123,23 @@ export const JobInfoTab = ({ employee }: JobInfoTabProps) => {
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <Checkbox id="resigned" />
+          <Checkbox id="resigned" checked={formData.resigned as boolean} onCheckedChange={v => updateField('resigned', !!v)} />
           <Label htmlFor="resigned">{t('employees.fields.resigned')}</Label>
         </div>
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.resignationDate')}</Label>
-          <Input type="date" className={cn(isRTL && "text-right")} />
+          <Input type="date" value={formData.resignationDate} onChange={e => updateField('resignationDate', e.target.value)} className={cn(isRTL && "text-right")} />
         </div>
       </div>
 
-      {/* Add New Department Button */}
       <Button variant="outline" size="sm" className="gap-2">
         <Plus className="w-4 h-4" />
         {t('employees.addNewDepartment')}
       </Button>
 
-      {/* Resignation Reason */}
       <div className="space-y-2">
         <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.resignationReason')}</Label>
-        <Textarea className={cn("min-h-[100px]", isRTL && "text-right")} />
+        <Textarea value={formData.resignationReason} onChange={e => updateField('resignationReason', e.target.value)} className={cn("min-h-[100px]", isRTL && "text-right")} />
       </div>
     </div>
   );
