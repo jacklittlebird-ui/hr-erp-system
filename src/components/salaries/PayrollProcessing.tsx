@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSalaryData, calcGross } from '@/contexts/SalaryDataContext';
 import { usePayrollData, ProcessedPayroll } from '@/contexts/PayrollDataContext';
+import { useLoanData } from '@/contexts/LoanDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,13 +17,6 @@ import { toast } from '@/hooks/use-toast';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
 
-const mockLoans = [
-  { employeeId: 'Emp001', monthlyPayment: 2500, status: 'active' },
-  { employeeId: 'Emp002', monthlyPayment: 2000, status: 'active' },
-];
-const mockAdvances = [
-  { employeeId: 'Emp002', amount: 2000, deductionMonth: '2026-02', status: 'approved' },
-];
 const mockMobileBills = [
   { employeeId: 'Emp001', billAmount: 350, deductionMonth: '2026-02' },
   { employeeId: 'Emp002', billAmount: 280, deductionMonth: '2026-02' },
@@ -33,7 +27,7 @@ export const PayrollProcessing = () => {
   const ar = language === 'ar';
   const { getSalaryRecord, salaryRecords } = useSalaryData();
   const { savePayrollEntry, savePayrollEntries, getPayrollEntry, getMonthlyPayroll } = usePayrollData();
-
+  const { getEmployeeMonthlyLoanPayment, getEmployeeAdvanceForMonth } = useLoanData();
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('02');
   const [selectedYear, setSelectedYear] = useState('2026');
@@ -75,8 +69,8 @@ export const PayrollProcessing = () => {
   }, [bonusType, bonusValue, baseGross]);
 
   const employeeInsurance = salaryRecord?.employeeInsurance || 0;
-  const loanPayment = useMemo(() => mockLoans.find(l => l.employeeId === selectedEmployee && l.status === 'active')?.monthlyPayment || 0, [selectedEmployee]);
-  const advanceAmount = useMemo(() => mockAdvances.find(a => a.employeeId === selectedEmployee && a.deductionMonth === period && a.status === 'approved')?.amount || 0, [selectedEmployee, period]);
+  const loanPayment = useMemo(() => getEmployeeMonthlyLoanPayment(selectedEmployee), [selectedEmployee, getEmployeeMonthlyLoanPayment]);
+  const advanceAmount = useMemo(() => getEmployeeAdvanceForMonth(selectedEmployee, period), [selectedEmployee, period, getEmployeeAdvanceForMonth]);
   const mobileBill = useMemo(() => mockMobileBills.find(b => b.employeeId === selectedEmployee && b.deductionMonth === period)?.billAmount || 0, [selectedEmployee, period]);
 
   // Daily rate based on baseGross (excluding livingAllowance and overtimePay)
@@ -150,8 +144,8 @@ export const PayrollProcessing = () => {
     const bt = empId === selectedEmployee ? bonusType : 'amount';
     const bv = empId === selectedEmployee ? bonusValue : 0;
     const ba = bt === 'amount' ? bv : Math.round((bv / 100) * bg);
-    const lp = mockLoans.find(l => l.employeeId === empId && l.status === 'active')?.monthlyPayment || 0;
-    const aa = mockAdvances.find(a => a.employeeId === empId && a.deductionMonth === period && a.status === 'approved')?.amount || 0;
+    const lp = getEmployeeMonthlyLoanPayment(empId);
+    const aa = getEmployeeAdvanceForMonth(empId, period);
     const mb = mockMobileBills.find(b => b.employeeId === empId && b.deductionMonth === period)?.billAmount || 0;
     const ld = empId === selectedEmployee ? leaveDays : 0;
     // Use baseGross (bg) for daily rate calculations (excludes livingAllowance and overtimePay)
@@ -167,7 +161,7 @@ export const PayrollProcessing = () => {
       employeeName: emp.nameAr,
       employeeNameEn: emp.nameEn,
       department: emp.department,
-      stationLocation: sr.stationLocation,
+      stationLocation: emp.stationLocation || sr.stationLocation,
       month: selectedMonth, year: selectedYear,
       basicSalary: sr.basicSalary, transportAllowance: sr.transportAllowance,
       incentives: sr.incentives, stationAllowance: sr.stationAllowance, mobileAllowance: sr.mobileAllowance,

@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useLoanData, Loan } from '@/contexts/LoanDataContext';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,65 +16,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Search, Plus, Edit, Trash2, DollarSign, Users, Clock, CheckCircle, Printer, FileText, FileSpreadsheet, CreditCard, List } from 'lucide-react';
 import { InstallmentScheduleDialog } from './InstallmentScheduleDialog';
 import { toast } from '@/hooks/use-toast';
-import { mockEmployees as systemEmployees } from '@/data/mockEmployees';
 import { stationLocations } from '@/data/stationLocations';
 import { useReportExport } from '@/hooks/useReportExport';
-
-interface Loan {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  station: string;
-  amount: number;
-  installments: number;
-  monthlyPayment: number;
-  paidInstallments: number;
-  paidAmount: number;
-  remainingAmount: number;
-  startDate: string;
-  status: 'active' | 'completed' | 'pending';
-  notes: string;
-  calculationMethod: 'auto' | 'manual';
-}
-
-const mockLoans: Loan[] = [
-  {
-    id: 'LN001', employeeId: 'Emp002', employeeName: 'أحمد محمد', station: 'cairo',
-    amount: 20000, installments: 10, monthlyPayment: 2000, paidInstallments: 6,
-    paidAmount: 6000, remainingAmount: 14000, startDate: '2024-02', status: 'active',
-    notes: '', calculationMethod: 'auto',
-  },
-  {
-    id: 'LN002', employeeId: 'Emp001', employeeName: 'فاطمة علي', station: 'alex',
-    amount: 30000, installments: 20, monthlyPayment: 1500, paidInstallments: 5,
-    paidAmount: 7500, remainingAmount: 22500, startDate: '2024-01', status: 'active',
-    notes: '', calculationMethod: 'auto',
-  },
-  {
-    id: 'LN003', employeeId: 'Emp003', employeeName: 'مريم يوسف', station: 'hurghada',
-    amount: 80000, installments: 8, monthlyPayment: 10000, paidInstallments: 1,
-    paidAmount: 10000, remainingAmount: 70000, startDate: '2024-02', status: 'active',
-    notes: '', calculationMethod: 'auto',
-  },
-  {
-    id: 'LN004', employeeId: 'Emp004', employeeName: 'خالد حسين', station: 'sharm',
-    amount: 48000, installments: 16, monthlyPayment: 3000, paidInstallments: 16,
-    paidAmount: 48000, remainingAmount: 0, startDate: '2023-12', status: 'completed',
-    notes: '', calculationMethod: 'auto',
-  },
-  {
-    id: 'LN005', employeeId: 'Emp001', employeeName: 'جلال عبد الرازق عبد العليم', station: 'capital',
-    amount: 30000, installments: 12, monthlyPayment: 2500, paidInstallments: 0,
-    paidAmount: 0, remainingAmount: 30000, startDate: '2025-12', status: 'active',
-    notes: '', calculationMethod: 'auto',
-  },
-  {
-    id: 'LN006', employeeId: 'Emp002', employeeName: 'عمر سعيد', station: 'luxor',
-    amount: 30000, installments: 12, monthlyPayment: 2500, paidInstallments: 0,
-    paidAmount: 0, remainingAmount: 30000, startDate: '2024-03', status: 'active',
-    notes: '', calculationMethod: 'auto',
-  },
-];
 
 const getMonthName = (dateStr: string, lang: string) => {
   if (!dateStr) return '';
@@ -85,10 +30,13 @@ const getMonthName = (dateStr: string, lang: string) => {
 export const LoansList = () => {
   const { t, isRTL, language } = useLanguage();
   const { handlePrint, exportToPDF, exportToCSV } = useReportExport();
+  const { loans, setLoans } = useLoanData();
+  const { employees } = useEmployeeData();
+  const activeEmployees = employees.filter(e => e.status === 'active');
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [stationFilter, setStationFilter] = useState<string>('all');
-  const [loans, setLoans] = useState<Loan[]>(mockLoans);
   const [showDialog, setShowDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
@@ -105,9 +53,9 @@ export const LoansList = () => {
     monthlyPayment: '',
   });
 
-  const selectedEmployee = useMemo(() => 
-    systemEmployees.find(e => e.employeeId === formData.employeeId),
-    [formData.employeeId]
+  const selectedEmployee = useMemo(() =>
+    activeEmployees.find(e => e.employeeId === formData.employeeId),
+    [formData.employeeId, activeEmployees]
   );
 
   const autoMonthlyPayment = useMemo(() => {
@@ -117,7 +65,6 @@ export const LoansList = () => {
     return '';
   }, [formData.amount, formData.installments]);
 
-  // Auto-calculate installments when manual: amount and monthlyPayment are set
   const autoInstallmentsCount = useMemo(() => {
     if (formData.calculationMethod !== 'manual') return '';
     const amount = parseFloat(formData.amount);
@@ -132,11 +79,18 @@ export const LoansList = () => {
     pending: { en: 'Pending', ar: 'قيد الانتظار', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
   };
 
+  // Get station from employee data for filtering
+  const getEmployeeStation = (employeeId: string) => {
+    const emp = employees.find(e => e.employeeId === employeeId);
+    return emp?.stationLocation || '';
+  };
+
   const filteredLoans = loans.filter(loan => {
     const matchesSearch = loan.employeeName.includes(searchQuery) ||
       loan.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || loan.status === statusFilter;
-    const matchesStation = stationFilter === 'all' || loan.station === stationFilter;
+    const empStation = getEmployeeStation(loan.employeeId);
+    const matchesStation = stationFilter === 'all' || empStation === stationFilter || loan.station === stationFilter;
     return matchesSearch && matchesStatus && matchesStation;
   });
 
@@ -179,26 +133,27 @@ export const LoansList = () => {
       toast({ title: isRTL ? 'خطأ' : 'Error', description: isRTL ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields', variant: 'destructive' });
       return;
     }
-    const employee = systemEmployees.find(e => e.employeeId === formData.employeeId);
+    const employee = activeEmployees.find(e => e.employeeId === formData.employeeId);
+    const empStation = employee?.stationLocation || '';
 
     if (editingLoan) {
-      setLoans(loans.map(l => l.id === editingLoan.id ? {
+      setLoans(prev => prev.map(l => l.id === editingLoan.id ? {
         ...l, employeeId: formData.employeeId, employeeName: employee?.nameAr || l.employeeName,
         amount, installments, monthlyPayment: monthly, startDate: formData.startDate,
         notes: formData.notes, calculationMethod: formData.calculationMethod,
-        remainingAmount: amount - l.paidAmount, station: employee?.department === 'الإدارة' ? 'capital' : l.station,
+        remainingAmount: amount - l.paidAmount, station: empStation,
       } : l));
       toast({ title: isRTL ? 'تم التحديث' : 'Updated', description: isRTL ? 'تم تعديل القرض بنجاح' : 'Loan updated successfully' });
     } else {
       const newLoan: Loan = {
-        id: `LN${String(loans.length + 1).padStart(3, '0')}`,
+        id: `LN${String(Date.now()).slice(-6)}`,
         employeeId: formData.employeeId, employeeName: employee?.nameAr || '',
-        station: employee?.department === 'الإدارة' ? 'capital' : 'cairo',
+        station: empStation,
         amount, installments, monthlyPayment: monthly, paidInstallments: 0,
         paidAmount: 0, remainingAmount: amount, startDate: formData.startDate,
         status: 'active', notes: formData.notes, calculationMethod: formData.calculationMethod,
       };
-      setLoans([...loans, newLoan]);
+      setLoans(prev => [...prev, newLoan]);
       toast({ title: isRTL ? 'تم الحفظ' : 'Saved', description: isRTL ? 'تم إضافة القرض بنجاح' : 'Loan added successfully' });
     }
     setShowDialog(false);
@@ -206,7 +161,7 @@ export const LoansList = () => {
   };
 
   const handleRecordPayment = (loanId: string) => {
-    setLoans(loans.map(loan => {
+    setLoans(prev => prev.map(loan => {
       if (loan.id !== loanId || loan.paidInstallments >= loan.installments) return loan;
       const newPaid = loan.paidInstallments + 1;
       const newPaidAmount = loan.paidAmount + loan.monthlyPayment;
@@ -223,7 +178,7 @@ export const LoansList = () => {
 
   const confirmDelete = () => {
     if (deletingLoanId) {
-      setLoans(loans.filter(l => l.id !== deletingLoanId));
+      setLoans(prev => prev.filter(l => l.id !== deletingLoanId));
       toast({ title: isRTL ? 'تم الحذف' : 'Deleted', description: isRTL ? 'تم حذف القرض' : 'Loan deleted' });
     }
     setShowDeleteDialog(false);
@@ -242,9 +197,10 @@ export const LoansList = () => {
   const exportData = filteredLoans.map(l => ({ ...l, status: isRTL ? statusLabels[l.status].ar : statusLabels[l.status].en }));
   const exportTitle = isRTL ? 'تقرير القروض' : 'Loans Report';
 
-  const getStationLabel = (stationValue: string) => {
-    const s = stationLocations.find(st => st.value === stationValue);
-    return s ? (isRTL ? s.labelAr : s.labelEn) : stationValue;
+  const getStationLabel = (empId: string) => {
+    const station = getEmployeeStation(empId);
+    const s = stationLocations.find(st => st.value === station);
+    return s ? (isRTL ? s.labelAr : s.labelEn) : station || '-';
   };
 
   return (
@@ -301,14 +257,12 @@ export const LoansList = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Card Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredLoans.map(loan => {
               const progressPercent = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
               return (
                 <Card key={loan.id} className="relative overflow-hidden border">
                   <CardContent className="p-5 space-y-3">
-                    {/* Header */}
                     <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <Badge variant="outline" className={statusLabels[loan.status].color}>
                         {isRTL ? statusLabels[loan.status].ar : statusLabels[loan.status].en}
@@ -316,8 +270,11 @@ export const LoansList = () => {
                       <h3 className="font-bold text-lg">{loan.employeeName}</h3>
                     </div>
 
-                    {/* Details */}
                     <div className="space-y-2 text-sm">
+                      <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <span className="text-muted-foreground">{isRTL ? 'المحطة' : 'Station'}</span>
+                        <span className="font-semibold">{getStationLabel(loan.employeeId)}</span>
+                      </div>
                       <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <span className="text-muted-foreground">{isRTL ? 'إجمالي القرض' : 'Total Loan'}</span>
                         <span className="font-semibold">{loan.amount.toLocaleString()} {isRTL ? 'ج.م' : 'EGP'}</span>
@@ -334,33 +291,23 @@ export const LoansList = () => {
                         <span className="text-muted-foreground">{isRTL ? 'تاريخ البدء' : 'Start Date'}</span>
                         <span className="font-semibold">{getMonthName(loan.startDate, language)}</span>
                       </div>
-                      <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <span className="text-muted-foreground">{isRTL ? 'المبلغ المدفوع' : 'Paid Amount'}</span>
-                        <span className="font-semibold text-green-600">{loan.paidAmount.toLocaleString()} {isRTL ? 'ج.م' : 'EGP'}</span>
-                      </div>
-                      <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <span className="text-muted-foreground">{isRTL ? 'المبلغ المتبقي' : 'Remaining'}</span>
-                        <span className="font-semibold text-destructive">{loan.remainingAmount.toLocaleString()} {isRTL ? 'ج.م' : 'EGP'}</span>
-                      </div>
                     </div>
 
-                    {/* Progress */}
-                    <div className="space-y-1">
-                      <div className={`flex justify-between text-xs text-muted-foreground ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <span>{loan.paidInstallments} / {loan.installments} {isRTL ? 'قسط' : 'inst.'}</span>
-                        <span>{progressPercent.toFixed(1)}%</span>
+                    <div>
+                      <div className={`flex justify-between text-xs mb-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <span>{isRTL ? 'التقدم' : 'Progress'}</span>
+                        <span>{loan.paidInstallments}/{loan.installments}</span>
                       </div>
                       <Progress value={progressPercent} className="h-2" />
                     </div>
 
-                    {/* Actions */}
                     <div className={`flex gap-2 pt-2 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => { setViewingLoan(loan); setShowInstallmentSchedule(true); }}>
-                        <List className="h-3 w-3" />{isRTL ? 'جدول الأقساط' : 'Schedule'}
+                        <List className="h-3 w-3" />{isRTL ? 'الأقساط' : 'Schedule'}
                       </Button>
                       {loan.status === 'active' && (
-                        <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => handleRecordPayment(loan.id)}>
-                          <CreditCard className="h-3 w-3" />{isRTL ? 'تسجيل دفعة' : 'Record Payment'}
+                        <Button size="sm" variant="outline" className="text-xs gap-1 text-green-600" onClick={() => handleRecordPayment(loan.id)}>
+                          <CreditCard className="h-3 w-3" />{isRTL ? 'تسجيل دفعة' : 'Pay'}
                         </Button>
                       )}
                       <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => openEditDialog(loan)}>
@@ -375,14 +322,12 @@ export const LoansList = () => {
               );
             })}
           </div>
-          {filteredLoans.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">{isRTL ? 'لا توجد قروض' : 'No loans found'}</div>
-          )}
+          {filteredLoans.length === 0 && <div className="text-center py-12 text-muted-foreground">{isRTL ? 'لا توجد قروض' : 'No loans found'}</div>}
         </CardContent>
       </Card>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={showDialog} onOpenChange={(open) => { if (!open) resetForm(); setShowDialog(open); }}>
+      <Dialog open={showDialog} onOpenChange={o => { if (!o) resetForm(); setShowDialog(o); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader className="bg-gradient-to-r from-red-500 to-blue-500 -m-6 mb-4 p-6 rounded-t-lg">
             <DialogTitle className="text-white text-center text-xl">
@@ -390,86 +335,58 @@ export const LoansList = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Employee */}
             <div className="space-y-2">
               <Label>{isRTL ? 'اختر الموظف *' : 'Select Employee *'}</Label>
               <Select value={formData.employeeId} onValueChange={v => setFormData({ ...formData, employeeId: v })}>
-                <SelectTrigger><SelectValue placeholder={isRTL ? '-- اختر الموظف --' : '-- Select Employee --'} /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={isRTL ? '-- اختر الموظف --' : '-- Select --'} /></SelectTrigger>
                 <SelectContent>
-                  {systemEmployees.map(emp => (
-                    <SelectItem key={emp.employeeId} value={emp.employeeId}>
-                      {isRTL ? emp.nameAr : emp.nameEn}
-                    </SelectItem>
-                  ))}
+                  {activeEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{isRTL ? emp.nameAr : emp.nameEn}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {selectedEmployee && (
-                <p className="text-sm text-muted-foreground">
-                  {isRTL ? 'المحطة/الموقع: ' : 'Station: '}{selectedEmployee.department || '-'}
-                </p>
-              )}
+              {selectedEmployee && <p className="text-sm text-muted-foreground">{isRTL ? 'المحطة/الموقع: ' : 'Station: '}{getStationLabel(selectedEmployee.employeeId)}</p>}
             </div>
-
-            {/* Amount & Start Date */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{isRTL ? 'إجمالي مبلغ القرض * (ج.م)' : 'Total Loan Amount * (EGP)'}</Label>
-                <Input type="number" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>{isRTL ? 'تاريخ بدء الخصم *' : 'Deduction Start Date *'}</Label>
-                <Input type="month" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
-              </div>
-            </div>
-
-            {/* Calculation Method */}
             <div className="space-y-2">
-              <Label>{isRTL ? 'طريقة حساب الأقساط' : 'Installment Calculation Method'}</Label>
-              <RadioGroup value={formData.calculationMethod} onValueChange={v => setFormData({ ...formData, calculationMethod: v as 'auto' | 'manual' })} className="flex gap-6">
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="auto" id="calc-auto" />
-                  <Label htmlFor="calc-auto" className="cursor-pointer">{isRTL ? 'حساب تلقائي' : 'Auto Calculate'}</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="manual" id="calc-manual" />
-                  <Label htmlFor="calc-manual" className="cursor-pointer">{isRTL ? 'إدخال يدوي' : 'Manual Entry'}</Label>
-                </div>
+              <Label>{isRTL ? 'طريقة الاحتساب' : 'Calculation Method'}</Label>
+              <RadioGroup value={formData.calculationMethod} onValueChange={(v: 'auto' | 'manual') => setFormData({ ...formData, calculationMethod: v })} className="flex gap-4">
+                <div className="flex items-center space-x-2"><RadioGroupItem value="auto" id="calc-auto" /><Label htmlFor="calc-auto">{isRTL ? 'تلقائي (المبلغ ÷ الأقساط)' : 'Auto (Amount ÷ Installments)'}</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="manual" id="calc-manual" /><Label htmlFor="calc-manual">{isRTL ? 'يدوي (تحديد القسط الشهري)' : 'Manual (Set Monthly Payment)'}</Label></div>
               </RadioGroup>
             </div>
-
-            {/* Installments */}
-            <div className="space-y-2">
-              <Label>{isRTL ? 'عدد الأقساط' : 'Number of Installments'}{formData.calculationMethod === 'manual' ? (isRTL ? ' (محسوب تلقائياً)' : ' (Auto-calculated)') : ' *'}</Label>
-              {formData.calculationMethod === 'manual' ? (
-                <Input value={autoInstallmentsCount ? `${autoInstallmentsCount} ${isRTL ? 'قسط' : 'installments'}` : ''} disabled className="bg-muted" />
-              ) : (
-                <Input type="number" value={formData.installments} onChange={e => setFormData({ ...formData, installments: e.target.value })} />
-              )}
-            </div>
-
-            {/* Monthly Payment */}
-            <div className="space-y-2">
-              <Label>{isRTL ? 'قيمة القسط الشهري' : 'Monthly Installment'}{formData.calculationMethod === 'auto' ? (isRTL ? ' (محسوب تلقائياً)' : ' (Auto-calculated)') : ''}</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? 'مبلغ القرض * (ج.م)' : 'Loan Amount * (EGP)'}</Label>
+                <Input type="number" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} />
+              </div>
               {formData.calculationMethod === 'auto' ? (
-                <Input value={autoMonthlyPayment ? `${parseFloat(autoMonthlyPayment).toLocaleString()} ${isRTL ? 'ج.م' : 'EGP'}` : ''} disabled className="bg-muted" />
+                <div className="space-y-2">
+                  <Label>{isRTL ? 'عدد الأقساط *' : 'Installments *'}</Label>
+                  <Input type="number" value={formData.installments} onChange={e => setFormData({ ...formData, installments: e.target.value })} />
+                </div>
               ) : (
-                <Input type="number" value={formData.monthlyPayment} onChange={e => setFormData({ ...formData, monthlyPayment: e.target.value })} />
+                <div className="space-y-2">
+                  <Label>{isRTL ? 'القسط الشهري * (ج.م)' : 'Monthly * (EGP)'}</Label>
+                  <Input type="number" value={formData.monthlyPayment} onChange={e => setFormData({ ...formData, monthlyPayment: e.target.value })} />
+                </div>
               )}
             </div>
-
-            {/* Notes */}
+            {formData.calculationMethod === 'auto' && autoMonthlyPayment && (
+              <p className="text-sm text-muted-foreground">{isRTL ? 'القسط الشهري المحسوب: ' : 'Calculated monthly: '}<strong>{parseFloat(autoMonthlyPayment).toLocaleString()} {isRTL ? 'ج.م' : 'EGP'}</strong></p>
+            )}
+            {formData.calculationMethod === 'manual' && autoInstallmentsCount && (
+              <p className="text-sm text-muted-foreground">{isRTL ? 'عدد الأقساط المحسوب: ' : 'Calculated installments: '}<strong>{autoInstallmentsCount}</strong></p>
+            )}
+            <div className="space-y-2">
+              <Label>{isRTL ? 'تاريخ البدء *' : 'Start Date *'}</Label>
+              <Input type="month" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
+            </div>
             <div className="space-y-2">
               <Label>{isRTL ? 'ملاحظات' : 'Notes'}</Label>
               <Textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} rows={3} />
             </div>
           </div>
           <DialogFooter className="gap-2 mt-4">
-            <Button variant="outline" onClick={() => { setShowDialog(false); resetForm(); }}>
-              {isRTL ? 'إلغاء' : 'Cancel'}
-            </Button>
-            <Button onClick={handleSubmit} className="bg-gradient-to-r from-blue-500 to-blue-600">
-              {editingLoan ? (isRTL ? 'تحديث القرض' : 'Update Loan') : (isRTL ? 'حفظ القرض' : 'Save Loan')}
-            </Button>
+            <Button variant="outline" onClick={() => { setShowDialog(false); resetForm(); }}>{isRTL ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleSubmit}>{editingLoan ? (isRTL ? 'تحديث' : 'Update') : (isRTL ? 'حفظ' : 'Save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -479,15 +396,32 @@ export const LoansList = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{isRTL ? 'تأكيد الحذف' : 'Confirm Delete'}</AlertDialogTitle>
-            <AlertDialogDescription>{isRTL ? 'هل أنت متأكد من حذف هذا القرض؟ لا يمكن التراجع.' : 'Are you sure you want to delete this loan? This cannot be undone.'}</AlertDialogDescription>
+            <AlertDialogDescription>{isRTL ? 'هل أنت متأكد من حذف هذا القرض؟' : 'Are you sure you want to delete this loan?'}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{isRTL ? 'إلغاء' : 'Cancel'}</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{isRTL ? 'حذف' : 'Delete'}</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete}>{isRTL ? 'حذف' : 'Delete'}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <InstallmentScheduleDialog open={showInstallmentSchedule} onOpenChange={setShowInstallmentSchedule} loan={viewingLoan} />
+
+      {/* Installment Schedule */}
+      {viewingLoan && (
+        <InstallmentScheduleDialog
+          open={showInstallmentSchedule}
+          onOpenChange={setShowInstallmentSchedule}
+          loan={{
+            id: viewingLoan.id,
+            employeeName: viewingLoan.employeeName,
+            amount: viewingLoan.amount,
+            installments: viewingLoan.installments,
+            monthlyPayment: viewingLoan.monthlyPayment,
+            paidInstallments: viewingLoan.paidInstallments,
+            startDate: viewingLoan.startDate,
+            status: viewingLoan.status,
+          }}
+        />
+      )}
     </div>
   );
 };
