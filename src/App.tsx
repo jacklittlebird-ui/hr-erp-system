@@ -9,6 +9,7 @@ import { PayrollDataProvider } from "@/contexts/PayrollDataContext";
 import { EmployeeDataProvider } from "@/contexts/EmployeeDataContext";
 import { AttendanceDataProvider } from "@/contexts/AttendanceDataContext";
 import { PortalDataProvider } from "@/contexts/PortalDataContext";
+import { LoanDataProvider } from "@/contexts/LoanDataContext";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import EmployeeDetails from "./pages/EmployeeDetails";
@@ -35,6 +36,7 @@ const App = () => (
       <SalaryDataProvider>
       <PayrollDataProvider>
       <AttendanceDataProvider>
+      <LoanDataProvider>
       <PortalDataProvider>
       <TooltipProvider>
         <Toaster />
@@ -61,6 +63,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
       </PortalDataProvider>
+      </LoanDataProvider>
       </AttendanceDataProvider>
       </PayrollDataProvider>
       </SalaryDataProvider>

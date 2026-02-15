@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useLoanData, Advance } from '@/contexts/LoanDataContext';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,27 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Search, Plus, Edit, Trash2, Eye, Banknote, Clock, CheckCircle, TrendingUp, Printer, FileText, FileSpreadsheet } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { mockEmployees as systemEmployees } from '@/data/mockEmployees';
 import { stationLocations } from '@/data/stationLocations';
 import { useReportExport } from '@/hooks/useReportExport';
-
-interface Advance {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  station: string;
-  amount: number;
-  requestDate: string;
-  deductionMonth: string;
-  status: 'pending' | 'approved' | 'rejected' | 'deducted';
-  reason: string;
-}
-
-const mockAdvances: Advance[] = [
-  { id: 'ADV001', employeeId: 'Emp001', employeeName: 'جلال عبد الرازق عبد العليم', station: 'capital', amount: 3000, requestDate: '2025-02-01', deductionMonth: '2025-03', status: 'approved', reason: 'مصاريف طارئة' },
-  { id: 'ADV002', employeeId: 'Emp002', employeeName: 'أحمد محمد علي', station: 'cairo', amount: 2000, requestDate: '2025-02-03', deductionMonth: '2025-02', status: 'pending', reason: 'احتياجات شخصية' },
-  { id: 'ADV003', employeeId: 'Emp003', employeeName: 'سارة أحمد حسن', station: 'cairo', amount: 5000, requestDate: '2025-01-15', deductionMonth: '2025-01', status: 'deducted', reason: 'مصاريف سفر' },
-];
 
 const getMonthName = (dateStr: string, lang: string) => {
   if (!dateStr) return '';
@@ -43,10 +26,13 @@ const getMonthName = (dateStr: string, lang: string) => {
 export const AdvancesList = () => {
   const { isRTL, language } = useLanguage();
   const { handlePrint, exportToPDF, exportToCSV } = useReportExport();
+  const { advances, setAdvances } = useLoanData();
+  const { employees } = useEmployeeData();
+  const activeEmployees = employees.filter(e => e.status === 'active');
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [stationFilter, setStationFilter] = useState<string>('all');
-  const [advances, setAdvances] = useState<Advance[]>(mockAdvances);
   const [showDialog, setShowDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -55,7 +41,12 @@ export const AdvancesList = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ employeeId: '', amount: '', deductionMonth: '', reason: '' });
 
-  const selectedEmployee = useMemo(() => systemEmployees.find(e => e.employeeId === formData.employeeId), [formData.employeeId]);
+  const selectedEmployee = useMemo(() => activeEmployees.find(e => e.employeeId === formData.employeeId), [formData.employeeId, activeEmployees]);
+
+  const getEmployeeStation = (employeeId: string) => {
+    const emp = employees.find(e => e.employeeId === employeeId);
+    return emp?.stationLocation || '';
+  };
 
   const statusLabels: Record<string, { ar: string; en: string; color: string }> = {
     pending: { ar: 'قيد الانتظار', en: 'Pending', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
@@ -67,7 +58,8 @@ export const AdvancesList = () => {
   const filteredAdvances = advances.filter(a => {
     const matchesSearch = a.employeeName.includes(searchQuery) || a.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
-    const matchesStation = stationFilter === 'all' || a.station === stationFilter;
+    const empStation = getEmployeeStation(a.employeeId);
+    const matchesStation = stationFilter === 'all' || empStation === stationFilter || a.station === stationFilter;
     return matchesSearch && matchesStatus && matchesStation;
   });
 
@@ -85,16 +77,17 @@ export const AdvancesList = () => {
       toast({ title: isRTL ? 'خطأ' : 'Error', description: isRTL ? 'يرجى ملء جميع الحقول' : 'Please fill all fields', variant: 'destructive' });
       return;
     }
-    const emp = systemEmployees.find(e => e.employeeId === formData.employeeId);
+    const emp = activeEmployees.find(e => e.employeeId === formData.employeeId);
     const amount = parseFloat(formData.amount);
+    const empStation = emp?.stationLocation || '';
 
     if (editingAdvance) {
-      setAdvances(advances.map(a => a.id === editingAdvance.id ? { ...a, employeeId: formData.employeeId, employeeName: emp?.nameAr || a.employeeName, station: emp?.department || a.station, amount, deductionMonth: formData.deductionMonth, reason: formData.reason } : a));
+      setAdvances(prev => prev.map(a => a.id === editingAdvance.id ? { ...a, employeeId: formData.employeeId, employeeName: emp?.nameAr || a.employeeName, station: empStation, amount, deductionMonth: formData.deductionMonth, reason: formData.reason } : a));
       toast({ title: isRTL ? 'تم التحديث' : 'Updated' });
     } else {
-      setAdvances([...advances, {
-        id: `ADV${String(advances.length + 1).padStart(3, '0')}`,
-        employeeId: formData.employeeId, employeeName: emp?.nameAr || '', station: emp?.department || '',
+      setAdvances(prev => [...prev, {
+        id: `ADV${String(Date.now()).slice(-6)}`,
+        employeeId: formData.employeeId, employeeName: emp?.nameAr || '', station: empStation,
         amount, requestDate: new Date().toISOString().split('T')[0], deductionMonth: formData.deductionMonth,
         status: 'pending', reason: formData.reason,
       }]);
@@ -103,11 +96,15 @@ export const AdvancesList = () => {
     setShowDialog(false); resetForm();
   };
 
-  const handleApprove = (id: string) => { setAdvances(advances.map(a => a.id === id ? { ...a, status: 'approved' as const } : a)); toast({ title: isRTL ? 'تمت الموافقة' : 'Approved' }); };
-  const handleDeduct = (id: string) => { setAdvances(advances.map(a => a.id === id ? { ...a, status: 'deducted' as const } : a)); toast({ title: isRTL ? 'تم الخصم' : 'Deducted' }); };
-  const confirmDelete = () => { if (deletingId) setAdvances(advances.filter(a => a.id !== deletingId)); setShowDeleteDialog(false); setDeletingId(null); toast({ title: isRTL ? 'تم الحذف' : 'Deleted' }); };
+  const handleApprove = (id: string) => { setAdvances(prev => prev.map(a => a.id === id ? { ...a, status: 'approved' as const } : a)); toast({ title: isRTL ? 'تمت الموافقة' : 'Approved' }); };
+  const handleDeduct = (id: string) => { setAdvances(prev => prev.map(a => a.id === id ? { ...a, status: 'deducted' as const } : a)); toast({ title: isRTL ? 'تم الخصم' : 'Deducted' }); };
+  const confirmDelete = () => { if (deletingId) setAdvances(prev => prev.filter(a => a.id !== deletingId)); setShowDeleteDialog(false); setDeletingId(null); toast({ title: isRTL ? 'تم الحذف' : 'Deleted' }); };
 
-  const getStationLabel = (v: string) => { const s = stationLocations.find(st => st.value === v); return s ? (isRTL ? s.labelAr : s.labelEn) : v; };
+  const getStationLabel = (empId: string) => {
+    const station = getEmployeeStation(empId);
+    const s = stationLocations.find(st => st.value === station);
+    return s ? (isRTL ? s.labelAr : s.labelEn) : station || '-';
+  };
 
   const exportTitle = isRTL ? 'تقرير السلف' : 'Advances Report';
   const exportColumns = [
@@ -117,7 +114,7 @@ export const AdvancesList = () => {
     { header: isRTL ? 'شهر الخصم' : 'Deduction Month', key: 'deductionMonth' },
     { header: isRTL ? 'الحالة' : 'Status', key: 'statusLabel' },
   ];
-  const exportData = filteredAdvances.map(a => ({ ...a, stationLabel: getStationLabel(a.station), statusLabel: isRTL ? statusLabels[a.status].ar : statusLabels[a.status].en }));
+  const exportData = filteredAdvances.map(a => ({ ...a, stationLabel: getStationLabel(a.employeeId), statusLabel: isRTL ? statusLabels[a.status].ar : statusLabels[a.status].en }));
 
   return (
     <div className="space-y-6">
@@ -187,7 +184,7 @@ export const AdvancesList = () => {
                   <div className="space-y-2 text-sm">
                     <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <span className="text-muted-foreground">{isRTL ? 'المحطة' : 'Station'}</span>
-                      <span className="font-semibold">{getStationLabel(adv.station)}</span>
+                      <span className="font-semibold">{getStationLabel(adv.employeeId)}</span>
                     </div>
                     <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <span className="text-muted-foreground">{isRTL ? 'مبلغ السلفة' : 'Amount'}</span>
@@ -250,10 +247,10 @@ export const AdvancesList = () => {
               <Select value={formData.employeeId} onValueChange={v => setFormData({ ...formData, employeeId: v })}>
                 <SelectTrigger><SelectValue placeholder={isRTL ? '-- اختر الموظف --' : '-- Select --'} /></SelectTrigger>
                 <SelectContent>
-                  {systemEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{isRTL ? emp.nameAr : emp.nameEn}</SelectItem>)}
+                  {activeEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{isRTL ? emp.nameAr : emp.nameEn}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {selectedEmployee && <p className="text-sm text-muted-foreground">{isRTL ? 'المحطة/الموقع: ' : 'Station: '}{selectedEmployee.department || '-'}</p>}
+              {selectedEmployee && <p className="text-sm text-muted-foreground">{isRTL ? 'المحطة/الموقع: ' : 'Station: '}{getStationLabel(selectedEmployee.employeeId)}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -272,36 +269,25 @@ export const AdvancesList = () => {
           </div>
           <DialogFooter className="gap-2 mt-4">
             <Button variant="outline" onClick={() => { setShowDialog(false); resetForm(); }}>{isRTL ? 'إلغاء' : 'Cancel'}</Button>
-            <Button onClick={handleSubmit} className="bg-gradient-to-r from-blue-500 to-blue-600">
-              {editingAdvance ? (isRTL ? 'تحديث' : 'Update') : (isRTL ? 'حفظ' : 'Save')}
-            </Button>
+            <Button onClick={handleSubmit}>{editingAdvance ? (isRTL ? 'تحديث' : 'Update') : (isRTL ? 'حفظ' : 'Save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* View Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{isRTL ? 'تفاصيل السلفة' : 'Advance Details'}</DialogTitle></DialogHeader>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{isRTL ? 'تفاصيل السلفة' : 'Advance Details'}</DialogTitle>
+          </DialogHeader>
           {viewingAdvance && (
-            <div className="grid grid-cols-2 gap-4 py-4">
-              {[
-                [isRTL ? 'رقم السلفة' : 'ID', viewingAdvance.id],
-                [isRTL ? 'الموظف' : 'Employee', viewingAdvance.employeeName],
-                [isRTL ? 'المحطة' : 'Station', getStationLabel(viewingAdvance.station)],
-                [isRTL ? 'المبلغ' : 'Amount', `${viewingAdvance.amount.toLocaleString()} ${isRTL ? 'ج.م' : 'EGP'}`],
-                [isRTL ? 'شهر الخصم' : 'Deduction', getMonthName(viewingAdvance.deductionMonth, language)],
-                [isRTL ? 'تاريخ الطلب' : 'Request Date', viewingAdvance.requestDate],
-              ].map(([label, value], i) => (
-                <div key={i}>
-                  <Label className="text-muted-foreground">{label}</Label>
-                  <p className="font-medium">{value}</p>
-                </div>
-              ))}
-              <div className="col-span-2">
-                <Label className="text-muted-foreground">{isRTL ? 'السبب' : 'Reason'}</Label>
-                <p className="font-medium">{viewingAdvance.reason || '-'}</p>
-              </div>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'الموظف' : 'Employee'}</span><span className="font-semibold">{viewingAdvance.employeeName}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'المحطة' : 'Station'}</span><span className="font-semibold">{getStationLabel(viewingAdvance.employeeId)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'المبلغ' : 'Amount'}</span><span className="font-semibold">{viewingAdvance.amount.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'شهر الخصم' : 'Deduction'}</span><span className="font-semibold">{getMonthName(viewingAdvance.deductionMonth, language)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'السبب' : 'Reason'}</span><span className="font-semibold">{viewingAdvance.reason || '-'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'الحالة' : 'Status'}</span><Badge variant="outline" className={statusLabels[viewingAdvance.status].color}>{isRTL ? statusLabels[viewingAdvance.status].ar : statusLabels[viewingAdvance.status].en}</Badge></div>
             </div>
           )}
         </DialogContent>
@@ -316,7 +302,7 @@ export const AdvancesList = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{isRTL ? 'إلغاء' : 'Cancel'}</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{isRTL ? 'حذف' : 'Delete'}</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete}>{isRTL ? 'حذف' : 'Delete'}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
