@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
 import { Employee } from '@/types/employee';
 import { mockEmployees as initialEmployees } from '@/data/mockEmployees';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 interface EmployeeDataContextType {
   employees: Employee[];
@@ -13,7 +14,7 @@ interface EmployeeDataContextType {
 const EmployeeDataContext = createContext<EmployeeDataContextType | undefined>(undefined);
 
 export const EmployeeDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+  const [employees, setEmployees] = usePersistedState<Employee[]>('hr_employees', initialEmployees);
 
   const getEmployee = useCallback((id: string) => {
     return employees.find(e => e.id === id);

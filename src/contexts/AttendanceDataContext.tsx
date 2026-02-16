@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useCallback, useMemo } from 'react';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 export interface AttendanceEntry {
   id: string;
@@ -120,7 +121,7 @@ const generateInitialRecords = (): AttendanceEntry[] => {
 };
 
 export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [records, setRecords] = useState<AttendanceEntry[]>(generateInitialRecords);
+  const [records, setRecords] = usePersistedState<AttendanceEntry[]>('hr_attendance', generateInitialRecords);
 
   const checkInFn = useCallback((employeeId: string, employeeName: string, employeeNameAr: string, department: string) => {
     const now = new Date();

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 export interface Loan {
   id: string;
@@ -62,8 +63,8 @@ const initialAdvances: Advance[] = [
 ];
 
 export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [loans, setLoans] = useState<Loan[]>(initialLoans);
-  const [advances, setAdvances] = useState<Advance[]>(initialAdvances);
+  const [loans, setLoans] = usePersistedState<Loan[]>('hr_loans', initialLoans);
+  const [advances, setAdvances] = usePersistedState<Advance[]>('hr_advances', initialAdvances);
 
   const getEmployeeActiveLoans = useCallback((employeeId: string) => {
     return loans.filter(l => l.employeeId === employeeId && l.status === 'active');
