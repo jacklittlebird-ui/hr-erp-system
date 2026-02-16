@@ -10,6 +10,7 @@ import { EmployeeDataProvider } from "@/contexts/EmployeeDataContext";
 import { AttendanceDataProvider } from "@/contexts/AttendanceDataContext";
 import { PortalDataProvider } from "@/contexts/PortalDataContext";
 import { LoanDataProvider } from "@/contexts/LoanDataContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import EmployeeDetails from "./pages/EmployeeDetails";
@@ -32,6 +33,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
+      <NotificationProvider>
       <EmployeeDataProvider>
       <SalaryDataProvider>
       <PayrollDataProvider>
@@ -68,6 +70,7 @@ const App = () => (
       </PayrollDataProvider>
       </SalaryDataProvider>
       </EmployeeDataProvider>
+      </NotificationProvider>
     </LanguageProvider>
   </QueryClientProvider>
 );

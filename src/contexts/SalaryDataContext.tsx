@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useCallback } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 export interface SalaryRecord {
   year: string;
@@ -63,6 +64,7 @@ const initialSalaryRecords: SalaryRecord[] = [
 
 export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [salaryRecords, setSalaryRecords] = usePersistedState<SalaryRecord[]>('hr_salary_records', initialSalaryRecords);
+  const { addNotification } = useNotifications();
 
   const getSalaryRecord = useCallback((employeeId: string, year: string) => {
     return salaryRecords.find(r => r.employeeId === employeeId && r.year === year);
@@ -83,11 +85,13 @@ export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       return [...prev, record];
     });
-  }, []);
+    addNotification({ titleAr: `تم حفظ سجل الراتب: ${record.employeeId}`, titleEn: `Salary record saved: ${record.employeeId}`, type: 'success', module: 'salary' });
+  }, [addNotification]);
 
   const deleteSalaryRecord = useCallback((employeeId: string, year: string) => {
     setSalaryRecords(prev => prev.filter(r => !(r.employeeId === employeeId && r.year === year)));
-  }, []);
+    addNotification({ titleAr: `تم حذف سجل الراتب: ${employeeId}`, titleEn: `Salary record deleted: ${employeeId}`, type: 'warning', module: 'salary' });
+  }, [addNotification]);
 
   return (
     <SalaryDataContext.Provider value={{ salaryRecords, getSalaryRecord, getLatestSalaryRecord, saveSalaryRecord, deleteSalaryRecord }}>

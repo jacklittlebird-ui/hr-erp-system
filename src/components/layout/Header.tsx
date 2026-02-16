@@ -1,7 +1,8 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
-import { Bell, Grid3X3 } from 'lucide-react';
+import { Grid3X3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 export const Header = () => {
   const { language, setLanguage, t, isRTL } = useLanguage();
@@ -35,10 +36,7 @@ export const Header = () => {
           {language === 'ar' ? 'English' : 'عربي'}
         </Button>
         
-        <button className="relative p-2 rounded-full hover:bg-primary-foreground/10 transition-colors">
-          <Bell className="w-5 h-5 text-primary-foreground" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-stat-coral rounded-full" />
-        </button>
+        <NotificationDropdown variant="header" />
       </div>
     </header>
   );

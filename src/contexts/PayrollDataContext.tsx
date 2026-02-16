@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useCallback } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 export interface ProcessedPayroll {
   employeeId: string;
@@ -86,6 +87,7 @@ const initialPayroll: ProcessedPayroll[] = [
 
 export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [payrollEntries, setPayrollEntries] = usePersistedState<ProcessedPayroll[]>('hr_payroll', initialPayroll);
+  const { addNotification } = useNotifications();
 
   const savePayrollEntry = useCallback((entry: ProcessedPayroll) => {
     setPayrollEntries(prev => {
@@ -93,7 +95,8 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (idx >= 0) { const u = [...prev]; u[idx] = entry; return u; }
       return [...prev, entry];
     });
-  }, []);
+    addNotification({ titleAr: `تم معالجة مسير الراتب: ${entry.employeeName}`, titleEn: `Payroll processed: ${entry.employeeNameEn}`, type: 'success', module: 'payroll' });
+  }, [addNotification]);
 
   const savePayrollEntries = useCallback((entries: ProcessedPayroll[]) => {
     setPayrollEntries(prev => {
@@ -105,7 +108,8 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       });
       return updated;
     });
-  }, []);
+    addNotification({ titleAr: `تم معالجة مسير الرواتب لـ ${entries.length} موظف`, titleEn: `Payroll processed for ${entries.length} employees`, type: 'success', module: 'payroll' });
+  }, [addNotification]);
 
   const getPayrollEntry = useCallback((employeeId: string, month: string, year: string) => {
     return payrollEntries.find(e => e.employeeId === employeeId && e.month === month && e.year === year);
