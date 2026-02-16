@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 export interface SalaryRecord {
   year: string;
@@ -61,7 +62,7 @@ const initialSalaryRecords: SalaryRecord[] = [
 ];
 
 export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>(initialSalaryRecords);
+  const [salaryRecords, setSalaryRecords] = usePersistedState<SalaryRecord[]>('hr_salary_records', initialSalaryRecords);
 
   const getSalaryRecord = useCallback((employeeId: string, year: string) => {
     return salaryRecords.find(r => r.employeeId === employeeId && r.year === year);

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 export interface ProcessedPayroll {
   employeeId: string;
@@ -84,7 +85,7 @@ const initialPayroll: ProcessedPayroll[] = [
 ];
 
 export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [payrollEntries, setPayrollEntries] = useState<ProcessedPayroll[]>(initialPayroll);
+  const [payrollEntries, setPayrollEntries] = usePersistedState<ProcessedPayroll[]>('hr_payroll', initialPayroll);
 
   const savePayrollEntry = useCallback((entry: ProcessedPayroll) => {
     setPayrollEntries(prev => {

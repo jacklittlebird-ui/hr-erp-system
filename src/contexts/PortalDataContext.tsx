@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 // ===== LEAVES =====
 export interface LeaveBalance {
@@ -165,14 +166,14 @@ interface PortalDataContextType {
 const PortalDataContext = createContext<PortalDataContextType | undefined>(undefined);
 
 export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [leaveBalances] = useState(initialLeaveBalances);
-  const [leaveRequests] = useState(initialLeaveRequests);
-  const [loans] = useState(initialLoans);
-  const [evaluations] = useState(initialEvaluations);
-  const [training] = useState(initialTraining);
-  const [missions] = useState(initialMissions);
-  const [violations] = useState(initialViolations);
-  const [requests] = useState(initialRequests);
+  const [leaveBalances] = usePersistedState('hr_portal_leave_bal', initialLeaveBalances);
+  const [leaveRequests] = usePersistedState('hr_portal_leave_req', initialLeaveRequests);
+  const [loans] = usePersistedState('hr_portal_loans', initialLoans);
+  const [evaluations] = usePersistedState('hr_portal_evals', initialEvaluations);
+  const [training] = usePersistedState('hr_portal_training', initialTraining);
+  const [missions] = usePersistedState('hr_portal_missions', initialMissions);
+  const [violations] = usePersistedState('hr_portal_violations', initialViolations);
+  const [requests] = usePersistedState('hr_portal_requests', initialRequests);
 
   const getLeaveBalances = useCallback((empId: string) => leaveBalances[empId] || [], [leaveBalances]);
   const getLeaveRequests = useCallback((empId: string) => leaveRequests.filter(r => r.employeeId === empId), [leaveRequests]);
