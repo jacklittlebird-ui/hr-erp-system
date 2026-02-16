@@ -1,14 +1,13 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-import { Menu, Bell, Globe, User } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Menu, Globe, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 interface PortalHeaderProps {
   onToggleSidebar: () => void;
 }
 
-// Mock employee
 const employee = {
   nameAr: 'أحمد محمد علي',
   nameEn: 'Ahmed Mohamed Ali',
@@ -55,10 +54,7 @@ export const PortalHeader = ({ onToggleSidebar }: PortalHeaderProps) => {
           <Globe className="w-4 h-4" />
           <span className="ml-1 text-xs">{language === 'ar' ? 'EN' : 'عربي'}</span>
         </Button>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] flex items-center justify-center">3</span>
-        </Button>
+        <NotificationDropdown variant="portal" />
       </div>
     </header>
   );

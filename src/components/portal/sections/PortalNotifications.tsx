@@ -1,45 +1,88 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Bell, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { CheckCircle, AlertCircle, Info, AlertTriangle, Check, Trash2 } from 'lucide-react';
 
-const notifications = [
-  { id: 1, titleAr: 'تمت الموافقة على طلب الإجازة', titleEn: 'Leave request approved', timeAr: 'منذ ساعتين', timeEn: '2 hours ago', type: 'success', read: false },
-  { id: 2, titleAr: 'تم تحديث كشف الراتب لشهر يناير', titleEn: 'January payslip updated', timeAr: 'منذ يوم', timeEn: '1 day ago', type: 'info', read: false },
-  { id: 3, titleAr: 'تذكير: موعد تقييم الأداء الربعي', titleEn: 'Reminder: Quarterly performance review', timeAr: 'منذ 3 أيام', timeEn: '3 days ago', type: 'warning', read: true },
-  { id: 4, titleAr: 'تم تسليم عهدة جديدة', titleEn: 'New asset assigned', timeAr: 'منذ أسبوع', timeEn: '1 week ago', type: 'info', read: true },
-];
-
-const typeIcons = { success: CheckCircle, warning: AlertCircle, info: Info };
-const typeColors = { success: 'text-success', warning: 'text-warning', info: 'text-primary' };
+const typeIcons = { success: CheckCircle, warning: AlertTriangle, info: Info, error: AlertCircle };
+const typeColors = { success: 'text-green-500', warning: 'text-yellow-500', info: 'text-blue-500', error: 'text-red-500' };
 
 export const PortalNotifications = () => {
   const { language, isRTL } = useLanguage();
+  const { notifications, markAsRead, markAllAsRead, clearAll, unreadCount } = useNotifications();
+
+  const formatTime = (ts: string) => {
+    const diff = Date.now() - new Date(ts).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return language === 'ar' ? 'الآن' : 'Just now';
+    if (mins < 60) return language === 'ar' ? `منذ ${mins} دقيقة` : `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return language === 'ar' ? `منذ ${hrs} ساعة` : `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return language === 'ar' ? `منذ ${days} يوم` : `${days}d ago`;
+  };
 
   return (
     <div className="space-y-6">
-      <h1 className={cn("text-2xl font-bold", isRTL && "text-right")}>{language === 'ar' ? 'الإشعارات' : 'Notifications'}</h1>
-
-      <div className="grid gap-3">
-        {notifications.map(n => {
-          const Icon = typeIcons[n.type as keyof typeof typeIcons] || Info;
-          return (
-            <Card key={n.id} className={cn(!n.read && "border-primary/30 bg-primary/5")}>
-              <CardContent className="p-4">
-                <div className={cn("flex items-start gap-3", isRTL && "flex-row-reverse")}>
-                  <Icon className={cn("w-5 h-5 mt-0.5 shrink-0", typeColors[n.type as keyof typeof typeColors])} />
-                  <div className={cn("flex-1", isRTL && "text-right")}>
-                    <p className={cn("font-medium", !n.read && "font-semibold")}>{language === 'ar' ? n.titleAr : n.titleEn}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{language === 'ar' ? n.timeAr : n.timeEn}</p>
-                  </div>
-                  {!n.read && <Badge className="bg-primary text-primary-foreground text-[10px]">{language === 'ar' ? 'جديد' : 'New'}</Badge>}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+        <h1 className={cn("text-2xl font-bold", isRTL && "text-right")}>
+          {language === 'ar' ? 'الإشعارات' : 'Notifications'}
+          {unreadCount > 0 && <Badge className="ml-2 bg-primary">{unreadCount}</Badge>}
+        </h1>
+        <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
+          {unreadCount > 0 && (
+            <Button variant="outline" size="sm" onClick={markAllAsRead}>
+              <Check className="w-4 h-4 mr-1" />
+              {language === 'ar' ? 'قراءة الكل' : 'Mark all read'}
+            </Button>
+          )}
+          {notifications.length > 0 && (
+            <Button variant="outline" size="sm" onClick={clearAll} className="text-destructive">
+              <Trash2 className="w-4 h-4 mr-1" />
+              {language === 'ar' ? 'مسح الكل' : 'Clear all'}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {notifications.length === 0 ? (
+        <Card><CardContent className="p-8 text-center text-muted-foreground">
+          {language === 'ar' ? 'لا توجد إشعارات' : 'No notifications'}
+        </CardContent></Card>
+      ) : (
+        <div className="grid gap-3">
+          {notifications.map(n => {
+            const Icon = typeIcons[n.type];
+            return (
+              <Card
+                key={n.id}
+                className={cn("cursor-pointer hover:shadow-md transition-shadow", !n.read && "border-primary/30 bg-primary/5")}
+                onClick={() => markAsRead(n.id)}
+              >
+                <CardContent className="p-4">
+                  <div className={cn("flex items-start gap-3", isRTL && "flex-row-reverse")}>
+                    <Icon className={cn("w-5 h-5 mt-0.5 shrink-0", typeColors[n.type])} />
+                    <div className={cn("flex-1", isRTL && "text-right")}>
+                      <p className={cn("font-medium", !n.read && "font-semibold")}>
+                        {language === 'ar' ? n.titleAr : n.titleEn}
+                      </p>
+                      {(n.descAr || n.descEn) && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {language === 'ar' ? n.descAr : n.descEn}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">{formatTime(n.timestamp)}</p>
+                    </div>
+                    {!n.read && <Badge className="bg-primary text-primary-foreground text-[10px]">{language === 'ar' ? 'جديد' : 'New'}</Badge>}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

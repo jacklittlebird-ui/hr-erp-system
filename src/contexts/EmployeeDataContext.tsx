@@ -2,6 +2,7 @@ import React, { createContext, useContext, useCallback } from 'react';
 import { Employee } from '@/types/employee';
 import { mockEmployees as initialEmployees } from '@/data/mockEmployees';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface EmployeeDataContextType {
   employees: Employee[];
@@ -15,6 +16,7 @@ const EmployeeDataContext = createContext<EmployeeDataContextType | undefined>(u
 
 export const EmployeeDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [employees, setEmployees] = usePersistedState<Employee[]>('hr_employees', initialEmployees);
+  const { addNotification } = useNotifications();
 
   const getEmployee = useCallback((id: string) => {
     return employees.find(e => e.id === id);
@@ -26,11 +28,14 @@ export const EmployeeDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const updateEmployee = useCallback((id: string, updates: Partial<Employee>) => {
     setEmployees(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
-  }, []);
+    const emp = employees.find(e => e.id === id);
+    addNotification({ titleAr: `تم تحديث بيانات الموظف: ${emp?.nameAr || id}`, titleEn: `Employee updated: ${emp?.nameEn || id}`, type: 'success', module: 'employee' });
+  }, [employees, addNotification]);
 
   const addEmployee = useCallback((employee: Employee) => {
     setEmployees(prev => [...prev, employee]);
-  }, []);
+    addNotification({ titleAr: `تم إضافة موظف جديد: ${employee.nameAr}`, titleEn: `New employee added: ${employee.nameEn}`, type: 'success', module: 'employee' });
+  }, [addNotification]);
 
   return (
     <EmployeeDataContext.Provider value={{ employees, getEmployee, getEmployeeById, updateEmployee, addEmployee }}>

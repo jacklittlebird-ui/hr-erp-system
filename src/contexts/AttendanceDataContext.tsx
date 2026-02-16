@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 export interface AttendanceEntry {
   id: string;
@@ -122,6 +123,7 @@ const generateInitialRecords = (): AttendanceEntry[] => {
 
 export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [records, setRecords] = usePersistedState<AttendanceEntry[]>('hr_attendance', generateInitialRecords);
+  const { addNotification } = useNotifications();
 
   const checkInFn = useCallback((employeeId: string, employeeName: string, employeeNameAr: string, department: string) => {
     const now = new Date();
@@ -137,7 +139,13 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
       workHours: 0, workMinutes: 0, overtime: 0,
     };
     setRecords(prev => [...prev, entry]);
-  }, []);
+    addNotification({
+      titleAr: `تسجيل حضور: ${employeeNameAr} - ${timeString}`,
+      titleEn: `Check-in: ${employeeName} - ${timeString}`,
+      type: isLate ? 'warning' : 'success',
+      module: 'attendance',
+    });
+  }, [addNotification]);
 
   const checkOutFn = useCallback((recordId: string) => {
     const now = new Date();
@@ -147,6 +155,12 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
       if (record.id === recordId) {
         const wt = calculateWorkTime(record.checkIn, timeString);
         const isEarlyLeave = now.getHours() < 17;
+        addNotification({
+          titleAr: `تسجيل انصراف: ${record.employeeNameAr} - ${timeString}`,
+          titleEn: `Check-out: ${record.employeeName} - ${timeString}`,
+          type: isEarlyLeave ? 'warning' : 'success',
+          module: 'attendance',
+        });
         return {
           ...record,
           checkOut: timeString,
@@ -158,7 +172,7 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
       }
       return record;
     }));
-  }, []);
+  }, [addNotification]);
 
   const getEmployeeRecords = useCallback((employeeId: string) => {
     return records.filter(r => r.employeeId === employeeId).sort((a, b) => b.date.localeCompare(a.date));

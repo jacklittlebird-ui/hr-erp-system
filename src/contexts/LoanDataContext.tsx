@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useCallback } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 export interface Loan {
   id: string;
@@ -65,6 +66,29 @@ const initialAdvances: Advance[] = [
 export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [loans, setLoans] = usePersistedState<Loan[]>('hr_loans', initialLoans);
   const [advances, setAdvances] = usePersistedState<Advance[]>('hr_advances', initialAdvances);
+  const { addNotification } = useNotifications();
+
+  const wrappedSetLoans: React.Dispatch<React.SetStateAction<Loan[]>> = useCallback((action) => {
+    setLoans(prev => {
+      const next = typeof action === 'function' ? action(prev) : action;
+      if (next.length > prev.length) {
+        const newLoan = next[next.length - 1];
+        addNotification({ titleAr: `تم إضافة قرض جديد: ${newLoan.employeeName}`, titleEn: `New loan added: ${newLoan.employeeName}`, type: 'info', module: 'loan' });
+      }
+      return next;
+    });
+  }, [addNotification]);
+
+  const wrappedSetAdvances: React.Dispatch<React.SetStateAction<Advance[]>> = useCallback((action) => {
+    setAdvances(prev => {
+      const next = typeof action === 'function' ? action(prev) : action;
+      if (next.length > prev.length) {
+        const newAdv = next[next.length - 1];
+        addNotification({ titleAr: `تم إضافة سلفة جديدة: ${newAdv.employeeName}`, titleEn: `New advance added: ${newAdv.employeeName}`, type: 'info', module: 'loan' });
+      }
+      return next;
+    });
+  }, [addNotification]);
 
   const getEmployeeActiveLoans = useCallback((employeeId: string) => {
     return loans.filter(l => l.employeeId === employeeId && l.status === 'active');
@@ -83,7 +107,7 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [advances]);
 
   return (
-    <LoanDataContext.Provider value={{ loans, advances, setLoans, setAdvances, getEmployeeActiveLoans, getEmployeeMonthlyLoanPayment, getEmployeeAdvanceForMonth }}>
+    <LoanDataContext.Provider value={{ loans, advances, setLoans: wrappedSetLoans, setAdvances: wrappedSetAdvances, getEmployeeActiveLoans, getEmployeeMonthlyLoanPayment, getEmployeeAdvanceForMonth }}>
       {children}
     </LoanDataContext.Provider>
   );
