@@ -12,11 +12,23 @@ const typeColors = { success: 'text-green-500', warning: 'text-yellow-500', info
 
 interface NotificationDropdownProps {
   variant?: 'header' | 'portal';
+  employeeId?: string;
 }
 
-export const NotificationDropdown = ({ variant = 'header' }: NotificationDropdownProps) => {
+export const NotificationDropdown = ({ variant = 'header', employeeId }: NotificationDropdownProps) => {
   const { language, isRTL } = useLanguage();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+
+  // Filter notifications by employeeId if provided
+  const filteredNotifications = employeeId
+    ? notifications.filter(n => {
+        const title = (n.titleAr + ' ' + n.titleEn + ' ' + (n.descAr || '') + ' ' + (n.descEn || '')).toLowerCase();
+        return title.includes(employeeId.toLowerCase());
+      })
+    : notifications;
+  const filteredUnreadCount = employeeId
+    ? filteredNotifications.filter(n => !n.read).length
+    : unreadCount;
 
   const formatTime = (ts: string) => {
     const diff = Date.now() - new Date(ts).getTime();
@@ -37,18 +49,18 @@ export const NotificationDropdown = ({ variant = 'header' }: NotificationDropdow
         {isHeader ? (
           <button className="relative p-2 rounded-full hover:bg-primary-foreground/10 transition-colors">
             <Bell className="w-5 h-5 text-primary-foreground" />
-            {unreadCount > 0 && (
+            {filteredUnreadCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full text-[10px] flex items-center justify-center font-bold">
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {filteredUnreadCount > 9 ? '9+' : filteredUnreadCount}
               </span>
             )}
           </button>
         ) : (
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="w-5 h-5" />
-            {unreadCount > 0 && (
+            {filteredUnreadCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] flex items-center justify-center">
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {filteredUnreadCount > 9 ? '9+' : filteredUnreadCount}
               </span>
             )}
           </Button>
@@ -58,13 +70,13 @@ export const NotificationDropdown = ({ variant = 'header' }: NotificationDropdow
         <div className={cn("flex items-center justify-between p-3 border-b", isRTL && "flex-row-reverse")}>
           <h3 className="font-semibold text-sm">{language === 'ar' ? 'الإشعارات' : 'Notifications'}</h3>
           <div className={cn("flex gap-1", isRTL && "flex-row-reverse")}>
-            {unreadCount > 0 && (
+            {filteredUnreadCount > 0 && (
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={markAllAsRead}>
                 <Check className="w-3 h-3 mr-1" />
                 {language === 'ar' ? 'قراءة الكل' : 'Read all'}
               </Button>
             )}
-            {notifications.length > 0 && (
+            {filteredNotifications.length > 0 && (
               <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" onClick={clearAll}>
                 <Trash2 className="w-3 h-3 mr-1" />
               </Button>
@@ -72,12 +84,12 @@ export const NotificationDropdown = ({ variant = 'header' }: NotificationDropdow
           </div>
         </div>
         <ScrollArea className="max-h-80">
-          {notifications.length === 0 ? (
+          {filteredNotifications.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground text-sm">
               {language === 'ar' ? 'لا توجد إشعارات' : 'No notifications'}
             </div>
           ) : (
-            notifications.slice(0, 20).map(n => {
+            filteredNotifications.slice(0, 20).map(n => {
               const Icon = typeIcons[n.type];
               return (
                 <div

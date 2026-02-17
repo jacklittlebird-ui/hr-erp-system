@@ -24,6 +24,15 @@ import { LeaveRecordTab } from '@/components/employees/tabs/LeaveRecordTab';
 import { MissionRecordTab } from '@/components/employees/tabs/MissionRecordTab';
 import { SalaryTab } from '@/components/employees/tabs/SalaryTab';
 import { OtherTab } from '@/components/employees/tabs/OtherTab';
+import { AttendanceRecordTab } from '@/components/employees/tabs/AttendanceRecordTab';
+import { EvaluationsTab } from '@/components/employees/tabs/EvaluationsTab';
+import { ViolationsTab } from '@/components/employees/tabs/ViolationsTab';
+import { DocumentsTab } from '@/components/employees/tabs/DocumentsTab';
+import { SalaryRecordTab } from '@/components/employees/tabs/SalaryRecordTab';
+import { LoansAdvancesTab } from '@/components/employees/tabs/LoansAdvancesTab';
+import { TrainingTab } from '@/components/employees/tabs/TrainingTab';
+import { NotesTab } from '@/components/employees/tabs/NotesTab';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { toast } from '@/hooks/use-toast';
 import { Employee } from '@/types/employee';
 
@@ -110,11 +119,15 @@ const EmployeeDetails = () => {
       case 'permits': return <PermitsTab employee={employee} />;
       case 'certificates': return <CertificatesTab employee={employee} />;
       case 'departments': return <DepartmentsTab employee={employee} />;
-      case 'other': return <OtherTab employee={employee} onUpdate={handleFieldChange} />;
-      default: {
-        const tab = detailTabs.find(t => t.id === activeTab);
-        return <PlaceholderTab label={tab ? t(tab.labelKey) : activeTab} />;
-      }
+      case 'attendanceRecord': return <AttendanceRecordTab employee={employee} />;
+      case 'evaluations': return <EvaluationsTab employee={employee} />;
+      case 'violations': return <ViolationsTab employee={employee} />;
+      case 'documents': return <DocumentsTab employee={employee} />;
+      case 'salaryRecord': return <SalaryRecordTab employee={employee} />;
+      case 'loansAdvances': return <LoansAdvancesTab employee={employee} />;
+      case 'training': return <TrainingTab employee={employee} />;
+      case 'notes': return <NotesTab employee={employee} onUpdate={handleFieldChange} />;
+      default: return null;
     }
   };
 
@@ -127,7 +140,8 @@ const EmployeeDetails = () => {
             <h1 className="text-2xl font-bold text-primary-foreground">
               {t('employees.details.title')}
             </h1>
-            <div className={cn("flex gap-3", isRTL && "flex-row-reverse")}>
+            <div className={cn("flex gap-3 items-center", isRTL && "flex-row-reverse")}>
+              <NotificationDropdown variant="header" employeeId={employee.employeeId} />
               <Button variant="secondary" size="sm" className="gap-2" onClick={() => navigate('/employees')}>
                 <ArrowRight className={cn("w-4 h-4", !isRTL && "rotate-180")} />
                 {t('employees.details.backToList')}
