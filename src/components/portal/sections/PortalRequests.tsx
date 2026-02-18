@@ -1,20 +1,34 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePortalData } from '@/contexts/PortalDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ClipboardList, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 const PORTAL_EMPLOYEE_ID = 'Emp001';
 
 export const PortalRequests = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
-  const { getRequests } = usePortalData();
+  const { getRequests, addRequest } = usePortalData();
   const requests = useMemo(() => getRequests(PORTAL_EMPLOYEE_ID), [getRequests]);
+  const [showDialog, setShowDialog] = useState(false);
+  const [reqType, setReqType] = useState('');
+
+  const reqTypes = [
+    { value: 'intro', ar: 'خطاب تعريف', en: 'Intro Letter' },
+    { value: 'experience', ar: 'شهادة خبرة', en: 'Experience Cert' },
+    { value: 'salary', ar: 'كشف راتب', en: 'Salary Statement' },
+    { value: 'data_update', ar: 'تعديل بيانات', en: 'Data Update' },
+    { value: 'other', ar: 'أخرى', en: 'Other' },
+  ];
 
   const statusCls: Record<string, string> = {
     approved: 'bg-success/10 text-success border-success',
@@ -22,11 +36,19 @@ export const PortalRequests = () => {
     rejected: 'bg-destructive/10 text-destructive border-destructive',
   };
 
+  const handleSubmit = () => {
+    if (!reqType) { toast.error(ar ? 'يرجى اختيار نوع الطلب' : 'Please select request type'); return; }
+    const t = reqTypes.find(r => r.value === reqType);
+    addRequest({ employeeId: PORTAL_EMPLOYEE_ID, typeAr: t?.ar || '', typeEn: t?.en || '', date: new Date().toISOString().split('T')[0] });
+    toast.success(ar ? 'تم تقديم الطلب بنجاح' : 'Request submitted');
+    setShowDialog(false); setReqType('');
+  };
+
   return (
     <div className="space-y-6">
       <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
         <h1 className="text-2xl font-bold">{ar ? 'الطلبات' : 'Requests'}</h1>
-        <Button><Plus className="w-4 h-4 mr-1" />{ar ? 'طلب جديد' : 'New Request'}</Button>
+        <Button onClick={() => setShowDialog(true)}><Plus className="w-4 h-4 mr-1" />{ar ? 'طلب جديد' : 'New Request'}</Button>
       </div>
 
       <Card>
@@ -57,6 +79,20 @@ export const PortalRequests = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent><DialogHeader><DialogTitle>{ar ? 'طلب جديد' : 'New Request'}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>{ar ? 'نوع الطلب' : 'Request Type'}</Label>
+              <Select value={reqType} onValueChange={setReqType}>
+                <SelectTrigger><SelectValue placeholder={ar ? 'اختر' : 'Select'} /></SelectTrigger>
+                <SelectContent>{reqTypes.map(t => <SelectItem key={t.value} value={t.value}>{ar ? t.ar : t.en}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter><Button onClick={handleSubmit}>{ar ? 'تقديم الطلب' : 'Submit'}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

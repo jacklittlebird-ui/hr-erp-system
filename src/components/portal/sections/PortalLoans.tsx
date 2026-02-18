@@ -1,26 +1,54 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePortalData } from '@/contexts/PortalDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { HandCoins, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 const PORTAL_EMPLOYEE_ID = 'Emp001';
 
 export const PortalLoans = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
-  const { getLoans } = usePortalData();
+  const { getLoans, addLoanRequest } = usePortalData();
   const loans = useMemo(() => getLoans(PORTAL_EMPLOYEE_ID), [getLoans]);
+  const [showDialog, setShowDialog] = useState(false);
+  const [loanType, setLoanType] = useState('');
+  const [amount, setAmount] = useState('');
+  const [installment, setInstallment] = useState('');
+
+  const loanTypes = [
+    { value: 'personal', ar: 'قرض شخصي', en: 'Personal Loan' },
+    { value: 'advance', ar: 'سلفة', en: 'Advance' },
+    { value: 'emergency', ar: 'قرض طوارئ', en: 'Emergency Loan' },
+  ];
+
+  const handleSubmit = () => {
+    if (!loanType || !amount) { toast.error(ar ? 'يرجى ملء جميع الحقول' : 'Please fill all fields'); return; }
+    const t = loanTypes.find(l => l.value === loanType);
+    addLoanRequest({
+      employeeId: PORTAL_EMPLOYEE_ID,
+      typeAr: t?.ar || '', typeEn: t?.en || '',
+      amount: Number(amount),
+      installment: Number(installment) || Number(amount),
+    });
+    toast.success(ar ? 'تم تقديم طلب القرض بنجاح' : 'Loan request submitted');
+    setShowDialog(false); setLoanType(''); setAmount(''); setInstallment('');
+  };
 
   return (
     <div className="space-y-6">
       <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
         <h1 className="text-2xl font-bold">{ar ? 'قروضي' : 'My Loans'}</h1>
-        <Button><Plus className="w-4 h-4 mr-1" />{ar ? 'طلب قرض' : 'Request Loan'}</Button>
+        <Button onClick={() => setShowDialog(true)}><Plus className="w-4 h-4 mr-1" />{ar ? 'طلب قرض' : 'Request Loan'}</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -72,6 +100,22 @@ export const PortalLoans = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent><DialogHeader><DialogTitle>{ar ? 'طلب قرض جديد' : 'New Loan Request'}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>{ar ? 'نوع القرض' : 'Loan Type'}</Label>
+              <Select value={loanType} onValueChange={setLoanType}>
+                <SelectTrigger><SelectValue placeholder={ar ? 'اختر' : 'Select'} /></SelectTrigger>
+                <SelectContent>{loanTypes.map(t => <SelectItem key={t.value} value={t.value}>{ar ? t.ar : t.en}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>{ar ? 'المبلغ' : 'Amount'}</Label><Input type="number" value={amount} onChange={e => setAmount(e.target.value)} /></div>
+            <div><Label>{ar ? 'القسط الشهري' : 'Monthly Installment'}</Label><Input type="number" value={installment} onChange={e => setInstallment(e.target.value)} /></div>
+          </div>
+          <DialogFooter><Button onClick={handleSubmit}>{ar ? 'تقديم الطلب' : 'Submit'}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
