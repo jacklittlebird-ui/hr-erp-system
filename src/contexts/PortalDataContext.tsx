@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
 // ===== LEAVES =====
@@ -18,6 +18,19 @@ export interface LeaveRequest {
   from: string;
   to: string;
   days: number;
+  status: 'approved' | 'pending' | 'rejected';
+}
+
+// ===== PERMISSION =====
+export interface PermissionRequest {
+  id: number;
+  employeeId: string;
+  typeAr: string;
+  typeEn: string;
+  date: string;
+  fromTime: string;
+  toTime: string;
+  reason: string;
   status: 'approved' | 'pending' | 'rejected';
 }
 
@@ -95,6 +108,17 @@ export interface EmployeeRequest {
   status: 'approved' | 'pending' | 'rejected';
 }
 
+// ===== DOCUMENTS =====
+export interface PortalDocument {
+  id: number;
+  employeeId: string;
+  nameAr: string;
+  nameEn: string;
+  date: string;
+  typeAr: string;
+  typeEn: string;
+}
+
 // Initial data for Emp001
 const initialLeaveBalances: Record<string, LeaveBalance[]> = {
   'Emp001': [
@@ -114,6 +138,11 @@ const initialLeaveRequests: LeaveRequest[] = [
   { id: 2, employeeId: 'Emp001', typeAr: 'مرضية', typeEn: 'Sick', from: '2026-01-20', to: '2026-01-21', days: 2, status: 'approved' },
   { id: 3, employeeId: 'Emp001', typeAr: 'سنوية', typeEn: 'Annual', from: '2026-02-15', to: '2026-02-17', days: 3, status: 'pending' },
   { id: 4, employeeId: 'Emp002', typeAr: 'سنوية', typeEn: 'Annual', from: '2026-01-05', to: '2026-01-09', days: 5, status: 'approved' },
+];
+
+const initialPermissions: PermissionRequest[] = [
+  { id: 1, employeeId: 'Emp001', typeAr: 'انصراف مبكر', typeEn: 'Early Leave', date: '2026-01-15', fromTime: '14:00', toTime: '16:00', reason: 'موعد طبي', status: 'approved' },
+  { id: 2, employeeId: 'Emp001', typeAr: 'تأخر صباحي', typeEn: 'Late Arrival', date: '2026-02-10', fromTime: '08:00', toTime: '09:30', reason: 'ظروف شخصية', status: 'pending' },
 ];
 
 const initialLoans: Loan[] = [
@@ -152,40 +181,86 @@ const initialRequests: EmployeeRequest[] = [
   { id: 3, employeeId: 'Emp001', typeAr: 'تعديل بيانات', typeEn: 'Data Update', date: '2025-12-15', status: 'rejected' },
 ];
 
+const initialDocuments: PortalDocument[] = [
+  { id: 1, employeeId: 'Emp001', nameAr: 'عقد العمل', nameEn: 'Employment Contract', date: '2023-01-15', typeAr: 'عقد', typeEn: 'Contract' },
+  { id: 2, employeeId: 'Emp001', nameAr: 'شهادة خبرة', nameEn: 'Experience Certificate', date: '2025-06-01', typeAr: 'شهادة', typeEn: 'Certificate' },
+  { id: 3, employeeId: 'Emp001', nameAr: 'كشف راتب - يناير 2026', nameEn: 'Payslip - Jan 2026', date: '2026-01-31', typeAr: 'مالي', typeEn: 'Financial' },
+  { id: 4, employeeId: 'Emp001', nameAr: 'صورة البطاقة', nameEn: 'ID Copy', date: '2023-01-15', typeAr: 'هوية', typeEn: 'Identity' },
+];
+
 interface PortalDataContextType {
   getLeaveBalances: (employeeId: string) => LeaveBalance[];
   getLeaveRequests: (employeeId: string) => LeaveRequest[];
+  addLeaveRequest: (req: Omit<LeaveRequest, 'id' | 'status'>) => void;
+  getPermissions: (employeeId: string) => PermissionRequest[];
+  addPermission: (req: Omit<PermissionRequest, 'id' | 'status'>) => void;
   getLoans: (employeeId: string) => Loan[];
+  addLoanRequest: (req: Omit<Loan, 'id' | 'status' | 'paid' | 'remaining'>) => void;
   getEvaluations: (employeeId: string) => Evaluation[];
   getTraining: (employeeId: string) => TrainingCourse[];
   getMissions: (employeeId: string) => Mission[];
+  addMission: (req: Omit<Mission, 'id' | 'status'>) => void;
   getViolations: (employeeId: string) => Violation[];
   getRequests: (employeeId: string) => EmployeeRequest[];
+  addRequest: (req: Omit<EmployeeRequest, 'id' | 'status'>) => void;
+  getDocuments: (employeeId: string) => PortalDocument[];
+  addDocument: (doc: Omit<PortalDocument, 'id'>) => void;
 }
 
 const PortalDataContext = createContext<PortalDataContextType | undefined>(undefined);
 
 export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [leaveBalances] = usePersistedState('hr_portal_leave_bal', initialLeaveBalances);
-  const [leaveRequests] = usePersistedState('hr_portal_leave_req', initialLeaveRequests);
-  const [loans] = usePersistedState('hr_portal_loans', initialLoans);
+  const [leaveRequests, setLeaveRequests] = usePersistedState('hr_portal_leave_req', initialLeaveRequests);
+  const [permissions, setPermissions] = usePersistedState('hr_portal_permissions', initialPermissions);
+  const [loans, setLoans] = usePersistedState('hr_portal_loans', initialLoans);
   const [evaluations] = usePersistedState('hr_portal_evals', initialEvaluations);
   const [training] = usePersistedState('hr_portal_training', initialTraining);
-  const [missions] = usePersistedState('hr_portal_missions', initialMissions);
+  const [missions, setMissions] = usePersistedState('hr_portal_missions', initialMissions);
   const [violations] = usePersistedState('hr_portal_violations', initialViolations);
-  const [requests] = usePersistedState('hr_portal_requests', initialRequests);
+  const [requests, setRequests] = usePersistedState('hr_portal_requests', initialRequests);
+  const [documents, setDocuments] = usePersistedState('hr_portal_documents', initialDocuments);
 
   const getLeaveBalances = useCallback((empId: string) => leaveBalances[empId] || [], [leaveBalances]);
   const getLeaveRequests = useCallback((empId: string) => leaveRequests.filter(r => r.employeeId === empId), [leaveRequests]);
+  const addLeaveRequest = useCallback((req: Omit<LeaveRequest, 'id' | 'status'>) => {
+    setLeaveRequests(prev => [...prev, { ...req, id: Date.now(), status: 'pending' as const }]);
+  }, []);
+  const getPermissions = useCallback((empId: string) => permissions.filter(p => p.employeeId === empId), [permissions]);
+  const addPermission = useCallback((req: Omit<PermissionRequest, 'id' | 'status'>) => {
+    setPermissions(prev => [...prev, { ...req, id: Date.now(), status: 'pending' as const }]);
+  }, []);
   const getLoans = useCallback((empId: string) => loans.filter(l => l.employeeId === empId), [loans]);
+  const addLoanRequest = useCallback((req: Omit<Loan, 'id' | 'status' | 'paid' | 'remaining'>) => {
+    setLoans(prev => [...prev, { ...req, id: Date.now(), paid: 0, remaining: req.amount, status: 'active' as const }]);
+  }, []);
   const getEvaluations = useCallback((empId: string) => evaluations.filter(e => e.employeeId === empId), [evaluations]);
   const getTraining = useCallback((empId: string) => training.filter(t => t.employeeId === empId), [training]);
   const getMissions = useCallback((empId: string) => missions.filter(m => m.employeeId === empId), [missions]);
+  const addMission = useCallback((req: Omit<Mission, 'id' | 'status'>) => {
+    setMissions(prev => [...prev, { ...req, id: Date.now(), status: 'pending' as const }]);
+  }, []);
   const getViolations = useCallback((empId: string) => violations.filter(v => v.employeeId === empId), [violations]);
   const getRequests = useCallback((empId: string) => requests.filter(r => r.employeeId === empId), [requests]);
+  const addRequest = useCallback((req: Omit<EmployeeRequest, 'id' | 'status'>) => {
+    setRequests(prev => [...prev, { ...req, id: Date.now(), status: 'pending' as const }]);
+  }, []);
+  const getDocuments = useCallback((empId: string) => documents.filter(d => d.employeeId === empId), [documents]);
+  const addDocument = useCallback((doc: Omit<PortalDocument, 'id'>) => {
+    setDocuments(prev => [...prev, { ...doc, id: Date.now() }]);
+  }, []);
 
   return (
-    <PortalDataContext.Provider value={{ getLeaveBalances, getLeaveRequests, getLoans, getEvaluations, getTraining, getMissions, getViolations, getRequests }}>
+    <PortalDataContext.Provider value={{
+      getLeaveBalances, getLeaveRequests, addLeaveRequest,
+      getPermissions, addPermission,
+      getLoans, addLoanRequest,
+      getEvaluations, getTraining,
+      getMissions, addMission,
+      getViolations,
+      getRequests, addRequest,
+      getDocuments, addDocument,
+    }}>
       {children}
     </PortalDataContext.Provider>
   );
