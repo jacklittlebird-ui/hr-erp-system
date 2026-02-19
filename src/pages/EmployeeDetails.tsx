@@ -116,8 +116,8 @@ const EmployeeDetails = () => {
       case 'leaveRecord': return <LeaveRecordTab employee={employee} />;
       case 'missionRecord': return <MissionRecordTab employee={employee} />;
       case 'insurance': return <InsuranceTab employee={employee} onUpdate={handleFieldChange} />;
-      case 'permits': return <PermitsTab employee={employee} />;
-      case 'certificates': return <CertificatesTab employee={employee} />;
+      case 'permits': return <PermitsTab employee={employee} onUpdate={handleFieldChange} />;
+      case 'certificates': return <CertificatesTab employee={employee} onUpdate={handleFieldChange} />;
       case 'departments': return <DepartmentsTab employee={employee} />;
       case 'attendanceRecord': return <AttendanceRecordTab employee={employee} />;
       case 'evaluations': return <EvaluationsTab employee={employee} />;
