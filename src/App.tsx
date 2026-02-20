@@ -26,6 +26,11 @@ import SalaryReports from "./pages/SalaryReports";
 import Departments from "./pages/Departments";
 import Recruitment from "./pages/Recruitment";
 import Assets from "./pages/Assets";
+import Users from "./pages/Users";
+import Groups from "./pages/Groups";
+import Roles from "./pages/Roles";
+import SiteSettingsPage from "./pages/SiteSettings";
+import Documents from "./pages/Documents";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +65,11 @@ const App = () => (
             <Route path="/salary-reports" element={<SalaryReports />} />
             <Route path="/recruitment" element={<Recruitment />} />
             <Route path="/assets" element={<Assets />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/groups" element={<Groups />} />
+            <Route path="/roles" element={<Roles />} />
+            <Route path="/settings" element={<SiteSettingsPage />} />
+            <Route path="/documents" element={<Documents />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
