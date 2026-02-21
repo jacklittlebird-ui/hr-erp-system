@@ -1,11 +1,13 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Grid3X3 } from 'lucide-react';
+import { Grid3X3, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 export const Header = () => {
   const { language, setLanguage, t, isRTL } = useLanguage();
+  const { logout } = useAuth();
 
   const toggleLanguage = () => {
     setLanguage(language === 'ar' ? 'en' : 'ar');
@@ -37,6 +39,16 @@ export const Header = () => {
         </Button>
         
         <NotificationDropdown variant="header" />
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={logout}
+          className="text-primary-foreground hover:bg-primary-foreground/10"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="hidden sm:inline">{language === 'ar' ? 'خروج' : 'Logout'}</span>
+        </Button>
       </div>
     </header>
   );
