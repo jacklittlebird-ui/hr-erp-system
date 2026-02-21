@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { SalaryDataProvider } from "@/contexts/SalaryDataContext";
 import { PayrollDataProvider } from "@/contexts/PayrollDataContext";
@@ -11,6 +11,8 @@ import { AttendanceDataProvider } from "@/contexts/AttendanceDataContext";
 import { PortalDataProvider } from "@/contexts/PortalDataContext";
 import { LoanDataProvider } from "@/contexts/LoanDataContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import LoginPage from "./pages/LoginPage";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import EmployeeDetails from "./pages/EmployeeDetails";
@@ -18,6 +20,7 @@ import Leaves from "./pages/Leaves";
 import Attendance from "./pages/Attendance";
 import Performance from "./pages/Performance";
 import EmployeePortal from "./pages/EmployeePortal";
+import StationManagerPortal from "./pages/StationManagerPortal";
 import Training from "./pages/Training";
 import Loans from "./pages/Loans";
 import Salaries from "./pages/Salaries";
@@ -35,6 +38,58 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: string[] }) => {
+  const { user, isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!allowedRoles.includes(user!.role)) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+const AuthRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, user } = useAuth();
+  if (isAuthenticated) {
+    if (user?.role === 'employee') return <Navigate to="/employee-portal" replace />;
+    if (user?.role === 'station_manager') return <Navigate to="/station-manager" replace />;
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
+    
+    {/* Admin routes */}
+    <Route path="/" element={<ProtectedRoute allowedRoles={['admin']}><Index /></ProtectedRoute>} />
+    <Route path="/employees" element={<ProtectedRoute allowedRoles={['admin']}><Employees /></ProtectedRoute>} />
+    <Route path="/employees/:id" element={<ProtectedRoute allowedRoles={['admin']}><EmployeeDetails /></ProtectedRoute>} />
+    <Route path="/departments" element={<ProtectedRoute allowedRoles={['admin']}><Departments /></ProtectedRoute>} />
+    <Route path="/leaves" element={<ProtectedRoute allowedRoles={['admin']}><Leaves /></ProtectedRoute>} />
+    <Route path="/attendance" element={<ProtectedRoute allowedRoles={['admin']}><Attendance /></ProtectedRoute>} />
+    <Route path="/performance" element={<ProtectedRoute allowedRoles={['admin']}><Performance /></ProtectedRoute>} />
+    <Route path="/training" element={<ProtectedRoute allowedRoles={['admin']}><Training /></ProtectedRoute>} />
+    <Route path="/loans" element={<ProtectedRoute allowedRoles={['admin']}><Loans /></ProtectedRoute>} />
+    <Route path="/salaries" element={<ProtectedRoute allowedRoles={['admin']}><Salaries /></ProtectedRoute>} />
+    <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin']}><Reports /></ProtectedRoute>} />
+    <Route path="/salary-reports" element={<ProtectedRoute allowedRoles={['admin']}><SalaryReports /></ProtectedRoute>} />
+    <Route path="/recruitment" element={<ProtectedRoute allowedRoles={['admin']}><Recruitment /></ProtectedRoute>} />
+    <Route path="/assets" element={<ProtectedRoute allowedRoles={['admin']}><Assets /></ProtectedRoute>} />
+    <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><Users /></ProtectedRoute>} />
+    <Route path="/groups" element={<ProtectedRoute allowedRoles={['admin']}><Groups /></ProtectedRoute>} />
+    <Route path="/roles" element={<ProtectedRoute allowedRoles={['admin']}><Roles /></ProtectedRoute>} />
+    <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin']}><SiteSettingsPage /></ProtectedRoute>} />
+    <Route path="/documents" element={<ProtectedRoute allowedRoles={['admin']}><Documents /></ProtectedRoute>} />
+    
+    {/* Employee portal */}
+    <Route path="/employee-portal" element={<ProtectedRoute allowedRoles={['employee']}><EmployeePortal /></ProtectedRoute>} />
+    
+    {/* Station manager portal */}
+    <Route path="/station-manager" element={<ProtectedRoute allowedRoles={['station_manager']}><StationManagerPortal /></ProtectedRoute>} />
+    
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
@@ -45,35 +100,15 @@ const App = () => (
       <AttendanceDataProvider>
       <LoanDataProvider>
       <PortalDataProvider>
+      <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/employees" element={<Employees />} />
-            <Route path="/employees/:id" element={<EmployeeDetails />} />
-            <Route path="/departments" element={<Departments />} />
-            <Route path="/leaves" element={<Leaves />} />
-            <Route path="/attendance" element={<Attendance />} />
-            <Route path="/performance" element={<Performance />} />
-            <Route path="/employee-portal" element={<EmployeePortal />} />
-            <Route path="/training" element={<Training />} />
-            <Route path="/loans" element={<Loans />} />
-            <Route path="/salaries" element={<Salaries />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/salary-reports" element={<SalaryReports />} />
-            <Route path="/recruitment" element={<Recruitment />} />
-            <Route path="/assets" element={<Assets />} />
-            <Route path="/users" element={<Users />} />
-            <Route path="/groups" element={<Groups />} />
-            <Route path="/roles" element={<Roles />} />
-            <Route path="/settings" element={<SiteSettingsPage />} />
-            <Route path="/documents" element={<Documents />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
+      </AuthProvider>
       </PortalDataProvider>
       </LoanDataProvider>
       </AttendanceDataProvider>
