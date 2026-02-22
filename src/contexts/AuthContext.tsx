@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { mockEmployees } from '@/data/mockEmployees';
 
 export type UserRole = 'admin' | 'employee' | 'station_manager';
 
@@ -53,15 +54,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (type === 'employee') {
-      // Check employee ID exists in localStorage employees
+      // Check employee ID from localStorage first, fallback to mockEmployees
+      let employees: any[] = mockEmployees;
       const stored = localStorage.getItem('hr_employees');
       if (stored) {
-        const employees = JSON.parse(stored);
-        const emp = employees.find((e: any) => e.employeeId === identifier);
-        if (emp && password === DEFAULT_EMPLOYEE_PASSWORD) {
-          setUser({ id: emp.id, name: emp.nameEn, nameAr: emp.nameAr, employeeId: emp.employeeId, role: 'employee' });
-          return { success: true };
-        }
+        try { employees = JSON.parse(stored); } catch {}
+      }
+      const emp = employees.find((e: any) => e.employeeId === identifier);
+      if (emp && password === DEFAULT_EMPLOYEE_PASSWORD) {
+        setUser({ id: emp.id, name: emp.nameEn, nameAr: emp.nameAr, employeeId: emp.employeeId, role: 'employee' });
+        return { success: true };
       }
       return { success: false, error: 'invalid_credentials' };
     }
