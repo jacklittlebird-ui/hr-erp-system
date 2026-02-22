@@ -4,7 +4,7 @@ import { PortalSection } from '@/pages/EmployeePortal';
 import {
   LayoutDashboard, User, Clock, Calendar, Wallet, HandCoins,
   Star, GraduationCap, Package, FileText, MapPin, Ban,
-  ClipboardList, Bell, Settings, ChevronRight, ChevronLeft,
+  ClipboardList, Bell, Settings, ChevronRight, ChevronLeft, Shirt,
 } from 'lucide-react';
 
 interface SidebarGroup {
@@ -51,6 +51,7 @@ const sidebarGroups: SidebarGroup[] = [
     labelEn: 'Custody & Docs',
     items: [
       { key: 'custody', labelAr: 'عهد وتعهدات', labelEn: 'Custody', icon: Package },
+      { key: 'uniforms', labelAr: 'اليونيفورم', labelEn: 'Uniforms', icon: Shirt },
       { key: 'documents', labelAr: 'المستندات', labelEn: 'Documents', icon: FileText },
     ],
   },

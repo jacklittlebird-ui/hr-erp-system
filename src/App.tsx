@@ -10,6 +10,7 @@ import { EmployeeDataProvider } from "@/contexts/EmployeeDataContext";
 import { AttendanceDataProvider } from "@/contexts/AttendanceDataContext";
 import { PortalDataProvider } from "@/contexts/PortalDataContext";
 import { LoanDataProvider } from "@/contexts/LoanDataContext";
+import { UniformDataProvider } from "@/contexts/UniformDataContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import LoginPage from "./pages/LoginPage";
@@ -34,6 +35,7 @@ import Groups from "./pages/Groups";
 import Roles from "./pages/Roles";
 import SiteSettingsPage from "./pages/SiteSettings";
 import Documents from "./pages/Documents";
+import Uniforms from "./pages/Uniforms";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +81,7 @@ const AppRoutes = () => (
     <Route path="/roles" element={<ProtectedRoute allowedRoles={['admin']}><Roles /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin']}><SiteSettingsPage /></ProtectedRoute>} />
     <Route path="/documents" element={<ProtectedRoute allowedRoles={['admin']}><Documents /></ProtectedRoute>} />
+    <Route path="/uniforms" element={<ProtectedRoute allowedRoles={['admin']}><Uniforms /></ProtectedRoute>} />
     
     {/* Employee portal */}
     <Route path="/employee-portal" element={<ProtectedRoute allowedRoles={['employee']}><EmployeePortal /></ProtectedRoute>} />
@@ -99,6 +102,7 @@ const App = () => (
       <PayrollDataProvider>
       <AttendanceDataProvider>
       <LoanDataProvider>
+      <UniformDataProvider>
       <PortalDataProvider>
       <AuthProvider>
       <TooltipProvider>
@@ -110,6 +114,7 @@ const App = () => (
       </TooltipProvider>
       </AuthProvider>
       </PortalDataProvider>
+      </UniformDataProvider>
       </LoanDataProvider>
       </AttendanceDataProvider>
       </PayrollDataProvider>

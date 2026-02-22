@@ -18,12 +18,13 @@ import { PortalViolations } from '@/components/portal/sections/PortalViolations'
 import { PortalRequests } from '@/components/portal/sections/PortalRequests';
 import { PortalNotifications } from '@/components/portal/sections/PortalNotifications';
 import { PortalSettings } from '@/components/portal/sections/PortalSettings';
+import { PortalUniforms } from '@/components/portal/sections/PortalUniforms';
 
 export type PortalSection =
   | 'dashboard' | 'profile' | 'attendance' | 'leaves'
   | 'salary' | 'loans' | 'evaluations' | 'training'
   | 'custody' | 'documents' | 'missions' | 'violations'
-  | 'requests' | 'notifications' | 'settings';
+  | 'requests' | 'notifications' | 'settings' | 'uniforms';
 
 const sectionComponents: Record<PortalSection, React.FC> = {
   dashboard: PortalDashboard,
@@ -35,6 +36,7 @@ const sectionComponents: Record<PortalSection, React.FC> = {
   evaluations: PortalEvaluations,
   training: PortalTraining,
   custody: PortalCustody,
+  uniforms: PortalUniforms,
   documents: PortalDocuments,
   missions: PortalMissions,
   violations: PortalViolations,
