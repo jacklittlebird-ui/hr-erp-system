@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Trash2, Edit, Eye, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { stationLocations } from '@/data/stationLocations';
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -70,6 +71,9 @@ export const EmployeeTable = ({ employees }: EmployeeTableProps) => {
               {t('employees.table.name')}
             </TableHead>
             <TableHead className={cn("text-primary-foreground font-semibold", isRTL && "text-right")}>
+              {language === 'ar' ? 'المحطة/الموقع' : 'Station/Location'}
+            </TableHead>
+            <TableHead className={cn("text-primary-foreground font-semibold", isRTL && "text-right")}>
               {t('employees.table.department')}
             </TableHead>
             <TableHead className={cn("text-primary-foreground font-semibold", isRTL && "text-right")}>
@@ -102,6 +106,12 @@ export const EmployeeTable = ({ employees }: EmployeeTableProps) => {
               </TableCell>
               <TableCell className={cn(isRTL && "text-right")}>
                 {language === 'ar' ? employee.nameAr : employee.nameEn}
+              </TableCell>
+              <TableCell className={cn(isRTL && "text-right")}>
+                {(() => {
+                  const st = stationLocations.find(s => s.value === employee.stationLocation);
+                  return st ? (language === 'ar' ? st.labelAr : st.labelEn) : (employee.stationLocation || '-');
+                })()}
               </TableCell>
               <TableCell className={cn(isRTL && "text-right")}>
                 {employee.department}
