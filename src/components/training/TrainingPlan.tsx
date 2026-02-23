@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,11 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { 
   Plus, Calendar, CalendarDays, Users, FileText, 
-  ChevronRight, Eye, Edit2, Trash2, Download 
+  ChevronRight, Eye, Edit2, Trash2, Download, Check, ChevronsUpDown
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { usePersistedState } from '@/hooks/usePersistedState';
+import { cn } from '@/lib/utils';
 
 interface PlannedCourse {
   id: string;
@@ -25,13 +30,15 @@ interface PlannedCourse {
   status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
   trainer?: string;
   location?: string;
+  cost?: number;
+  assignedEmployees?: { employeeId: string; actualDate?: string }[];
 }
 
 const mockPlannedCourses: PlannedCourse[] = [
-  { id: '1', courseCode: 'ER-001', courseName: 'Emergency Response', provider: 'Link Aero Training', plannedDate: '2024-03-15', duration: '2 days', participants: 15, status: 'scheduled', trainer: 'Dr. Ahmed Hassan', location: 'Training Center' },
-  { id: '2', courseCode: 'DGR-001', courseName: 'Dangerous Goods Handling', provider: 'IATA', plannedDate: '2024-03-20', duration: '5 days', participants: 10, status: 'scheduled', trainer: 'Eng. Mohamed Ali', location: 'Airport Office' },
-  { id: '3', courseCode: 'SEC-001', courseName: 'Aviation Security', provider: 'ECAA', plannedDate: '2024-02-10', duration: '3 days', participants: 20, status: 'completed', trainer: 'Mr. Hossam Hagag', location: 'Training Center' },
-  { id: '4', courseCode: 'RMP-001', courseName: 'Ramp Safety', provider: 'Internal', plannedDate: '2024-04-01', duration: '1 day', participants: 25, status: 'scheduled', trainer: 'Mr. Moatasem Mahmoud', location: 'Ramp Area' },
+  { id: '1', courseCode: 'ER-001', courseName: 'Emergency Response', provider: 'Link Aero Training', plannedDate: '2024-03-15', duration: '2 days', participants: 15, status: 'scheduled', trainer: 'Dr. Ahmed Hassan', location: 'Training Center', cost: 5000 },
+  { id: '2', courseCode: 'DGR-001', courseName: 'Dangerous Goods Handling', provider: 'IATA', plannedDate: '2024-03-20', duration: '5 days', participants: 10, status: 'scheduled', trainer: 'Eng. Mohamed Ali', location: 'Airport Office', cost: 8000 },
+  { id: '3', courseCode: 'SEC-001', courseName: 'Aviation Security', provider: 'ECAA', plannedDate: '2024-02-10', duration: '3 days', participants: 20, status: 'completed', trainer: 'Mr. Hossam Hagag', location: 'Training Center', cost: 3000 },
+  { id: '4', courseCode: 'RMP-001', courseName: 'Ramp Safety', provider: 'Internal', plannedDate: '2024-04-01', duration: '1 day', participants: 25, status: 'scheduled', trainer: 'Mr. Moatasem Mahmoud', location: 'Ramp Area', cost: 2000 },
 ];
 
 interface StaffCourse {
@@ -51,16 +58,39 @@ const mockStaffCourses: StaffCourse[] = [
   { id: '3', employeeId: '067', employeeName: 'Abdallah Ahmed', department: 'HR', courseCode: 'SEC-001', courseName: 'Aviation Security', dueDate: '2024-03-20', status: 'scheduled' },
 ];
 
+// Training debt record for portal
+export interface TrainingDebt {
+  id: string;
+  employeeId: string;
+  courseName: string;
+  cost: number;
+  actualDate: string;
+  expiryDate: string; // 3 years from actualDate
+}
+
 type ViewType = 'menu' | 'addCourse' | 'viewPlan' | 'nextYearPlan' | 'staffCourses' | 'staffReport';
 
 export const TrainingPlan = () => {
-  const { t, language } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const { toast } = useToast();
+  const { employees } = useEmployeeData();
+  const ar = language === 'ar';
   const [currentView, setCurrentView] = useState<ViewType>('menu');
-  const [plannedCourses, setPlannedCourses] = useState<PlannedCourse[]>(mockPlannedCourses);
+  const [plannedCourses, setPlannedCourses] = usePersistedState<PlannedCourse[]>('hr_training_plan_courses', mockPlannedCourses);
+  const [trainingDebts, setTrainingDebts] = usePersistedState<TrainingDebt[]>('hr_training_debts', []);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [formData, setFormData] = useState<Partial<PlannedCourse>>({});
+  const [formData, setFormData] = useState<Partial<PlannedCourse & { selectedEmployeeIds: string[] }>>({});
+  const [empOpen, setEmpOpen] = useState(false);
+
+  // Assign dialog
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [assignCourseId, setAssignCourseId] = useState<string | null>(null);
+  const [assignEmpId, setAssignEmpId] = useState('');
+  const [assignActualDate, setAssignActualDate] = useState('');
+  const [assignEmpOpen, setAssignEmpOpen] = useState(false);
+
+  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'active'), [employees]);
 
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -87,7 +117,7 @@ export const TrainingPlan = () => {
       return;
     }
     const newCourse: PlannedCourse = {
-      id: String(plannedCourses.length + 1),
+      id: String(Date.now()),
       courseCode: formData.courseCode || '',
       courseName: formData.courseName || '',
       provider: formData.provider || '',
@@ -97,11 +127,62 @@ export const TrainingPlan = () => {
       status: 'scheduled',
       trainer: formData.trainer,
       location: formData.location,
+      cost: formData.cost || 0,
+      assignedEmployees: [],
     };
-    setPlannedCourses([...plannedCourses, newCourse]);
+    setPlannedCourses(prev => [...prev, newCourse]);
     setIsAddDialogOpen(false);
     setFormData({});
     toast({ title: t('common.success'), description: t('training.plan.courseAdded') });
+  };
+
+  const handleAssignEmployee = () => {
+    if (!assignCourseId || !assignEmpId) return;
+    const course = plannedCourses.find(c => c.id === assignCourseId);
+    if (!course) return;
+
+    // Add employee to the course
+    const updatedCourses = plannedCourses.map(c => {
+      if (c.id === assignCourseId) {
+        const existing = c.assignedEmployees || [];
+        if (existing.find(e => e.employeeId === assignEmpId)) {
+          // Update actual date
+          return { ...c, assignedEmployees: existing.map(e => e.employeeId === assignEmpId ? { ...e, actualDate: assignActualDate || undefined } : e) };
+        }
+        return { ...c, assignedEmployees: [...existing, { employeeId: assignEmpId, actualDate: assignActualDate || undefined }] };
+      }
+      return c;
+    });
+    setPlannedCourses(updatedCourses);
+
+    // If actual date is set, create training debt
+    if (assignActualDate && course.cost && course.cost > 0) {
+      const expiryDate = new Date(assignActualDate);
+      expiryDate.setFullYear(expiryDate.getFullYear() + 3);
+      const debt: TrainingDebt = {
+        id: `debt_${Date.now()}`,
+        employeeId: assignEmpId,
+        courseName: course.courseName,
+        cost: course.cost,
+        actualDate: assignActualDate,
+        expiryDate: expiryDate.toISOString().split('T')[0],
+      };
+      // Remove existing debt for same employee+course if any
+      setTrainingDebts(prev => [
+        ...prev.filter(d => !(d.employeeId === assignEmpId && d.courseName === course.courseName)),
+        debt,
+      ]);
+    }
+
+    toast({ title: ar ? 'تم التعيين' : 'Assigned', description: ar ? 'تم تعيين الموظف للدورة' : 'Employee assigned to course' });
+    setAssignDialogOpen(false);
+    setAssignEmpId('');
+    setAssignActualDate('');
+  };
+
+  const handleDeleteCourse = (id: string) => {
+    setPlannedCourses(prev => prev.filter(c => c.id !== id));
+    toast({ title: ar ? 'تم الحذف' : 'Deleted' });
   };
 
   const MenuView = () => (
@@ -186,6 +267,7 @@ export const TrainingPlan = () => {
               <TableHead>{t('training.provider')}</TableHead>
               <TableHead>{t('training.plannedDate')}</TableHead>
               <TableHead>{t('training.courses.duration')}</TableHead>
+              <TableHead>{ar ? 'التكلفة' : 'Cost'}</TableHead>
               <TableHead>{t('training.plan.participants')}</TableHead>
               <TableHead>{t('training.plan.trainer')}</TableHead>
               <TableHead>{t('training.location')}</TableHead>
@@ -203,17 +285,21 @@ export const TrainingPlan = () => {
                   <TableCell>{course.provider}</TableCell>
                   <TableCell>{course.plannedDate}</TableCell>
                   <TableCell>{course.duration}</TableCell>
+                  <TableCell>{course.cost?.toLocaleString() || '0'}</TableCell>
                   <TableCell>{course.participants}</TableCell>
                   <TableCell>{course.trainer || '-'}</TableCell>
                   <TableCell>{course.location || '-'}</TableCell>
                   <TableCell>{getStatusBadge(course.status)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon">
-                        <Eye className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" onClick={() => {
+                        setAssignCourseId(course.id);
+                        setAssignDialogOpen(true);
+                      }} title={ar ? 'تعيين موظف' : 'Assign Employee'}>
+                        <Users className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon">
-                        <Edit2 className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteCourse(course.id)}>
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -396,6 +482,15 @@ export const TrainingPlan = () => {
               />
             </div>
             <div>
+              <Label>{ar ? 'تكلفة الدورة' : 'Course Cost'}</Label>
+              <Input
+                type="number"
+                min={0}
+                value={formData.cost || ''}
+                onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+            <div>
               <Label>{t('training.plan.participants')}</Label>
               <Input
                 type="number"
@@ -421,6 +516,68 @@ export const TrainingPlan = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>{t('common.cancel')}</Button>
             <Button onClick={handleAddCourse}>{t('common.save')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Employee Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{ar ? 'تعيين موظف للدورة' : 'Assign Employee to Course'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{ar ? 'الدورة' : 'Course'}</Label>
+              <Input value={plannedCourses.find(c => c.id === assignCourseId)?.courseName || ''} readOnly className="bg-muted" />
+            </div>
+            <div className="space-y-2">
+              <Label>{ar ? 'اختر الموظف' : 'Select Employee'}</Label>
+              <Popover open={assignEmpOpen} onOpenChange={setAssignEmpOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className={cn("w-full justify-between", isRTL && "flex-row-reverse")}>
+                    {assignEmpId
+                      ? (() => { const e = activeEmployees.find(emp => emp.employeeId === assignEmpId); return e ? `${e.employeeId} - ${ar ? e.nameAr : e.nameEn}` : assignEmpId; })()
+                      : (ar ? '-- اختر الموظف --' : '-- Select Employee --')}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0 bg-popover z-50" align="start">
+                  <Command>
+                    <CommandInput placeholder={ar ? 'بحث...' : 'Search...'} />
+                    <CommandList>
+                      <CommandEmpty>{ar ? 'لا نتائج' : 'No results'}</CommandEmpty>
+                      <CommandGroup>
+                        {activeEmployees.map(emp => (
+                          <CommandItem key={emp.employeeId} value={`${emp.nameAr} ${emp.nameEn} ${emp.employeeId}`}
+                            onSelect={() => { setAssignEmpId(emp.employeeId); setAssignEmpOpen(false); }}>
+                            <Check className={cn("mr-2 h-4 w-4", assignEmpId === emp.employeeId ? "opacity-100" : "opacity-0")} />
+                            {emp.employeeId} - {ar ? emp.nameAr : emp.nameEn}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label>{ar ? 'تاريخ أخذ الدورة الفعلي (اختياري)' : 'Actual Course Date (optional)'}</Label>
+              <Input type="date" value={assignActualDate} onChange={e => setAssignActualDate(e.target.value)} />
+              <p className="text-xs text-muted-foreground">
+                {ar ? 'عند إدخال التاريخ الفعلي تتحول الدورة من مخططة إلى فعلية وتصبح ديناً على الموظف لمدة 3 سنوات' : 'When actual date is set, the course becomes actual and creates a 3-year debt for the employee'}
+              </p>
+            </div>
+            {assignCourseId && (
+              <div className="space-y-2">
+                <Label>{ar ? 'تكلفة الدورة' : 'Course Cost'}</Label>
+                <Input value={plannedCourses.find(c => c.id === assignCourseId)?.cost?.toLocaleString() || '0'} readOnly className="bg-muted" />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>{ar ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleAssignEmployee}>{ar ? 'تعيين' : 'Assign'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
