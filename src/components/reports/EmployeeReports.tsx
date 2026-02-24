@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Users, UserPlus, UserMinus, Building2, Download, FileText, Printer, Save, BookmarkPlus, Trash2, RotateCcw } from 'lucide-react';
+import { Users, UserPlus, UserMinus, Building2, Download, FileText, Printer, Save, BookmarkPlus, Trash2, RotateCcw, Languages } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useReportExport } from '@/hooks/useReportExport';
 import { stationLocations } from '@/data/stationLocations';
@@ -32,7 +32,7 @@ export const EmployeeReports = () => {
   const [department, setDepartment] = useState('all');
   const [station, setStation] = useState('all');
   const [status, setStatus] = useState('all');
-  const { reportRef, handlePrint, exportToCSV } = useReportExport();
+  const { reportRef, handlePrint, exportToCSV, exportBilingualCSV, exportBilingualPDF } = useReportExport();
 
   // Presets
   const [presets, setPresets] = usePersistedState<ExportPreset[]>('hr_report_presets', []);
@@ -110,6 +110,31 @@ export const EmployeeReports = () => {
     phone: e.phone || '-',
     status: e.status === 'active' ? (ar ? 'نشط' : 'Active') : e.status === 'inactive' ? (ar ? 'غير نشط' : 'Inactive') : (ar ? 'موقوف' : 'Suspended'),
   }));
+
+  const getBilingualColumns = () => [
+    { headerAr: 'كود الموظف', headerEn: 'Employee ID', key: 'employeeId' },
+    { headerAr: 'الاسم (عربي)', headerEn: 'Name (AR)', key: 'nameAr' },
+    { headerAr: 'الاسم (انجليزي)', headerEn: 'Name (EN)', key: 'nameEn' },
+    { headerAr: 'المحطة', headerEn: 'Station', key: 'station' },
+    { headerAr: 'القسم', headerEn: 'Department', key: 'department' },
+    { headerAr: 'الوظيفة', headerEn: 'Job Title', key: 'jobTitle' },
+    { headerAr: 'الهاتف', headerEn: 'Phone', key: 'phone' },
+    { headerAr: 'الحالة', headerEn: 'Status', key: 'status' },
+  ];
+
+  const getBilingualExportData = () => filteredEmployees.map(e => {
+    const s = stationLocations.find(s => s.value === e.stationLocation);
+    return {
+      employeeId: e.employeeId,
+      nameAr: e.nameAr,
+      nameEn: e.nameEn,
+      station: s ? `${s.labelAr} / ${s.labelEn}` : (e.stationLocation || '-'),
+      department: e.department,
+      jobTitle: e.jobTitle,
+      phone: e.phone || '-',
+      status: e.status === 'active' ? 'نشط / Active' : e.status === 'inactive' ? 'غير نشط / Inactive' : 'موقوف / Suspended',
+    };
+  });
 
   const reportTitle = t('reports.tabs.employees');
 
@@ -316,6 +341,12 @@ export const EmployeeReports = () => {
               </Button>
               <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: reportTitle, data: getEmployeeExportData(), columns: getEmployeeExportColumns() })} className="gap-1">
                 <FileText className="w-4 h-4" />CSV
+              </Button>
+              <Button variant="default" size="sm" onClick={() => exportBilingualPDF({ titleAr: 'تقرير الموظفين', titleEn: 'Employee Report', data: getBilingualExportData(), columns: getBilingualColumns() })} className="gap-1">
+                <Languages className="w-4 h-4" />PDF {ar ? 'ثنائي' : 'Bilingual'}
+              </Button>
+              <Button variant="default" size="sm" onClick={() => exportBilingualCSV({ titleAr: 'تقرير الموظفين', titleEn: 'Employee_Report', data: getBilingualExportData(), columns: getBilingualColumns() })} className="gap-1">
+                <Languages className="w-4 h-4" />CSV {ar ? 'ثنائي' : 'Bilingual'}
               </Button>
             </div>
           </div>
