@@ -32,13 +32,21 @@ export interface PermissionRequest {
   submittedDate: string;
 }
 
+export type MissionType = 'morning' | 'evening' | 'full_day';
+
+export const MISSION_TIME_CONFIG: Record<MissionType, { checkIn: string; checkOut: string; hours: number; labelAr: string; labelEn: string }> = {
+  morning: { checkIn: '09:00', checkOut: '14:00', hours: 5, labelAr: 'مأمورية صباحية', labelEn: 'Morning Mission' },
+  evening: { checkIn: '14:00', checkOut: '17:00', hours: 3, labelAr: 'مأمورية مسائية', labelEn: 'Evening Mission' },
+  full_day: { checkIn: '09:00', checkOut: '17:00', hours: 8, labelAr: 'مأمورية يوم كامل', labelEn: 'Full Day Mission' },
+};
+
 export interface MissionRequest {
   id: string;
   employeeId: string;
   employeeName: string;
   employeeNameAr: string;
   department: string;
-  missionType: 'internal' | 'external' | 'training' | 'meeting' | 'client_visit';
+  missionType: MissionType;
   date: string;
   destination?: string;
   reason: string;

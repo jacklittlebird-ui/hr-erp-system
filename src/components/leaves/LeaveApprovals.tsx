@@ -80,17 +80,25 @@ export const LeaveApprovals = ({
       badgeLabel: t(`leaves.permTypes.${r.permissionType}`),
       badgeColor: 'bg-orange-500',
     })),
-    ...missionRequests.map((r): UnifiedRequest => ({
-      id: r.id,
-      type: 'mission',
-      employeeName: r.employeeName,
-      employeeNameAr: r.employeeNameAr,
-      department: r.department,
-      reason: r.reason,
-      details: `${r.date}${r.destination ? ` | ${r.destination}` : ''}`,
-      badgeLabel: t(`leaves.missionTypes.${r.missionType}`),
-      badgeColor: 'bg-purple-500',
-    })),
+    ...missionRequests.map((r): UnifiedRequest => {
+      const typeLabels: Record<string, { ar: string; en: string }> = {
+        morning: { ar: 'مأمورية صباحية', en: 'Morning Mission' },
+        evening: { ar: 'مأمورية مسائية', en: 'Evening Mission' },
+        full_day: { ar: 'مأمورية يوم كامل', en: 'Full Day Mission' },
+      };
+      const lbl = typeLabels[r.missionType] || typeLabels.morning;
+      return {
+        id: r.id,
+        type: 'mission',
+        employeeName: r.employeeName,
+        employeeNameAr: r.employeeNameAr,
+        department: r.department,
+        reason: r.reason,
+        details: `${r.date}${r.destination ? ` | ${r.destination}` : ''}`,
+        badgeLabel: language === 'ar' ? lbl.ar : lbl.en,
+        badgeColor: 'bg-purple-500',
+      };
+    }),
     ...overtimeRequests.map((r): UnifiedRequest => ({
       id: r.id,
       type: 'overtime',

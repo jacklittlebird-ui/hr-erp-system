@@ -18,11 +18,9 @@ const statusConfig: Record<RecordStatus, { label: string; labelAr: string; bg: s
 };
 
 const missionTypeLabels: Record<string, { en: string; ar: string }> = {
-  internal: { en: 'Internal', ar: 'داخلية' },
-  external: { en: 'External', ar: 'خارجية' },
-  training: { en: 'Training', ar: 'تدريب' },
-  meeting: { en: 'Meeting', ar: 'اجتماع' },
-  client_visit: { en: 'Client Visit', ar: 'زيارة عميل' },
+  morning: { en: 'Morning Mission', ar: 'مأمورية صباحية' },
+  evening: { en: 'Evening Mission', ar: 'مأمورية مسائية' },
+  full_day: { en: 'Full Day Mission', ar: 'مأمورية يوم كامل' },
 };
 
 const StatusBadge = ({ status }: { status: RecordStatus }) => {

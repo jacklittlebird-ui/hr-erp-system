@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAttendanceData } from '@/contexts/AttendanceDataContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LeaveRequestsList } from '@/components/leaves/LeaveRequestsList';
 import { PermissionRequestsList } from '@/components/leaves/PermissionRequestsList';
@@ -22,12 +23,14 @@ import {
   PermissionRequest,
   MissionRequest,
   OvertimeRequest,
+  MISSION_TIME_CONFIG,
 } from '@/types/leaves';
 import { FileText, Plus, CheckCircle, BarChart3, Calendar, ShieldCheck, Briefcase, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Leaves = () => {
   const { t, isRTL } = useLanguage();
+  const { addMissionAttendance } = useAttendanceData();
   const [activeTab, setActiveTab] = useState('leaves');
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(sampleLeaveRequests);
   const [permissionRequests, setPermissionRequests] = useState<PermissionRequest[]>(samplePermissionRequests);
@@ -63,9 +66,24 @@ const Leaves = () => {
   };
 
   const handleApproveMission = (id: string) => {
+    const mission = missionRequests.find(r => r.id === id);
     setMissionRequests(prev => prev.map(req =>
       req.id === id ? { ...req, status: 'approved' as const } : req
     ));
+    // Create attendance record for approved mission
+    if (mission) {
+      const config = MISSION_TIME_CONFIG[mission.missionType];
+      addMissionAttendance(
+        mission.employeeId,
+        mission.employeeName,
+        mission.employeeNameAr,
+        mission.department,
+        mission.date,
+        config.checkIn,
+        config.checkOut,
+        config.hours
+      );
+    }
   };
 
   const handleRejectMission = (id: string, reason: string) => {

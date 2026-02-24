@@ -74,11 +74,11 @@ export interface TrainingCourse {
 }
 
 // ===== MISSIONS =====
-export type MissionType = 'internal' | 'external' | 'training' | 'meeting' | 'client_visit';
+export type PortalMissionType = 'morning' | 'evening' | 'full_day';
 export interface Mission {
   id: number;
   employeeId: string;
-  missionType: MissionType;
+  missionType: PortalMissionType;
   date: string;
   destAr: string;
   destEn: string;
@@ -166,9 +166,9 @@ const initialTraining: TrainingCourse[] = [
 ];
 
 const initialMissions: Mission[] = [
-  { id: 1, employeeId: 'Emp001', missionType: 'meeting', date: '2026-01-15', destAr: 'الإسكندرية', destEn: 'Alexandria', reasonAr: 'اجتماع عمل', reasonEn: 'Business Meeting', status: 'approved' },
-  { id: 2, employeeId: 'Emp001', missionType: 'training', date: '2026-02-20', destAr: 'أسوان', destEn: 'Aswan', reasonAr: 'تدريب ميداني', reasonEn: 'Field Training', status: 'pending' },
-  { id: 3, employeeId: 'Emp002', missionType: 'client_visit', date: '2026-01-25', destAr: 'الأقصر', destEn: 'Luxor', reasonAr: 'زيارة عميل', reasonEn: 'Client Visit', status: 'approved' },
+  { id: 1, employeeId: 'Emp001', missionType: 'morning', date: '2026-01-15', destAr: 'الإسكندرية', destEn: 'Alexandria', reasonAr: 'اجتماع عمل', reasonEn: 'Business Meeting', status: 'approved' },
+  { id: 2, employeeId: 'Emp001', missionType: 'full_day', date: '2026-02-20', destAr: 'أسوان', destEn: 'Aswan', reasonAr: 'تدريب ميداني', reasonEn: 'Field Training', status: 'pending' },
+  { id: 3, employeeId: 'Emp002', missionType: 'evening', date: '2026-01-25', destAr: 'الأقصر', destEn: 'Luxor', reasonAr: 'زيارة عميل', reasonEn: 'Client Visit', status: 'approved' },
 ];
 
 const initialViolations: Violation[] = [
