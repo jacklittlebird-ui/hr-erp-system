@@ -9,6 +9,7 @@ export interface AppNotification {
   descEn?: string;
   type: 'success' | 'warning' | 'info' | 'error';
   module: 'employee' | 'salary' | 'payroll' | 'attendance' | 'leave' | 'loan' | 'training' | 'performance' | 'portal' | 'asset' | 'recruitment' | 'general';
+  employeeId?: string;
   read: boolean;
   timestamp: string;
 }
