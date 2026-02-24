@@ -145,6 +145,105 @@ const SalaryReports = () => {
     { name: ar ? 'مكافآت' : 'Bonuses', value: filtered.reduce((s, e) => s + e.bonusAmount, 0), color: '#f97316' },
   ].filter(a => a.value > 0), [filtered, ar]);
 
+  // Monthly by station aggregate
+  const monthlyByStation = useMemo(() => {
+    const result: Array<{ stationKey: string; stationName: string; month: string; monthNum: string; count: number; basic: number; transport: number; incentives: number; stationAllowance: number; mobileAllowance: number; livingAllowance: number; overtimePay: number; bonuses: number; gross: number; insurance: number; loans: number; advances: number; mobileBill: number; leaveDeduction: number; penalty: number; totalDeductions: number; net: number; employerInsurance: number; healthInsurance: number; incomeTax: number }> = [];
+    const yearFiltered = payrollEntries.filter(e => e.year === selectedYear && (department === 'all' || e.department === department));
+    const stationsInData = new Set(yearFiltered.map(e => e.stationLocation));
+    stationsInData.forEach(stKey => {
+      const stLabel = getStationLabel(stKey);
+      monthNamesAr.forEach((_, i) => {
+        const m = String(i + 1).padStart(2, '0');
+        const me = yearFiltered.filter(e => e.stationLocation === stKey && e.month === m);
+        if (me.length === 0) return;
+        result.push({
+          stationKey: stKey, stationName: stLabel, month: monthNames[i], monthNum: m, count: me.length,
+          basic: me.reduce((s, e) => s + e.basicSalary, 0), transport: me.reduce((s, e) => s + e.transportAllowance, 0),
+          incentives: me.reduce((s, e) => s + e.incentives, 0), stationAllowance: me.reduce((s, e) => s + e.stationAllowance, 0),
+          mobileAllowance: me.reduce((s, e) => s + e.mobileAllowance, 0), livingAllowance: me.reduce((s, e) => s + e.livingAllowance, 0),
+          overtimePay: me.reduce((s, e) => s + e.overtimePay, 0), bonuses: me.reduce((s, e) => s + e.bonusAmount, 0),
+          gross: me.reduce((s, e) => s + e.gross, 0), insurance: me.reduce((s, e) => s + e.employeeInsurance, 0),
+          loans: me.reduce((s, e) => s + e.loanPayment, 0), advances: me.reduce((s, e) => s + e.advanceAmount, 0),
+          mobileBill: me.reduce((s, e) => s + e.mobileBill, 0), leaveDeduction: me.reduce((s, e) => s + e.leaveDeduction, 0),
+          penalty: me.reduce((s, e) => s + e.penaltyAmount, 0), totalDeductions: me.reduce((s, e) => s + e.totalDeductions, 0),
+          net: me.reduce((s, e) => s + e.netSalary, 0), employerInsurance: me.reduce((s, e) => s + e.employerSocialInsurance, 0),
+          healthInsurance: me.reduce((s, e) => s + e.healthInsurance, 0), incomeTax: me.reduce((s, e) => s + e.incomeTax, 0),
+        });
+      });
+    });
+    return result;
+  }, [payrollEntries, selectedYear, department, monthNames, ar]);
+
+  // Group monthlyByStation by station for printing
+  const handlePrintMonthlyByStation = useCallback(() => {
+    const title = ar ? `تفصيل شهري بالمحطة - ${selectedYear}` : `Monthly Detail by Station - ${selectedYear}`;
+    const stationGroups = new Map<string, typeof monthlyByStation>();
+    monthlyByStation.forEach(row => {
+      if (!stationGroups.has(row.stationKey)) stationGroups.set(row.stationKey, []);
+      stationGroups.get(row.stationKey)!.push(row);
+    });
+    const headerLabels = ar
+      ? ['الشهر','العدد','الأساسي','مواصلات','حوافز','بدل محطة','بدل محمول','بدل معيشة','أجر إضافي','مكافآت','الإجمالي','تأمينات','قروض','سلف','فاتورة','إجازات','جزاءات','إجمالي خصومات','الصافي','تأمينات ص.ع','صحي','ضريبة']
+      : ['Month','Count','Basic','Trans.','Incent.','St.All.','Mob.All.','Living','OT','Bonus','Gross','Ins.','Loans','Adv.','Bill','Leave','Pen.','Tot.Ded','Net','Emp.Ins','Health','Tax'];
+
+    let pages = '';
+    stationGroups.forEach((rows, stKey) => {
+      const stName = getStationLabel(stKey);
+      const totals = { count: 0, basic: 0, transport: 0, incentives: 0, stationAllowance: 0, mobileAllowance: 0, livingAllowance: 0, overtimePay: 0, bonuses: 0, gross: 0, insurance: 0, loans: 0, advances: 0, mobileBill: 0, leaveDeduction: 0, penalty: 0, totalDeductions: 0, net: 0, employerInsurance: 0, healthInsurance: 0, incomeTax: 0 };
+      rows.forEach(r => { Object.keys(totals).forEach(k => { (totals as any)[k] += (r as any)[k]; }); });
+      const trs = rows.map(r => `<tr>
+        <td style="font-weight:600">${r.month}</td><td>${r.count}</td>
+        <td>${r.basic.toLocaleString()}</td><td>${r.transport.toLocaleString()}</td><td>${r.incentives.toLocaleString()}</td>
+        <td>${r.stationAllowance.toLocaleString()}</td><td>${r.mobileAllowance.toLocaleString()}</td><td>${r.livingAllowance.toLocaleString()}</td>
+        <td>${r.overtimePay.toLocaleString()}</td><td>${r.bonuses.toLocaleString()}</td>
+        <td style="font-weight:bold;background:#f0fdf4">${r.gross.toLocaleString()}</td>
+        <td>${r.insurance.toLocaleString()}</td><td>${r.loans.toLocaleString()}</td><td>${r.advances.toLocaleString()}</td>
+        <td>${r.mobileBill.toLocaleString()}</td><td>${r.leaveDeduction.toLocaleString()}</td><td>${r.penalty.toLocaleString()}</td>
+        <td style="color:#dc2626">${r.totalDeductions.toLocaleString()}</td>
+        <td style="font-weight:bold;background:#eff6ff">${r.net.toLocaleString()}</td>
+        <td>${r.employerInsurance.toLocaleString()}</td><td>${r.healthInsurance.toLocaleString()}</td><td>${r.incomeTax.toLocaleString()}</td>
+      </tr>`).join('');
+      const totalRow = `<tr style="font-weight:bold;background:#f3f4f6">
+        <td>${ar ? 'الإجمالي' : 'Total'}</td><td>${totals.count}</td>
+        <td>${totals.basic.toLocaleString()}</td><td>${totals.transport.toLocaleString()}</td><td>${totals.incentives.toLocaleString()}</td>
+        <td>${totals.stationAllowance.toLocaleString()}</td><td>${totals.mobileAllowance.toLocaleString()}</td><td>${totals.livingAllowance.toLocaleString()}</td>
+        <td>${totals.overtimePay.toLocaleString()}</td><td>${totals.bonuses.toLocaleString()}</td>
+        <td style="background:#dcfce7">${totals.gross.toLocaleString()}</td>
+        <td>${totals.insurance.toLocaleString()}</td><td>${totals.loans.toLocaleString()}</td><td>${totals.advances.toLocaleString()}</td>
+        <td>${totals.mobileBill.toLocaleString()}</td><td>${totals.leaveDeduction.toLocaleString()}</td><td>${totals.penalty.toLocaleString()}</td>
+        <td style="color:#dc2626">${totals.totalDeductions.toLocaleString()}</td>
+        <td style="background:#dbeafe">${totals.net.toLocaleString()}</td>
+        <td>${totals.employerInsurance.toLocaleString()}</td><td>${totals.healthInsurance.toLocaleString()}</td><td>${totals.incomeTax.toLocaleString()}</td>
+      </tr>`;
+      pages += `<div class="station-page"><h2>${stName}</h2>
+        <table><thead><tr>${headerLabels.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}${totalRow}</tbody></table></div>`;
+    });
+
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html><html dir="${ar ? 'rtl' : 'ltr'}"><head><title>${title}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700&display=swap" rel="stylesheet">
+      <style>
+        body { font-family: 'Baloo Bhaijaan 2', sans-serif; padding: 15px; font-size: 10px; }
+        h1 { text-align: center; font-size: 18px; margin-bottom: 10px; }
+        h2 { font-size: 15px; margin: 8px 0; padding: 6px 10px; background: #1e40af; color: white; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 10px; }
+        th { background: #374151; color: white; padding: 4px 3px; font-size: 8px; white-space: nowrap; }
+        td { border: 1px solid #d1d5db; padding: 3px 4px; text-align: center; }
+        tr:nth-child(even) { background: #f9fafb; }
+        .station-page { page-break-after: always; }
+        .station-page:last-child { page-break-after: auto; }
+        @media print { @page { size: landscape; margin: 8mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+      </style></head><body>
+      <h1>${title}</h1>
+      <p style="text-align:center;color:#666;font-size:11px;margin-bottom:15px">${new Date().toLocaleDateString(ar ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      ${pages}
+      </body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 600);
+  }, [monthlyByStation, ar, selectedYear]);
+
   const deductionBreakdown = useMemo(() => [
     { name: ar ? 'تأمينات الموظف' : 'Insurance', value: filtered.reduce((s, e) => s + e.employeeInsurance, 0), color: '#ef4444' },
     { name: ar ? 'أقساط قروض' : 'Loans', value: filtered.reduce((s, e) => s + e.loanPayment, 0), color: '#f59e0b' },
@@ -374,6 +473,7 @@ const SalaryReports = () => {
     { id: 'monthly-detail', label: ar ? 'تفصيل شهري' : 'Monthly Detail' },
     { id: 'employee-detail', label: ar ? 'تفصيل الموظفين' : 'Employee Detail' },
     { id: 'allowances', label: ar ? 'تحليل البدلات والخصومات' : 'Allowances & Deductions' },
+    { id: 'monthly-station', label: ar ? 'تفصيل شهري بالمحطة' : 'Monthly by Station' },
   ];
 
   // Filters component
@@ -701,6 +801,88 @@ const SalaryReports = () => {
                 </Table>
               )}
             </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Monthly by Station */}
+        <TabsContent value="monthly-station">
+          <Card>
+            <CardHeader>
+              <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
+                <CardTitle>{ar ? 'تفصيل شهري بالمحطة' : 'Monthly Detail by Station'}</CardTitle>
+                <Button variant="outline" size="sm" onClick={handlePrintMonthlyByStation}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة لكل محطة' : 'Print by Station'}</Button>
+              </div>
+            </CardHeader>
+            <CardContent className="overflow-auto">
+              {monthlyByStation.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">{ar ? 'لا توجد بيانات' : 'No data'}</div>
+              ) : (
+                <Table>
+                  <TableHeader><TableRow>
+                    {[ar?'المحطة':'Station', ar?'الشهر':'Month', ar?'العدد':'Count', ar?'الأساسي':'Basic', ar?'مواصلات':'Trans.', ar?'حوافز':'Incent.', ar?'بدل محطة':'St.All.', ar?'بدل محمول':'Mob.', ar?'بدل معيشة':'Living', ar?'أجر إضافي':'OT', ar?'مكافآت':'Bonus', ar?'الإجمالي':'Gross', ar?'تأمينات':'Ins.', ar?'قروض':'Loans', ar?'إجمالي خصومات':'Tot.Ded', ar?'الصافي':'Net', ar?'صاحب العمل':'Employer'].map((h, i) => (
+                      <TableHead key={i} className={cn("whitespace-nowrap text-xs", isRTL && "text-right")}>{h}</TableHead>
+                    ))}
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {(() => {
+                      let lastStation = '';
+                      return monthlyByStation.map((r, i) => {
+                        const showStation = r.stationKey !== lastStation;
+                        lastStation = r.stationKey;
+                        return (
+                          <TableRow key={i} className={showStation ? 'border-t-2 border-primary/30' : ''}>
+                            <TableCell className={cn("font-medium whitespace-nowrap", isRTL && "text-right")}>{showStation ? r.stationName : ''}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.month}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.count}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.basic.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.transport.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.incentives.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.stationAllowance.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.mobileAllowance.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.livingAllowance.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.overtimePay.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.bonuses.toLocaleString()}</TableCell>
+                            <TableCell className={cn("font-bold text-green-700", isRTL && "text-right")}>{r.gross.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.insurance.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.loans.toLocaleString()}</TableCell>
+                            <TableCell className={cn("text-destructive", isRTL && "text-right")}>{r.totalDeductions.toLocaleString()}</TableCell>
+                            <TableCell className={cn("font-bold text-blue-700", isRTL && "text-right")}>{r.net.toLocaleString()}</TableCell>
+                            <TableCell className={cn("text-blue-600", isRTL && "text-right")}>{(r.employerInsurance + r.healthInsurance + r.incomeTax).toLocaleString()}</TableCell>
+                          </TableRow>
+                        );
+                      });
+                    })()}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Station comparison chart */}
+          <Card className="mt-6">
+            <CardHeader><CardTitle>{ar ? 'مقارنة صافي الرواتب الشهري بالمحطة' : 'Monthly Net Salary by Station'}</CardTitle></CardHeader>
+            <CardContent><div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={(() => {
+                  const stationsInData = [...new Set(monthlyByStation.map(r => r.stationKey))];
+                  return monthNamesAr.map((_, i) => {
+                    const m = String(i + 1).padStart(2, '0');
+                    const row: any = { month: monthNames[i] };
+                    stationsInData.forEach(stKey => {
+                      const match = monthlyByStation.find(r => r.stationKey === stKey && r.monthNum === m);
+                      row[getStationLabel(stKey)] = match ? match.net : 0;
+                    });
+                    return row;
+                  }).filter(r => Object.values(r).some((v, idx) => idx > 0 && (v as number) > 0));
+                })()}>
+                  <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" fontSize={11} /><YAxis fontSize={12} tickFormatter={v => `${(v/1000).toFixed(0)}K`} />
+                  <Tooltip formatter={(v: number) => v.toLocaleString()} /><Legend />
+                  {[...new Set(monthlyByStation.map(r => r.stationKey))].map((stKey, i) => (
+                    <Bar key={stKey} dataKey={getStationLabel(stKey)} fill={COLORS[i % COLORS.length]} radius={[2,2,0,0]} />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div></CardContent>
           </Card>
         </TabsContent>
 
