@@ -68,7 +68,9 @@ export const AssetRegistry = () => {
   ];
 
   const filtered = assets.filter(a => {
-    const matchSearch = a.nameAr.includes(search) || a.nameEn.toLowerCase().includes(search.toLowerCase()) || a.assetCode.includes(search) || a.serialNumber.includes(search);
+    const q = search.toLowerCase();
+    const empName = a.assignedTo ? (() => { const emp = mockEmployees.find(e => e.employeeId === a.assignedTo); return emp ? `${emp.nameAr} ${emp.nameEn}`.toLowerCase() : ''; })() : '';
+    const matchSearch = !search || a.nameAr.includes(search) || a.nameEn.toLowerCase().includes(q) || a.assetCode.toLowerCase().includes(q) || a.serialNumber.toLowerCase().includes(q) || a.brand.toLowerCase().includes(q) || a.model.toLowerCase().includes(q) || a.location.toLowerCase().includes(q) || a.category.includes(q) || empName.includes(q);
     const matchStatus = statusFilter === 'all' || a.status === statusFilter;
     const matchCategory = categoryFilter === 'all' || a.category === categoryFilter;
     return matchSearch && matchStatus && matchCategory;
