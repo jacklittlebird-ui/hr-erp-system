@@ -79,4 +79,8 @@ export interface Employee {
   sickLeaveBalance?: number;
   basicSalary?: number;
   allowances?: number;
+  bankAccountNumber?: string;
+  bankIdNumber?: string;
+  bankAccountType?: string;
+  bankName?: string;
 }
