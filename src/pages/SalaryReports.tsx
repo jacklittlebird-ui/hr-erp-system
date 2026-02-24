@@ -473,8 +473,8 @@ const SalaryReports = () => {
     { id: 'departments', label: ar ? 'حسب القسم' : 'By Department' },
     { id: 'monthly-detail', label: ar ? 'تفصيل شهري' : 'Monthly Detail' },
     { id: 'employee-detail', label: ar ? 'تفصيل الموظفين' : 'Employee Detail' },
-    { id: 'allowances', label: ar ? 'تحليل البدلات والخصومات' : 'Allowances & Deductions' },
     { id: 'monthly-station', label: ar ? 'تفصيل شهري بالمحطة' : 'Monthly by Station' },
+    { id: 'allowances', label: ar ? 'تحليل البدلات والخصومات' : 'Allowances & Deductions' },
   ];
 
   // Filters component
@@ -704,7 +704,7 @@ const SalaryReports = () => {
             <CardContent className="overflow-auto">
               <Table>
                 <TableHeader><TableRow>
-                  {[ar?'الشهر':'Month', ar?'العدد':'Count', ar?'الأساسي':'Basic', ar?'مواصلات':'Transport', ar?'حوافز':'Incentives', ar?'بدل محطة':'Station', ar?'بدل محمول':'Mobile', ar?'بدل معيشة':'Living', ar?'أجر إضافي':'OT', ar?'مكافآت':'Bonus', ar?'الإجمالي':'Gross', ar?'تأمينات':'Ins.', ar?'قروض':'Loans', ar?'سلف':'Adv.', ar?'فاتورة':'Bill', ar?'إجازات':'Leave', ar?'جزاءات':'Pen.', ar?'إجمالي خصومات':'Tot.Ded', ar?'الصافي':'Net'].map((h, i) => (
+                  {[ar?'الشهر':'Month', ar?'العدد':'Count', ar?'الأساسي':'Basic', ar?'مواصلات':'Transport', ar?'حوافز':'Incentives', ar?'بدل محطة':'Station', ar?'بدل محمول':'Mobile', ar?'بدل معيشة':'Living', ar?'أجر إضافي':'OT', ar?'مكافآت':'Bonus', ar?'الإجمالي':'Gross', ar?'تأمينات':'Ins.', ar?'قروض':'Loans', ar?'سلف':'Adv.', ar?'فاتورة':'Bill', ar?'إجازات':'Leave', ar?'جزاءات':'Pen.', ar?'إجمالي خصومات':'Tot.Ded', ar?'الصافي':'Net', ar?'مساهمات صاحب العمل':'Employer Cost'].map((h, i) => (
                     <TableHead key={i} className={cn("whitespace-nowrap text-xs", isRTL && "text-right")}>{h}</TableHead>
                   ))}
                 </TableRow></TableHeader>
@@ -730,6 +730,7 @@ const SalaryReports = () => {
                       <TableCell className={cn(isRTL && "text-right")}>{m.penalty.toLocaleString()}</TableCell>
                       <TableCell className={cn("text-destructive", isRTL && "text-right")}>{m.totalDeductions.toLocaleString()}</TableCell>
                       <TableCell className={cn("font-bold text-blue-700", isRTL && "text-right")}>{m.net.toLocaleString()}</TableCell>
+                      <TableCell className={cn("text-blue-600", isRTL && "text-right")}>{(m.employerInsurance + m.healthInsurance + m.incomeTax).toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -771,7 +772,7 @@ const SalaryReports = () => {
               ) : (
                 <Table>
                   <TableHeader><TableRow>
-                    {[ar?'الكود':'ID', ar?'الاسم':'Name', ar?'القسم':'Dept', ar?'المحطة':'Station', ar?'الشهر':'Month', ar?'الأساسي':'Basic', ar?'مواصلات':'Trans.', ar?'حوافز':'Incent.', ar?'بدل محطة':'St.All.', ar?'بدل محمول':'Mob.All.', ar?'بدل معيشة':'Living', ar?'أجر إضافي':'OT', ar?'مكافآت':'Bonus', ar?'الإجمالي':'Gross', ar?'تأمينات':'Ins.', ar?'قروض':'Loans', ar?'خصومات':'Tot.Ded', ar?'الصافي':'Net'].map((h, i) => (
+                    {[ar?'الكود':'ID', ar?'الاسم':'Name', ar?'القسم':'Dept', ar?'المحطة':'Station', ar?'الشهر':'Month', ar?'الأساسي':'Basic', ar?'مواصلات':'Trans.', ar?'حوافز':'Incent.', ar?'بدل محطة':'St.All.', ar?'بدل محمول':'Mob.All.', ar?'بدل معيشة':'Living', ar?'أجر إضافي':'OT', ar?'مكافآت':'Bonus', ar?'الإجمالي':'Gross', ar?'تأمينات':'Ins.', ar?'قروض':'Loans', ar?'خصومات':'Tot.Ded', ar?'الصافي':'Net', ar?'مساهمات صاحب العمل':'Employer Cost'].map((h, i) => (
                       <TableHead key={i} className={cn("whitespace-nowrap text-xs", isRTL && "text-right")}>{h}</TableHead>
                     ))}
                   </TableRow></TableHeader>
@@ -796,6 +797,7 @@ const SalaryReports = () => {
                         <TableCell className={cn(isRTL && "text-right")}>{e.loanPayment.toLocaleString()}</TableCell>
                         <TableCell className={cn("text-destructive", isRTL && "text-right")}>{e.totalDeductions.toLocaleString()}</TableCell>
                         <TableCell className={cn("font-bold text-blue-700", isRTL && "text-right")}>{e.netSalary.toLocaleString()}</TableCell>
+                        <TableCell className={cn("text-blue-600", isRTL && "text-right")}>{(e.employerSocialInsurance + e.healthInsurance + e.incomeTax).toLocaleString()}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
