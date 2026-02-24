@@ -151,7 +151,8 @@ const SalaryReports = () => {
     const yearFiltered = payrollEntries.filter(e => e.year === selectedYear && (department === 'all' || e.department === department));
     const stationsInData = new Set(yearFiltered.map(e => e.stationLocation));
     stationsInData.forEach(stKey => {
-      const stLabel = getStationLabel(stKey);
+      const stObj = stationLocations.find(s => s.value === stKey);
+      const stLabel = stObj ? (ar ? stObj.labelAr : stObj.labelEn) : stKey;
       monthNamesAr.forEach((_, i) => {
         const m = String(i + 1).padStart(2, '0');
         const me = yearFiltered.filter(e => e.stationLocation === stKey && e.month === m);
