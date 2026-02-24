@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { usePortalData, MissionType } from '@/contexts/PortalDataContext';
+import { usePortalData, PortalMissionType } from '@/contexts/PortalDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,12 +19,10 @@ import { format } from 'date-fns';
 
 const PORTAL_EMPLOYEE_ID = 'Emp001';
 
-const missionTypeLabels: Record<MissionType, { ar: string; en: string }> = {
-  internal: { ar: 'داخلية', en: 'Internal' },
-  external: { ar: 'خارجية', en: 'External' },
-  training: { ar: 'تدريب', en: 'Training' },
-  meeting: { ar: 'اجتماع', en: 'Meeting' },
-  client_visit: { ar: 'زيارة عميل', en: 'Client Visit' },
+const missionTypeLabels: Record<PortalMissionType, { ar: string; en: string; timeAr: string; timeEn: string }> = {
+  morning: { ar: 'مأمورية صباحية', en: 'Morning Mission', timeAr: 'تسجيل تلقائي 09:00', timeEn: 'Auto check-in 09:00' },
+  evening: { ar: 'مأمورية مسائية', en: 'Evening Mission', timeAr: 'تسجيل تلقائي 14:00', timeEn: 'Auto check-in 14:00' },
+  full_day: { ar: 'مأمورية يوم كامل', en: 'Full Day Mission', timeAr: '09:00 إلى 17:00', timeEn: '09:00 to 17:00' },
 };
 
 export const PortalMissions = () => {
@@ -45,11 +43,9 @@ export const PortalMissions = () => {
   };
 
   const missionTypeCls: Record<string, string> = {
-    internal: 'bg-blue-100 text-blue-700 border-blue-300',
-    external: 'bg-purple-100 text-purple-700 border-purple-300',
-    training: 'bg-green-100 text-green-700 border-green-300',
-    meeting: 'bg-orange-100 text-orange-700 border-orange-300',
-    client_visit: 'bg-pink-100 text-pink-700 border-pink-300',
+    morning: 'bg-blue-100 text-blue-700 border-blue-300',
+    evening: 'bg-purple-100 text-purple-700 border-purple-300',
+    full_day: 'bg-green-100 text-green-700 border-green-300',
   };
 
   const handleSubmit = () => {
@@ -59,7 +55,7 @@ export const PortalMissions = () => {
     }
     addMission({
       employeeId: PORTAL_EMPLOYEE_ID,
-      missionType: missionType as MissionType,
+      missionType: missionType as PortalMissionType,
       date: format(date, 'yyyy-MM-dd'),
       destAr: dest,
       destEn: dest,
@@ -135,7 +131,9 @@ export const PortalMissions = () => {
                   <SelectTrigger><SelectValue placeholder={ar ? 'اختر النوع' : 'Select type'} /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(missionTypeLabels).map(([key, val]) => (
-                      <SelectItem key={key} value={key}>{ar ? val.ar : val.en}</SelectItem>
+                      <SelectItem key={key} value={key}>
+                        {ar ? `${val.ar} (${val.timeAr})` : `${val.en} (${val.timeEn})`}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

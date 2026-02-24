@@ -215,13 +215,19 @@ const PermissionForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
 
 // ==================== Mission Form ====================
 const MissionForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language } = useLanguage();
+  const ar = language === 'ar';
   const [employeeId, setEmployeeId] = useState('');
   const [missionType, setMissionType] = useState('');
   const [date, setDate] = useState<Date>();
   const [destination, setDestination] = useState('');
-  const [status] = useState('pending');
   const [reason, setReason] = useState('');
+
+  const missionOptions = [
+    { value: 'morning', labelAr: 'مأمورية صباحية (تسجيل تلقائي 09:00)', labelEn: 'Morning Mission (auto check-in 09:00)' },
+    { value: 'evening', labelAr: 'مأمورية مسائية (تسجيل تلقائي 17:00)', labelEn: 'Evening Mission (auto check-in 14:00)' },
+    { value: 'full_day', labelAr: 'مأمورية يوم كامل (09:00 إلى 17:00)', labelEn: 'Full Day Mission (09:00 to 17:00)' },
+  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -253,13 +259,11 @@ const MissionForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
             {t('leaves.missions.type')} <span className="text-destructive">*</span>
           </Label>
           <Select value={missionType} onValueChange={setMissionType}>
-            <SelectTrigger><SelectValue placeholder={t('leaves.missions.selectType')} /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={ar ? 'اختر نوع المأمورية' : 'Select mission type'} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="internal">{t('leaves.missionTypes.internal')}</SelectItem>
-              <SelectItem value="external">{t('leaves.missionTypes.external')}</SelectItem>
-              <SelectItem value="training">{t('leaves.missionTypes.training')}</SelectItem>
-              <SelectItem value="meeting">{t('leaves.missionTypes.meeting')}</SelectItem>
-              <SelectItem value="client_visit">{t('leaves.missionTypes.client_visit')}</SelectItem>
+              {missionOptions.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{ar ? opt.labelAr : opt.labelEn}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

@@ -40,16 +40,15 @@ export const MissionRequestsList = ({ requests }: MissionRequestsListProps) => {
   };
 
   const getMissionTypeBadge = (type: MissionRequest['missionType']) => {
-    const colors: Record<string, string> = {
-      internal: 'bg-blue-100 text-blue-700 border-blue-300',
-      external: 'bg-purple-100 text-purple-700 border-purple-300',
-      training: 'bg-green-100 text-green-700 border-green-300',
-      meeting: 'bg-orange-100 text-orange-700 border-orange-300',
-      client_visit: 'bg-pink-100 text-pink-700 border-pink-300',
+    const config: Record<string, { color: string; labelAr: string; labelEn: string }> = {
+      morning: { color: 'bg-blue-100 text-blue-700 border-blue-300', labelAr: 'مأمورية صباحية', labelEn: 'Morning Mission' },
+      evening: { color: 'bg-purple-100 text-purple-700 border-purple-300', labelAr: 'مأمورية مسائية', labelEn: 'Evening Mission' },
+      full_day: { color: 'bg-green-100 text-green-700 border-green-300', labelAr: 'مأمورية يوم كامل', labelEn: 'Full Day Mission' },
     };
+    const c = config[type] || config.morning;
     return (
-      <Badge variant="outline" className={colors[type]}>
-        {t(`leaves.missionTypes.${type}`)}
+      <Badge variant="outline" className={c.color}>
+        {language === 'ar' ? c.labelAr : c.labelEn}
       </Badge>
     );
   };

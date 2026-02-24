@@ -11,7 +11,8 @@ export interface AttendanceEntry {
   date: string;
   checkIn: string | null;
   checkOut: string | null;
-  status: 'present' | 'absent' | 'late' | 'early-leave' | 'on-leave' | 'weekend';
+  status: 'present' | 'absent' | 'late' | 'early-leave' | 'on-leave' | 'weekend' | 'mission';
+  isMission?: boolean;
   workHours: number;
   workMinutes: number;
   overtime: number;
@@ -37,6 +38,7 @@ interface AttendanceDataContextType {
   records: AttendanceEntry[];
   checkIn: (employeeId: string, employeeName: string, employeeNameAr: string, department: string) => void;
   checkOut: (recordId: string) => void;
+  addMissionAttendance: (employeeId: string, employeeName: string, employeeNameAr: string, department: string, date: string, checkIn: string, checkOut: string, hours: number) => void;
   getEmployeeRecords: (employeeId: string) => AttendanceEntry[];
   getEmployeeMonthlyRecords: (employeeId: string, year: number, month: number) => AttendanceEntry[];
   getMonthlyStats: (employeeId: string, year: number, month: number) => {
@@ -174,6 +176,23 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
     }));
   }, [addNotification]);
 
+  const addMissionAttendance = useCallback((employeeId: string, employeeName: string, employeeNameAr: string, department: string, date: string, checkInTime: string, checkOutTime: string, hours: number) => {
+    // Remove any existing record for same employee+date
+    setRecords(prev => {
+      const filtered = prev.filter(r => !(r.employeeId === employeeId && r.date === date));
+      const entry: AttendanceEntry = {
+        id: String(Date.now()),
+        employeeId, employeeName, employeeNameAr, department,
+        date, checkIn: checkInTime, checkOut: checkOutTime,
+        status: 'mission',
+        workHours: hours, workMinutes: 0, overtime: 0,
+        isMission: true,
+        notes: 'مأمورية / Mission',
+      };
+      return [...filtered, entry];
+    });
+  }, []);
+
   const getEmployeeRecords = useCallback((employeeId: string) => {
     return records.filter(r => r.employeeId === employeeId).sort((a, b) => b.date.localeCompare(a.date));
   }, [records]);
@@ -201,7 +220,7 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
   }, [records]);
 
   return (
-    <AttendanceDataContext.Provider value={{ records, checkIn: checkInFn, checkOut: checkOutFn, getEmployeeRecords, getEmployeeMonthlyRecords, getMonthlyStats }}>
+    <AttendanceDataContext.Provider value={{ records, checkIn: checkInFn, checkOut: checkOutFn, addMissionAttendance, getEmployeeRecords, getEmployeeMonthlyRecords, getMonthlyStats }}>
       {children}
     </AttendanceDataContext.Provider>
   );
