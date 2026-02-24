@@ -3,7 +3,8 @@ import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { User, Building2, Briefcase, Mail, Phone, MapPin, CreditCard, Calendar, FileText, Shield, GraduationCap } from 'lucide-react';
+import { User, Building2, Briefcase, Mail, Phone, MapPin, CreditCard, Calendar, FileText, Shield, GraduationCap, Landmark } from 'lucide-react';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 const PORTAL_EMPLOYEE_ID = 'Emp001';
 
@@ -22,6 +23,7 @@ export const PortalProfile = () => {
   const ar = language === 'ar';
   const { getEmployeeById } = useEmployeeData();
   const employee = getEmployeeById(PORTAL_EMPLOYEE_ID);
+  const [bankInfo] = usePersistedState<Record<string, { accountNumber: string; bankId: string; bankName: string; accountType: string }>>('hr_bank_info', {});
 
   if (!employee) {
     return <div className="p-10 text-center text-muted-foreground">{ar ? 'لم يتم العثور على بيانات الموظف' : 'Employee data not found'}</div>;
@@ -78,11 +80,21 @@ export const PortalProfile = () => {
         </Card>
 
         <Card>
-          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><CreditCard className="w-5 h-5" />{ar ? 'المعلومات البنكية' : 'Bank Information'}</CardTitle></CardHeader>
+          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><Landmark className="w-5 h-5" />{ar ? 'المعلومات البنكية' : 'Bank Information'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <InfoItem icon={CreditCard} label={ar ? 'الرقم القومي' : 'National ID'} value={employee.nationalId || ''} />
-            <InfoItem icon={Phone} label={ar ? 'الهاتف' : 'Phone'} value={employee.phone || ''} />
-            <InfoItem icon={Phone} label={ar ? 'الجوال' : 'Mobile'} value={employee.mobile || ''} />
+            {(() => {
+              const bank = bankInfo[PORTAL_EMPLOYEE_ID];
+              return bank ? (
+                <>
+                  <InfoItem icon={Landmark} label={ar ? 'اسم البنك' : 'Bank Name'} value={bank.bankName} />
+                  <InfoItem icon={CreditCard} label={ar ? 'رقم الحساب' : 'Account Number'} value={bank.accountNumber} />
+                  <InfoItem icon={CreditCard} label={ar ? 'رقم التعريف البنكي' : 'Bank ID'} value={bank.bankId} />
+                  <InfoItem icon={FileText} label={ar ? 'نوع الحساب' : 'Account Type'} value={bank.accountType} />
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">{ar ? 'لم يتم إدخال بيانات بنكية بعد' : 'No bank info entered yet'}</p>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -90,26 +102,25 @@ export const PortalProfile = () => {
           <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><FileText className="w-5 h-5" />{ar ? 'معلومات العقد' : 'Contract'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <InfoItem icon={FileText} label={ar ? 'نوع العقد' : 'Contract Type'} value={employee.contractType || ''} />
-            <InfoItem icon={Calendar} label={ar ? 'تاريخ الميلاد' : 'Birth Date'} value={employee.birthDate || ''} />
-            <InfoItem icon={User} label={ar ? 'الجنسية' : 'Nationality'} value={employee.nationality || ''} />
+            <InfoItem icon={Calendar} label={ar ? 'تاريخ الالتحاق' : 'Hire Date'} value={employee.hireDate || ''} />
+            <InfoItem icon={Calendar} label={ar ? 'تاريخ انتهاء العقد' : 'Contract End Date'} value={employee.resignationDate || ''} />
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><Shield className="w-5 h-5" />{ar ? 'التأمينات' : 'Insurance'}</CardTitle></CardHeader>
+          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><Shield className="w-5 h-5" />{ar ? 'التأمينات الاجتماعية' : 'Social Insurance'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <InfoItem icon={Shield} label={ar ? 'رقم التأمين الاجتماعي' : 'Social Insurance'} value={employee.socialInsuranceNo || ''} />
-            <InfoItem icon={Shield} label={ar ? 'بطاقة التأمين الصحي' : 'Health Card'} value={employee.healthInsuranceCardNo || ''} />
-            <InfoItem icon={GraduationCap} label={ar ? 'المؤهل الدراسي' : 'Education'} value={employee.educationAr || ''} />
+            <InfoItem icon={Shield} label={ar ? 'رقم التأمين الاجتماعي' : 'Social Insurance No.'} value={employee.socialInsuranceNo || ''} />
+            <InfoItem icon={Shield} label={ar ? 'بطاقة التأمين الصحي' : 'Health Insurance Card'} value={employee.healthInsuranceCardNo || ''} />
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><Shield className="w-5 h-5" />{ar ? 'معلومات إضافية' : 'Additional Info'}</CardTitle></CardHeader>
+          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><User className="w-5 h-5" />{ar ? 'معلومات إضافية' : 'Additional Info'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <InfoItem icon={User} label={ar ? 'الحالة الاجتماعية' : 'Marital Status'} value={employee.maritalStatus || ''} />
             <InfoItem icon={User} label={ar ? 'النوع' : 'Gender'} value={employee.gender || ''} />
-            <InfoItem icon={User} label={ar ? 'الحالة العسكرية' : 'Military Status'} value={employee.militaryStatus || ''} />
+            <InfoItem icon={GraduationCap} label={ar ? 'المؤهل الدراسي' : 'Education'} value={employee.educationAr || ''} />
           </CardContent>
         </Card>
       </div>
