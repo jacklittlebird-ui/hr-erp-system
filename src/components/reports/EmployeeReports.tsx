@@ -1,125 +1,127 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Users, UserPlus, UserMinus, Building2, Download, FileText, Printer } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useReportExport } from '@/hooks/useReportExport';
 import { stationLocations } from '@/data/stationLocations';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 
 export const EmployeeReports = () => {
   const { t, isRTL } = useLanguage();
   const { language } = useLanguage();
-  const [period, setPeriod] = useState('year');
+  const ar = language === 'ar';
+  const { employees } = useEmployeeData();
   const [department, setDepartment] = useState('all');
   const [station, setStation] = useState('all');
+  const [status, setStatus] = useState('all');
   const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
 
-  const headcountData = [
-    { month: t('months.jan'), count: 145 },
-    { month: t('months.feb'), count: 148 },
-    { month: t('months.mar'), count: 152 },
-    { month: t('months.apr'), count: 155 },
-    { month: t('months.may'), count: 160 },
-    { month: t('months.jun'), count: 158 },
+  const departments = useMemo(() => {
+    const depts = new Set(employees.map(e => e.department).filter(d => d && d !== '-'));
+    return Array.from(depts);
+  }, [employees]);
+
+  const filteredEmployees = useMemo(() => {
+    return employees.filter(emp => {
+      const matchesDept = department === 'all' || emp.department === department;
+      const matchesStation = station === 'all' || emp.stationLocation === station;
+      const matchesStatus = status === 'all' || emp.status === status;
+      return matchesDept && matchesStation && matchesStatus;
+    });
+  }, [employees, department, station, status]);
+
+  const realStats = useMemo(() => [
+    { label: t('reports.totalEmployees'), value: filteredEmployees.length, icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: t('reports.newHires'), value: filteredEmployees.filter(e => e.status === 'active').length, icon: UserPlus, color: 'text-success', bg: 'bg-success/10' },
+    { label: t('reports.terminated'), value: filteredEmployees.filter(e => e.status === 'inactive').length, icon: UserMinus, color: 'text-destructive', bg: 'bg-destructive/10' },
+    { label: ar ? 'موقوف' : 'Suspended', value: filteredEmployees.filter(e => e.status === 'suspended').length, icon: Building2, color: 'text-warning', bg: 'bg-warning/10' },
+  ], [filteredEmployees, t, ar]);
+
+  const realDeptData = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredEmployees.forEach(e => { map[e.department] = (map[e.department] || 0) + 1; });
+    const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+    return Object.entries(map).map(([name, value], i) => ({ name, value, color: colors[i % colors.length] }));
+  }, [filteredEmployees]);
+
+  const realStationData = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredEmployees.forEach(e => {
+      const st = e.stationLocation || (ar ? 'غير محدد' : 'Unassigned');
+      const label = stationLocations.find(s => s.value === st);
+      const key = label ? (ar ? label.labelAr : label.labelEn) : st;
+      map[key] = (map[key] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [filteredEmployees, ar]);
+
+  const getEmployeeExportColumns = () => [
+    { header: ar ? 'كود الموظف' : 'Employee ID', key: 'employeeId' },
+    { header: ar ? 'الاسم' : 'Name', key: 'name' },
+    { header: ar ? 'المحطة' : 'Station', key: 'station' },
+    { header: ar ? 'القسم' : 'Department', key: 'department' },
+    { header: ar ? 'الوظيفة' : 'Job Title', key: 'jobTitle' },
+    { header: ar ? 'الحالة' : 'Status', key: 'status' },
   ];
 
-  const departmentData = [
-    { name: t('dept.it'), value: 45, color: '#3b82f6' },
-    { name: t('dept.hr'), value: 20, color: '#22c55e' },
-    { name: t('dept.finance'), value: 25, color: '#f59e0b' },
-    { name: t('dept.marketing'), value: 30, color: '#ef4444' },
-    { name: t('dept.operations'), value: 40, color: '#8b5cf6' },
-  ];
-
-  const turnoverData = [
-    { month: t('months.jan'), hired: 5, left: 2 },
-    { month: t('months.feb'), hired: 8, left: 3 },
-    { month: t('months.mar'), hired: 6, left: 4 },
-    { month: t('months.apr'), hired: 4, left: 2 },
-    { month: t('months.may'), hired: 7, left: 5 },
-    { month: t('months.jun'), hired: 3, left: 1 },
-  ];
-
-  const genderData = [
-    { name: t('reports.male'), value: 95, color: '#3b82f6' },
-    { name: t('reports.female'), value: 65, color: '#ec4899' },
-  ];
-
-  const stats = [
-    { label: t('reports.totalEmployees'), value: 160, icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
-    { label: t('reports.newHires'), value: 33, icon: UserPlus, color: 'text-success', bg: 'bg-success/10' },
-    { label: t('reports.terminated'), value: 17, icon: UserMinus, color: 'text-destructive', bg: 'bg-destructive/10' },
-    { label: t('reports.departments'), value: 5, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-100' },
-  ];
+  const getEmployeeExportData = () => filteredEmployees.map(e => ({
+    employeeId: e.employeeId,
+    name: ar ? e.nameAr : e.nameEn,
+    station: (() => { const s = stationLocations.find(s => s.value === e.stationLocation); return s ? (ar ? s.labelAr : s.labelEn) : (e.stationLocation || '-'); })(),
+    department: e.department,
+    jobTitle: e.jobTitle,
+    status: e.status === 'active' ? (ar ? 'نشط' : 'Active') : e.status === 'inactive' ? (ar ? 'غير نشط' : 'Inactive') : (ar ? 'موقوف' : 'Suspended'),
+  }));
 
   const reportTitle = t('reports.tabs.employees');
-
-  const getExportColumns = () => [
-    { header: t('reports.month'), key: 'month' },
-    { header: t('reports.totalEmployees'), key: 'count' },
-    { header: t('reports.hired'), key: 'hired' },
-    { header: t('reports.left'), key: 'left' },
-  ];
-
-  const getExportData = () => headcountData.map((h, i) => ({
-    month: h.month,
-    count: h.count,
-    hired: turnoverData[i]?.hired ?? 0,
-    left: turnoverData[i]?.left ?? 0,
-  }));
 
   return (
     <div className="space-y-6">
       <Card>
         <CardContent className="p-4">
           <div className={cn("flex flex-wrap gap-4 items-center justify-between", isRTL && "flex-row-reverse")}>
-            <div className={cn("flex gap-4", isRTL && "flex-row-reverse")}>
-              <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="month">{t('reports.thisMonth')}</SelectItem>
-                  <SelectItem value="quarter">{t('reports.thisQuarter')}</SelectItem>
-                  <SelectItem value="year">{t('reports.thisYear')}</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className={cn("flex flex-wrap gap-4", isRTL && "flex-row-reverse")}>
               <Select value={department} onValueChange={setDepartment}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('reports.allDepartments')}</SelectItem>
-                  <SelectItem value="it">{t('dept.it')}</SelectItem>
-                  <SelectItem value="hr">{t('dept.hr')}</SelectItem>
-                  <SelectItem value="finance">{t('dept.finance')}</SelectItem>
+                  {departments.map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={station} onValueChange={setStation}>
-                <SelectTrigger className="w-44"><SelectValue placeholder={language === 'ar' ? 'المحطة/الموقع' : 'Station'} /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={ar ? 'المحطة/الموقع' : 'Station'} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{language === 'ar' ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  <SelectItem value="all">{ar ? 'جميع المحطات' : 'All Stations'}</SelectItem>
                   {stationLocations.map(s => (
-                    <SelectItem key={s.value} value={s.value}>{language === 'ar' ? s.labelAr : s.labelEn}</SelectItem>
+                    <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? 'جميع الحالات' : 'All Status'}</SelectItem>
+                  <SelectItem value="active">{ar ? 'نشط' : 'Active'}</SelectItem>
+                  <SelectItem value="inactive">{ar ? 'غير نشط' : 'Inactive'}</SelectItem>
+                  <SelectItem value="suspended">{ar ? 'موقوف' : 'Suspended'}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
               <Button variant="outline" size="sm" onClick={() => handlePrint(reportTitle)}>
-                <Printer className="w-4 h-4 mr-2" />
-                {t('reports.print')}
+                <Printer className="w-4 h-4 mr-2" />{t('reports.print')}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => exportToPDF({ title: reportTitle, data: getExportData(), columns: getExportColumns() })}>
-                <Download className="w-4 h-4 mr-2" />
-                {t('reports.exportPDF')}
+              <Button variant="outline" size="sm" onClick={() => exportToPDF({ title: reportTitle, data: getEmployeeExportData(), columns: getEmployeeExportColumns() })}>
+                <Download className="w-4 h-4 mr-2" />PDF
               </Button>
-              <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: reportTitle, data: getExportData(), columns: getExportColumns() })}>
-                <FileText className="w-4 h-4 mr-2" />
-                {t('reports.exportExcel')}
+              <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: reportTitle, data: getEmployeeExportData(), columns: getEmployeeExportColumns() })}>
+                <FileText className="w-4 h-4 mr-2" />CSV
               </Button>
             </div>
           </div>
@@ -128,7 +130,7 @@ export const EmployeeReports = () => {
 
       <div ref={reportRef}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((stat, index) => (
+          {realStats.map((stat, index) => (
             <Card key={index}>
               <CardContent className="p-6">
                 <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
@@ -147,31 +149,14 @@ export const EmployeeReports = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <Card>
-            <CardHeader><CardTitle>{t('reports.headcountTrend')}</CardTitle></CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={headcountData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" fontSize={12} />
-                    <YAxis fontSize={12} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="count" name={t('reports.employees')} stroke="#3b82f6" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
             <CardHeader><CardTitle>{t('reports.departmentDistribution')}</CardTitle></CardHeader>
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={departmentData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value"
+                    <Pie data={realDeptData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value"
                       label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                      {departmentData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
+                      {realDeptData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
                     </Pie>
                     <Tooltip />
                   </PieChart>
@@ -179,40 +164,19 @@ export const EmployeeReports = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <Card>
-            <CardHeader><CardTitle>{t('reports.turnoverAnalysis')}</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{ar ? 'التوزيع حسب المحطة' : 'Distribution by Station'}</CardTitle></CardHeader>
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={turnoverData}>
+                  <BarChart data={realStationData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" fontSize={12} />
+                    <XAxis dataKey="name" fontSize={11} />
                     <YAxis fontSize={12} />
                     <Tooltip />
-                    <Legend />
-                    <Bar dataKey="hired" name={t('reports.hired')} fill="#22c55e" />
-                    <Bar dataKey="left" name={t('reports.left')} fill="#ef4444" />
+                    <Bar dataKey="value" name={ar ? 'الموظفين' : 'Employees'} fill="#3b82f6" />
                   </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>{t('reports.genderDistribution')}</CardTitle></CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={genderData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value"
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                      {genderData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>

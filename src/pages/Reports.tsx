@@ -10,6 +10,7 @@ import { SalaryReports } from '@/components/reports/SalaryReports';
 import { PerformanceReports } from '@/components/reports/PerformanceReports';
 import { TrainingReports } from '@/components/reports/TrainingReports';
 import { TrainingDebtReport } from '@/components/reports/TrainingDebtReport';
+import { UniformReport } from '@/components/reports/UniformReport';
 
 const Reports = () => {
   const { t, isRTL } = useLanguage();
@@ -23,6 +24,7 @@ const Reports = () => {
     { id: 'performance', label: t('reports.tabs.performance') },
     { id: 'training', label: t('reports.tabs.training') },
     { id: 'trainingDebt', label: isRTL ? 'ديون التدريب' : 'Training Debts' },
+    { id: 'uniforms', label: isRTL ? 'اليونيفورم' : 'Uniforms' },
   ];
 
   return (
@@ -45,33 +47,14 @@ const Reports = () => {
           ))}
         </TabsList>
 
-        <TabsContent value="employees">
-          <EmployeeReports />
-        </TabsContent>
-
-        <TabsContent value="attendance">
-          <AttendanceReportsTab />
-        </TabsContent>
-
-        <TabsContent value="leaves">
-          <LeaveReports />
-        </TabsContent>
-
-        <TabsContent value="salaries">
-          <SalaryReports />
-        </TabsContent>
-
-        <TabsContent value="performance">
-          <PerformanceReports />
-        </TabsContent>
-
-        <TabsContent value="training">
-          <TrainingReports />
-        </TabsContent>
-
-        <TabsContent value="trainingDebt">
-          <TrainingDebtReport />
-        </TabsContent>
+        <TabsContent value="employees"><EmployeeReports /></TabsContent>
+        <TabsContent value="attendance"><AttendanceReportsTab /></TabsContent>
+        <TabsContent value="leaves"><LeaveReports /></TabsContent>
+        <TabsContent value="salaries"><SalaryReports /></TabsContent>
+        <TabsContent value="performance"><PerformanceReports /></TabsContent>
+        <TabsContent value="training"><TrainingReports /></TabsContent>
+        <TabsContent value="trainingDebt"><TrainingDebtReport /></TabsContent>
+        <TabsContent value="uniforms"><UniformReport /></TabsContent>
       </Tabs>
     </DashboardLayout>
   );
