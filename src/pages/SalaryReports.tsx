@@ -470,7 +470,86 @@ const SalaryReports = () => {
     { header: ar ? 'جزاءات' : 'Penalty', key: 'penalty' },
     { header: ar ? 'إجمالي الخصومات' : 'Total Ded.', key: 'totalDed' },
     { header: ar ? 'الصافي' : 'Net', key: 'net' },
+    { header: ar ? 'تأمينات صاحب العمل' : 'Emp. Ins.', key: 'empIns' },
+    { header: ar ? 'تأمين صحي' : 'Health Ins.', key: 'health' },
+    { header: ar ? 'ضريبة دخل' : 'Income Tax', key: 'tax' },
+    { header: ar ? 'إجمالي مساهمات ص.ع' : 'Total Employer', key: 'totalEmployer' },
   ];
+
+  const getDetailExportDataFull = () => filtered.map(e => ({
+    ...getDetailExportData().find(d => d.id === e.employeeId && d.net === e.netSalary) || {},
+    id: e.employeeId,
+    name: ar ? e.employeeName : e.employeeNameEn,
+    dept: e.department,
+    station: getStationLabel(e.stationLocation),
+    basic: e.basicSalary, transport: e.transportAllowance, incentives: e.incentives,
+    stationAllow: e.stationAllowance, mobileAllow: e.mobileAllowance, living: e.livingAllowance,
+    overtime: e.overtimePay, bonus: e.bonusAmount, gross: e.gross,
+    insurance: e.employeeInsurance, loans: e.loanPayment, advances: e.advanceAmount,
+    mobileBill: e.mobileBill, leaveDed: e.leaveDeduction, penalty: e.penaltyAmount,
+    totalDed: e.totalDeductions, net: e.netSalary,
+    empIns: e.employerSocialInsurance, health: e.healthInsurance, tax: e.incomeTax,
+    totalEmployer: e.employerSocialInsurance + e.healthInsurance + e.incomeTax,
+  }));
+
+  const getMonthlyExportColumns = () => [
+    { header: ar ? 'الشهر' : 'Month', key: 'month' },
+    { header: ar ? 'العدد' : 'Count', key: 'count' },
+    { header: ar ? 'الأساسي' : 'Basic', key: 'basic' },
+    { header: ar ? 'مواصلات' : 'Transport', key: 'transport' },
+    { header: ar ? 'حوافز' : 'Incentives', key: 'incentives' },
+    { header: ar ? 'بدل محطة' : 'Station', key: 'stationAllowance' },
+    { header: ar ? 'بدل محمول' : 'Mobile', key: 'mobileAllowance' },
+    { header: ar ? 'بدل معيشة' : 'Living', key: 'livingAllowance' },
+    { header: ar ? 'أجر إضافي' : 'OT', key: 'overtimePay' },
+    { header: ar ? 'مكافآت' : 'Bonus', key: 'bonuses' },
+    { header: ar ? 'الإجمالي' : 'Gross', key: 'gross' },
+    { header: ar ? 'تأمينات' : 'Insurance', key: 'insurance' },
+    { header: ar ? 'قروض' : 'Loans', key: 'loans' },
+    { header: ar ? 'سلف' : 'Advances', key: 'advances' },
+    { header: ar ? 'فاتورة' : 'Bill', key: 'mobileBill' },
+    { header: ar ? 'إجازات' : 'Leave', key: 'leaveDeduction' },
+    { header: ar ? 'جزاءات' : 'Penalty', key: 'penalty' },
+    { header: ar ? 'إجمالي خصومات' : 'Tot.Ded', key: 'totalDeductions' },
+    { header: ar ? 'الصافي' : 'Net', key: 'net' },
+    { header: ar ? 'تأمينات صاحب العمل' : 'Emp. Ins.', key: 'employerInsurance' },
+    { header: ar ? 'تأمين صحي' : 'Health', key: 'healthInsurance' },
+    { header: ar ? 'ضريبة دخل' : 'Tax', key: 'incomeTax' },
+    { header: ar ? 'إجمالي مساهمات ص.ع' : 'Total Employer', key: 'totalEmployer' },
+  ];
+
+  const getMonthlyExportData = () => activeMonths.map(m => ({
+    ...m,
+    totalEmployer: m.employerInsurance + m.healthInsurance + m.incomeTax,
+  }));
+
+  const getStationExportColumns = () => [
+    { header: ar ? 'المحطة' : 'Station', key: 'stationName' },
+    { header: ar ? 'الشهر' : 'Month', key: 'month' },
+    { header: ar ? 'العدد' : 'Count', key: 'count' },
+    { header: ar ? 'الأساسي' : 'Basic', key: 'basic' },
+    { header: ar ? 'مواصلات' : 'Trans.', key: 'transport' },
+    { header: ar ? 'حوافز' : 'Incent.', key: 'incentives' },
+    { header: ar ? 'بدل محطة' : 'St.All.', key: 'stationAllowance' },
+    { header: ar ? 'بدل محمول' : 'Mob.', key: 'mobileAllowance' },
+    { header: ar ? 'بدل معيشة' : 'Living', key: 'livingAllowance' },
+    { header: ar ? 'أجر إضافي' : 'OT', key: 'overtimePay' },
+    { header: ar ? 'مكافآت' : 'Bonus', key: 'bonuses' },
+    { header: ar ? 'الإجمالي' : 'Gross', key: 'gross' },
+    { header: ar ? 'تأمينات' : 'Ins.', key: 'insurance' },
+    { header: ar ? 'قروض' : 'Loans', key: 'loans' },
+    { header: ar ? 'إجمالي خصومات' : 'Tot.Ded', key: 'totalDeductions' },
+    { header: ar ? 'الصافي' : 'Net', key: 'net' },
+    { header: ar ? 'تأمينات صاحب العمل' : 'Emp. Ins.', key: 'employerInsurance' },
+    { header: ar ? 'تأمين صحي' : 'Health', key: 'healthInsurance' },
+    { header: ar ? 'ضريبة دخل' : 'Tax', key: 'incomeTax' },
+    { header: ar ? 'إجمالي مساهمات ص.ع' : 'Total Employer', key: 'totalEmployer' },
+  ];
+
+  const getStationExportData = () => monthlyByStation.map(r => ({
+    ...r,
+    totalEmployer: r.employerInsurance + r.healthInsurance + r.incomeTax,
+  }));
 
   const tabs = [
     { id: 'overview', label: ar ? 'نظرة عامة' : 'Overview' },
@@ -517,8 +596,8 @@ const SalaryReports = () => {
           <div className={cn("flex gap-2 flex-wrap", isRTL && "flex-row-reverse")}>
             <Button variant="outline" size="sm" onClick={handlePrintMonthlyDetail}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة تفصيلي' : 'Print Detail'}</Button>
             <Button variant="outline" size="sm" onClick={handlePrintMonthlySummary}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة ملخص' : 'Print Summary'}</Button>
-            <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: ar ? 'تقرير الرواتب' : 'Salary Report', data: getDetailExportData(), columns: getDetailColumns() })}><FileText className="w-4 h-4 mr-1" />Excel</Button>
-            <Button variant="outline" size="sm" onClick={() => exportToPDF({ title: ar ? 'تقرير الرواتب' : 'Salary Report', data: getDetailExportData(), columns: getDetailColumns() })}><Download className="w-4 h-4 mr-1" />PDF</Button>
+            <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: ar ? 'تقرير الرواتب' : 'Salary Report', data: getDetailExportDataFull(), columns: getDetailColumns() })}><FileText className="w-4 h-4 mr-1" />Excel</Button>
+            <Button variant="outline" size="sm" onClick={() => exportToPDF({ title: ar ? 'تقرير الرواتب' : 'Salary Report', data: getDetailExportDataFull(), columns: getDetailColumns() })}><Download className="w-4 h-4 mr-1" />PDF</Button>
           </div>
         </div>
       </CardContent>
@@ -703,13 +782,16 @@ const SalaryReports = () => {
             <CardHeader>
               <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
                 <CardTitle>{ar ? 'إجماليات شهرية تفصيلية' : 'Detailed Monthly Totals'}</CardTitle>
-                <Button variant="outline" size="sm" onClick={handlePrintMonthlySummary}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة' : 'Print'}</Button>
+                <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
+                  <Button variant="outline" size="sm" onClick={handlePrintMonthlySummary}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة' : 'Print'}</Button>
+                  <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: ar ? 'إجماليات شهرية' : 'Monthly Totals', data: getMonthlyExportData(), columns: getMonthlyExportColumns(), fileName: 'monthly_totals' })}><FileText className="w-4 h-4 mr-1" />Excel</Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="overflow-auto">
               <Table>
                 <TableHeader><TableRow>
-                  {[ar?'الشهر':'Month', ar?'العدد':'Count', ar?'الأساسي':'Basic', ar?'مواصلات':'Transport', ar?'حوافز':'Incentives', ar?'بدل محطة':'Station', ar?'بدل محمول':'Mobile', ar?'بدل معيشة':'Living', ar?'أجر إضافي':'OT', ar?'مكافآت':'Bonus', ar?'الإجمالي':'Gross', ar?'تأمينات':'Ins.', ar?'قروض':'Loans', ar?'سلف':'Adv.', ar?'فاتورة':'Bill', ar?'إجازات':'Leave', ar?'جزاءات':'Pen.', ar?'إجمالي خصومات':'Tot.Ded', ar?'الصافي':'Net', ar?'مساهمات صاحب العمل':'Employer Cost'].map((h, i) => (
+                  {[ar?'الشهر':'Month', ar?'العدد':'Count', ar?'الأساسي':'Basic', ar?'مواصلات':'Transport', ar?'حوافز':'Incentives', ar?'بدل محطة':'Station', ar?'بدل محمول':'Mobile', ar?'بدل معيشة':'Living', ar?'أجر إضافي':'OT', ar?'مكافآت':'Bonus', ar?'الإجمالي':'Gross', ar?'تأمينات':'Ins.', ar?'قروض':'Loans', ar?'سلف':'Adv.', ar?'فاتورة':'Bill', ar?'إجازات':'Leave', ar?'جزاءات':'Pen.', ar?'إجمالي خصومات':'Tot.Ded', ar?'الصافي':'Net', ar?'تأمينات ص.ع':'Emp.Ins', ar?'صحي':'Health', ar?'ضريبة':'Tax', ar?'إجمالي مساهمات ص.ع':'Total Employer'].map((h, i) => (
                     <TableHead key={i} className={cn("whitespace-nowrap text-xs", isRTL && "text-right")}>{h}</TableHead>
                   ))}
                 </TableRow></TableHeader>
@@ -735,7 +817,10 @@ const SalaryReports = () => {
                       <TableCell className={cn(isRTL && "text-right")}>{m.penalty.toLocaleString()}</TableCell>
                       <TableCell className={cn("text-destructive", isRTL && "text-right")}>{m.totalDeductions.toLocaleString()}</TableCell>
                       <TableCell className={cn("font-bold text-blue-700", isRTL && "text-right")}>{m.net.toLocaleString()}</TableCell>
-                      <TableCell className={cn("text-blue-600", isRTL && "text-right")}>{(m.employerInsurance + m.healthInsurance + m.incomeTax).toLocaleString()}</TableCell>
+                      <TableCell className={cn(isRTL && "text-right")}>{m.employerInsurance.toLocaleString()}</TableCell>
+                      <TableCell className={cn(isRTL && "text-right")}>{m.healthInsurance.toLocaleString()}</TableCell>
+                      <TableCell className={cn(isRTL && "text-right")}>{m.incomeTax.toLocaleString()}</TableCell>
+                      <TableCell className={cn("font-bold text-blue-600", isRTL && "text-right")}>{(m.employerInsurance + m.healthInsurance + m.incomeTax).toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -768,7 +853,10 @@ const SalaryReports = () => {
             <CardHeader>
               <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
                 <CardTitle>{ar ? 'بيانات الموظفين التفصيلية' : 'Employee Detailed Data'}</CardTitle>
-                <Button variant="outline" size="sm" onClick={handlePrintMonthlyDetail}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة' : 'Print'}</Button>
+                <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
+                  <Button variant="outline" size="sm" onClick={handlePrintMonthlyDetail}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة' : 'Print'}</Button>
+                  <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: ar ? 'تفصيل الموظفين' : 'Employee Detail', data: getDetailExportDataFull(), columns: getDetailColumns(), fileName: 'employee_detail' })}><FileText className="w-4 h-4 mr-1" />Excel</Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="overflow-auto">
@@ -777,7 +865,7 @@ const SalaryReports = () => {
               ) : (
                 <Table>
                   <TableHeader><TableRow>
-                    {[ar?'الكود':'ID', ar?'الاسم':'Name', ar?'القسم':'Dept', ar?'المحطة':'Station', ar?'الشهر':'Month', ar?'الأساسي':'Basic', ar?'مواصلات':'Trans.', ar?'حوافز':'Incent.', ar?'بدل محطة':'St.All.', ar?'بدل محمول':'Mob.All.', ar?'بدل معيشة':'Living', ar?'أجر إضافي':'OT', ar?'مكافآت':'Bonus', ar?'الإجمالي':'Gross', ar?'تأمينات':'Ins.', ar?'قروض':'Loans', ar?'خصومات':'Tot.Ded', ar?'الصافي':'Net', ar?'مساهمات صاحب العمل':'Employer Cost'].map((h, i) => (
+                    {[ar?'الكود':'ID', ar?'الاسم':'Name', ar?'القسم':'Dept', ar?'المحطة':'Station', ar?'الشهر':'Month', ar?'الأساسي':'Basic', ar?'مواصلات':'Trans.', ar?'حوافز':'Incent.', ar?'بدل محطة':'St.All.', ar?'بدل محمول':'Mob.All.', ar?'بدل معيشة':'Living', ar?'أجر إضافي':'OT', ar?'مكافآت':'Bonus', ar?'الإجمالي':'Gross', ar?'تأمينات':'Ins.', ar?'قروض':'Loans', ar?'خصومات':'Tot.Ded', ar?'الصافي':'Net', ar?'تأمينات ص.ع':'Emp.Ins', ar?'صحي':'Health', ar?'ضريبة':'Tax', ar?'إجمالي مساهمات ص.ع':'Total Employer'].map((h, i) => (
                       <TableHead key={i} className={cn("whitespace-nowrap text-xs", isRTL && "text-right")}>{h}</TableHead>
                     ))}
                   </TableRow></TableHeader>
@@ -802,7 +890,10 @@ const SalaryReports = () => {
                         <TableCell className={cn(isRTL && "text-right")}>{e.loanPayment.toLocaleString()}</TableCell>
                         <TableCell className={cn("text-destructive", isRTL && "text-right")}>{e.totalDeductions.toLocaleString()}</TableCell>
                         <TableCell className={cn("font-bold text-blue-700", isRTL && "text-right")}>{e.netSalary.toLocaleString()}</TableCell>
-                        <TableCell className={cn("text-blue-600", isRTL && "text-right")}>{(e.employerSocialInsurance + e.healthInsurance + e.incomeTax).toLocaleString()}</TableCell>
+                        <TableCell className={cn(isRTL && "text-right")}>{e.employerSocialInsurance.toLocaleString()}</TableCell>
+                        <TableCell className={cn(isRTL && "text-right")}>{e.healthInsurance.toLocaleString()}</TableCell>
+                        <TableCell className={cn(isRTL && "text-right")}>{e.incomeTax.toLocaleString()}</TableCell>
+                        <TableCell className={cn("font-bold text-blue-600", isRTL && "text-right")}>{(e.employerSocialInsurance + e.healthInsurance + e.incomeTax).toLocaleString()}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -818,7 +909,10 @@ const SalaryReports = () => {
             <CardHeader>
               <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
                 <CardTitle>{ar ? 'تفصيل شهري بالمحطة' : 'Monthly Detail by Station'}</CardTitle>
-                <Button variant="outline" size="sm" onClick={handlePrintMonthlyByStation}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة لكل محطة' : 'Print by Station'}</Button>
+                <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
+                  <Button variant="outline" size="sm" onClick={handlePrintMonthlyByStation}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة لكل محطة' : 'Print by Station'}</Button>
+                  <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: ar ? 'تفصيل شهري بالمحطة' : 'Monthly by Station', data: getStationExportData(), columns: getStationExportColumns(), fileName: 'monthly_by_station' })}><FileText className="w-4 h-4 mr-1" />Excel</Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="overflow-auto">
@@ -827,7 +921,7 @@ const SalaryReports = () => {
               ) : (
                 <Table>
                   <TableHeader><TableRow>
-                    {[ar?'المحطة':'Station', ar?'الشهر':'Month', ar?'العدد':'Count', ar?'الأساسي':'Basic', ar?'مواصلات':'Trans.', ar?'حوافز':'Incent.', ar?'بدل محطة':'St.All.', ar?'بدل محمول':'Mob.', ar?'بدل معيشة':'Living', ar?'أجر إضافي':'OT', ar?'مكافآت':'Bonus', ar?'الإجمالي':'Gross', ar?'تأمينات':'Ins.', ar?'قروض':'Loans', ar?'إجمالي خصومات':'Tot.Ded', ar?'الصافي':'Net', ar?'صاحب العمل':'Employer'].map((h, i) => (
+                    {[ar?'المحطة':'Station', ar?'الشهر':'Month', ar?'العدد':'Count', ar?'الأساسي':'Basic', ar?'مواصلات':'Trans.', ar?'حوافز':'Incent.', ar?'بدل محطة':'St.All.', ar?'بدل محمول':'Mob.', ar?'بدل معيشة':'Living', ar?'أجر إضافي':'OT', ar?'مكافآت':'Bonus', ar?'الإجمالي':'Gross', ar?'تأمينات':'Ins.', ar?'قروض':'Loans', ar?'إجمالي خصومات':'Tot.Ded', ar?'الصافي':'Net', ar?'تأمينات ص.ع':'Emp.Ins', ar?'صحي':'Health', ar?'ضريبة':'Tax', ar?'إجمالي مساهمات ص.ع':'Total Employer'].map((h, i) => (
                       <TableHead key={i} className={cn("whitespace-nowrap text-xs", isRTL && "text-right")}>{h}</TableHead>
                     ))}
                   </TableRow></TableHeader>
@@ -855,7 +949,10 @@ const SalaryReports = () => {
                             <TableCell className={cn(isRTL && "text-right")}>{r.loans.toLocaleString()}</TableCell>
                             <TableCell className={cn("text-destructive", isRTL && "text-right")}>{r.totalDeductions.toLocaleString()}</TableCell>
                             <TableCell className={cn("font-bold text-blue-700", isRTL && "text-right")}>{r.net.toLocaleString()}</TableCell>
-                            <TableCell className={cn("text-blue-600", isRTL && "text-right")}>{(r.employerInsurance + r.healthInsurance + r.incomeTax).toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.employerInsurance.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.healthInsurance.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{r.incomeTax.toLocaleString()}</TableCell>
+                            <TableCell className={cn("font-bold text-blue-600", isRTL && "text-right")}>{(r.employerInsurance + r.healthInsurance + r.incomeTax).toLocaleString()}</TableCell>
                           </TableRow>
                         );
                       });
