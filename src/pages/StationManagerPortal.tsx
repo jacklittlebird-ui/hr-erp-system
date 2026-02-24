@@ -217,12 +217,14 @@ const StationManagerPortal = () => {
   // === Evaluations Tab Filters ===
   const [evalSearch, setEvalSearch] = useState('');
   const [evalFilterEmployee, setEvalFilterEmployee] = useState('all');
+  const [evalFilterDept, setEvalFilterDept] = useState('all');
   const [evalFilterQuarter, setEvalFilterQuarter] = useState('all');
   const [evalFilterYear, setEvalFilterYear] = useState('all');
   const [evalFilterStatus, setEvalFilterStatus] = useState('all');
   const filteredReviews = useMemo(() => {
     let list = stationReviews;
     if (evalFilterEmployee !== 'all') list = list.filter(r => r.employeeId === evalFilterEmployee);
+    if (evalFilterDept !== 'all') list = list.filter(r => r.department === evalFilterDept);
     if (evalFilterQuarter !== 'all') list = list.filter(r => r.quarter === evalFilterQuarter);
     if (evalFilterYear !== 'all') list = list.filter(r => r.year === evalFilterYear);
     if (evalFilterStatus !== 'all') list = list.filter(r => r.status === evalFilterStatus);
@@ -231,7 +233,7 @@ const StationManagerPortal = () => {
       list = list.filter(r => r.employeeName.toLowerCase().includes(q) || r.employeeId.toLowerCase().includes(q) || r.reviewer.toLowerCase().includes(q));
     }
     return list;
-  }, [stationReviews, evalFilterEmployee, evalFilterQuarter, evalFilterYear, evalFilterStatus, evalSearch]);
+  }, [stationReviews, evalFilterEmployee, evalFilterDept, evalFilterQuarter, evalFilterYear, evalFilterStatus, evalSearch]);
 
   // === Violations Tab Filters ===
   const [violSearch, setViolSearch] = useState('');
@@ -415,6 +417,17 @@ const StationManagerPortal = () => {
                       <SelectItem value="all">{t('جميع الموظفين', 'All Employees')}</SelectItem>
                       {stationEmployees.map(emp => (
                         <SelectItem key={emp.employeeId} value={emp.employeeId}>{ar ? emp.nameAr : emp.nameEn}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={evalFilterDept} onValueChange={setEvalFilterDept}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder={t('جميع الأقسام', 'All Departments')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('جميع الأقسام', 'All Departments')}</SelectItem>
+                      {stationDepartments.map(dept => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
