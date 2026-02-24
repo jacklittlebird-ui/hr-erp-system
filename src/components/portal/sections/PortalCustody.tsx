@@ -73,11 +73,28 @@ export const PortalCustody = () => {
   };
 
   // Training debts
+  const [debtFilter, setDebtFilter] = useState<'all' | 'expiring-soon' | 'expiring-later'>('all');
+
+  const now = useMemo(() => new Date(), []);
+  const sixMonthsFromNow = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 6);
+    return d;
+  }, []);
+
   const activeDebts = useMemo(() => {
-    const now = new Date();
     return trainingDebts.filter(d => d.employeeId === PORTAL_EMPLOYEE_ID && new Date(d.expiryDate) > now);
-  }, [trainingDebts]);
-  const totalDebt = activeDebts.reduce((s, d) => s + d.cost, 0);
+  }, [trainingDebts, now]);
+
+  const filteredDebts = useMemo(() => {
+    if (debtFilter === 'expiring-soon') return activeDebts.filter(d => new Date(d.expiryDate) <= sixMonthsFromNow);
+    if (debtFilter === 'expiring-later') return activeDebts.filter(d => new Date(d.expiryDate) > sixMonthsFromNow);
+    return activeDebts;
+  }, [activeDebts, debtFilter, sixMonthsFromNow]);
+
+  const totalDebt = filteredDebts.reduce((s, d) => s + d.cost, 0);
+  const soonCount = activeDebts.filter(d => new Date(d.expiryDate) <= sixMonthsFromNow).length;
+  const laterCount = activeDebts.filter(d => new Date(d.expiryDate) > sixMonthsFromNow).length;
 
   return (
     <div className="space-y-6">
@@ -173,16 +190,43 @@ export const PortalCustody = () => {
             </Card>
           ) : (
             <>
-              <Card className="border-amber-200 bg-amber-50">
+              {/* Filter buttons */}
+              <div className={cn("flex items-center gap-2 flex-wrap", isRTL && "flex-row-reverse")}>
+                <Button
+                  variant={debtFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDebtFilter('all')}
+                >
+                  {ar ? 'الكل' : 'All'} ({activeDebts.length})
+                </Button>
+                <Button
+                  variant={debtFilter === 'expiring-soon' ? 'destructive' : 'outline'}
+                  size="sm"
+                  onClick={() => setDebtFilter('expiring-soon')}
+                  className="gap-1"
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  {ar ? 'تنتهي قريباً' : 'Expiring Soon'} ({soonCount})
+                </Button>
+                <Button
+                  variant={debtFilter === 'expiring-later' ? 'secondary' : 'outline'}
+                  size="sm"
+                  onClick={() => setDebtFilter('expiring-later')}
+                >
+                  {ar ? 'تنتهي لاحقاً' : 'Expiring Later'} ({laterCount})
+                </Button>
+              </div>
+
+              <Card className="border-warning/30 bg-warning/5">
                 <CardContent className="p-4">
                   <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
                     <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                      <AlertTriangle className="w-5 h-5 text-amber-700" />
-                      <span className="font-semibold text-amber-800">{ar ? 'إجمالي المستحقات' : 'Total Dues'}</span>
+                      <AlertTriangle className="w-5 h-5 text-warning" />
+                      <span className="font-semibold">{ar ? 'إجمالي المستحقات' : 'Total Dues'}{debtFilter !== 'all' ? ` (${ar ? 'مفلتر' : 'filtered'})` : ''}</span>
                     </div>
-                    <span className="text-xl font-bold text-amber-800">{totalDebt.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
+                    <span className="text-xl font-bold">{totalDebt.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
                   </div>
-                  <p className={cn("text-xs text-amber-600 mt-2 flex items-center gap-1", isRTL && "flex-row-reverse")}>
+                  <p className={cn("text-xs text-muted-foreground mt-2 flex items-center gap-1", isRTL && "flex-row-reverse")}>
                     <Info className="w-3 h-3" />
                     {ar ? 'تظل تكلفة الدورة مستحقة لمدة 3 سنوات من تاريخ أخذها ثم تُزال تلقائياً' : 'Course cost remains due for 3 years from the date taken, then auto-removed'}
                   </p>
@@ -196,29 +240,43 @@ export const PortalCustody = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader><TableRow>
-                      <TableHead className={cn(isRTL && "text-right")}>{ar ? 'اسم الدورة' : 'Course'}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{ar ? 'التكلفة' : 'Cost'}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ الدورة' : 'Date'}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ الانتهاء' : 'Expires'}</TableHead>
-                    </TableRow></TableHeader>
-                    <TableBody>
-                      {activeDebts.map(d => (
-                        <TableRow key={d.id}>
-                          <TableCell className="font-medium">{d.courseName}</TableCell>
-                          <TableCell className="font-bold text-amber-700">{d.cost.toLocaleString()}</TableCell>
-                          <TableCell>{d.actualDate}</TableCell>
-                          <TableCell>{d.expiryDate}</TableCell>
+                  {filteredDebts.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-6">{ar ? 'لا توجد نتائج لهذا الفلتر' : 'No results for this filter'}</p>
+                  ) : (
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead className={cn(isRTL && "text-right")}>{ar ? 'اسم الدورة' : 'Course'}</TableHead>
+                        <TableHead className={cn(isRTL && "text-right")}>{ar ? 'التكلفة' : 'Cost'}</TableHead>
+                        <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ الدورة' : 'Date'}</TableHead>
+                        <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ الانتهاء' : 'Expires'}</TableHead>
+                        <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {filteredDebts.map(d => {
+                          const expiry = new Date(d.expiryDate);
+                          const isSoon = expiry <= sixMonthsFromNow;
+                          return (
+                            <TableRow key={d.id}>
+                              <TableCell className="font-medium">{d.courseName}</TableCell>
+                              <TableCell className="font-bold">{d.cost.toLocaleString()}</TableCell>
+                              <TableCell>{d.actualDate}</TableCell>
+                              <TableCell>{d.expiryDate}</TableCell>
+                              <TableCell>
+                                <Badge variant={isSoon ? 'destructive' : 'secondary'}>
+                                  {isSoon ? (ar ? 'تنتهي قريباً' : 'Expiring Soon') : (ar ? 'فعّال' : 'Active')}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        <TableRow className="bg-muted/50 font-bold">
+                          <TableCell>{ar ? 'الإجمالي' : 'Total'}</TableCell>
+                          <TableCell>{totalDebt.toLocaleString()}</TableCell>
+                          <TableCell colSpan={3} />
                         </TableRow>
-                      ))}
-                      <TableRow className="bg-muted/50 font-bold">
-                        <TableCell>{ar ? 'الإجمالي' : 'Total'}</TableCell>
-                        <TableCell className="text-amber-800">{totalDebt.toLocaleString()}</TableCell>
-                        <TableCell colSpan={2} />
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             </>
