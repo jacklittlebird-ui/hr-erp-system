@@ -215,6 +215,7 @@ const StationManagerPortal = () => {
   }, [stationEmployees, deptFilter, statusFilter, empSearch]);
 
   // === Evaluations Tab Filters ===
+  const [evalSearch, setEvalSearch] = useState('');
   const [evalFilterEmployee, setEvalFilterEmployee] = useState('all');
   const [evalFilterQuarter, setEvalFilterQuarter] = useState('all');
   const [evalFilterYear, setEvalFilterYear] = useState('all');
@@ -225,10 +226,15 @@ const StationManagerPortal = () => {
     if (evalFilterQuarter !== 'all') list = list.filter(r => r.quarter === evalFilterQuarter);
     if (evalFilterYear !== 'all') list = list.filter(r => r.year === evalFilterYear);
     if (evalFilterStatus !== 'all') list = list.filter(r => r.status === evalFilterStatus);
+    if (evalSearch.trim()) {
+      const q = evalSearch.trim().toLowerCase();
+      list = list.filter(r => r.employeeName.toLowerCase().includes(q) || r.employeeId.toLowerCase().includes(q) || r.reviewer.toLowerCase().includes(q));
+    }
     return list;
-  }, [stationReviews, evalFilterEmployee, evalFilterQuarter, evalFilterYear, evalFilterStatus]);
+  }, [stationReviews, evalFilterEmployee, evalFilterQuarter, evalFilterYear, evalFilterStatus, evalSearch]);
 
   // === Violations Tab Filters ===
+  const [violSearch, setViolSearch] = useState('');
   const [violFilterEmployee, setViolFilterEmployee] = useState('all');
   const [violFilterType, setViolFilterType] = useState('all');
   const [violFilterStatus, setViolFilterStatus] = useState('all');
@@ -237,8 +243,15 @@ const StationManagerPortal = () => {
     if (violFilterEmployee !== 'all') list = list.filter(v => v.employeeId === violFilterEmployee);
     if (violFilterType !== 'all') list = list.filter(v => v.type === violFilterType);
     if (violFilterStatus !== 'all') list = list.filter(v => v.status === violFilterStatus);
+    if (violSearch.trim()) {
+      const q = violSearch.trim().toLowerCase();
+      list = list.filter(v => {
+        const emp = stationEmployees.find(e => e.employeeId === v.employeeId);
+        return v.employeeId.toLowerCase().includes(q) || v.description.toLowerCase().includes(q) || (emp && (emp.nameAr.toLowerCase().includes(q) || emp.nameEn.toLowerCase().includes(q)));
+      });
+    }
     return list;
-  }, [stationViolations, violFilterEmployee, violFilterType, violFilterStatus]);
+  }, [stationViolations, violFilterEmployee, violFilterType, violFilterStatus, violSearch, stationEmployees]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -390,6 +403,10 @@ const StationManagerPortal = () => {
                   <Button onClick={() => setEvalDialog(true)} size="sm"><Star className="h-4 w-4 me-1.5" />{t('إضافة تقييم', 'Add Evaluation')}</Button>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder={t('بحث بالاسم أو الرقم...', 'Search by name or ID...')} value={evalSearch} onChange={e => setEvalSearch(e.target.value)} className="ps-9" />
+                  </div>
                   <Select value={evalFilterEmployee} onValueChange={setEvalFilterEmployee}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder={t('جميع الموظفين', 'All Employees')} />
@@ -484,6 +501,10 @@ const StationManagerPortal = () => {
                   <Button onClick={() => setViolDialog(true)} size="sm" variant="destructive"><AlertTriangle className="h-4 w-4 me-1.5" />{t('إضافة مخالفة', 'Add Violation')}</Button>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder={t('بحث بالاسم أو الوصف...', 'Search by name or description...')} value={violSearch} onChange={e => setViolSearch(e.target.value)} className="ps-9" />
+                  </div>
                   <Select value={violFilterEmployee} onValueChange={setViolFilterEmployee}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder={t('جميع الموظفين', 'All Employees')} />
