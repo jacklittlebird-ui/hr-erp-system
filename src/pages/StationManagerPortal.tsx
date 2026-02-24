@@ -2,59 +2,94 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
+import { usePerformanceData, defaultCriteria, calculateScore, CriteriaItem } from '@/contexts/PerformanceDataContext';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
 import { stationLocations } from '@/data/stationLocations';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Users, Star, AlertTriangle, LogOut, Globe, BarChart3, MapPin } from 'lucide-react';
+import { Users, Star, AlertTriangle, LogOut, Globe, MapPin, Target, TrendingUp, Lightbulb, MessageSquare, Save, Send, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-interface Evaluation {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  date: string;
-  score: number;
-  quarter: string;
-  year: string;
-  notes: string;
-  station: string;
-}
-
+// Shared violation interface (matches ViolationsTab)
 interface Violation {
   id: string;
   employeeId: string;
-  employeeName: string;
   date: string;
   type: string;
   description: string;
-  severity: 'low' | 'medium' | 'high';
-  station: string;
+  penalty: string;
+  status: 'active' | 'resolved';
 }
+
+const violationTypes = [
+  { value: 'absence', ar: 'غياب بدون إذن', en: 'Unauthorized Absence' },
+  { value: 'late', ar: 'تأخر متكرر', en: 'Repeated Tardiness' },
+  { value: 'conduct', ar: 'سلوك غير لائق', en: 'Misconduct' },
+  { value: 'safety', ar: 'مخالفة سلامة', en: 'Safety Violation' },
+  { value: 'negligence', ar: 'إهمال', en: 'Negligence' },
+  { value: 'uniform', ar: 'مخالفة زي', en: 'Uniform Violation' },
+  { value: 'other', ar: 'أخرى', en: 'Other' },
+];
+
+interface CriteriaScore {
+  id: string;
+  name: string;
+  nameAr: string;
+  score: number;
+  weight: number;
+}
+
+const initialCriteria: CriteriaScore[] = [
+  { id: 'quality', name: 'Work Quality', nameAr: 'جودة العمل', score: 3, weight: 25 },
+  { id: 'productivity', name: 'Productivity', nameAr: 'الإنتاجية', score: 3, weight: 20 },
+  { id: 'teamwork', name: 'Teamwork', nameAr: 'العمل الجماعي', score: 3, weight: 20 },
+  { id: 'communication', name: 'Communication', nameAr: 'التواصل', score: 3, weight: 15 },
+  { id: 'initiative', name: 'Initiative', nameAr: 'المبادرة', score: 3, weight: 10 },
+  { id: 'attendance', name: 'Attendance & Punctuality', nameAr: 'الحضور والالتزام', score: 3, weight: 10 },
+];
+
+const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
+const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
 
 const StationManagerPortal = () => {
   const { user, logout } = useAuth();
   const { language, setLanguage, isRTL } = useLanguage();
   const { employees } = useEmployeeData();
+  const { reviews, addReview } = usePerformanceData();
+  const { addNotification } = useNotifications();
   const navigate = useNavigate();
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
+  const ar = language === 'ar';
 
-  const [evaluations, setEvaluations] = usePersistedState<Evaluation[]>('hr_station_evaluations', []);
-  const [violations, setViolations] = usePersistedState<Violation[]>('hr_station_violations', []);
+  // Shared violations store (same key as ViolationsTab)
+  const [violations, setViolations] = usePersistedState<Violation[]>('hr_violations', []);
+
+  // Evaluation dialog state
   const [evalDialog, setEvalDialog] = useState(false);
+  const [evalEmployeeId, setEvalEmployeeId] = useState('');
+  const [evalYear, setEvalYear] = useState('');
+  const [evalQuarter, setEvalQuarter] = useState('');
+  const [evalCriteria, setEvalCriteria] = useState<CriteriaScore[]>(initialCriteria.map(c => ({ ...c })));
+  const [evalStrengths, setEvalStrengths] = useState('');
+  const [evalImprovements, setEvalImprovements] = useState('');
+  const [evalGoals, setEvalGoals] = useState('');
+  const [evalComments, setEvalComments] = useState('');
+
+  // Violation dialog state
   const [violDialog, setViolDialog] = useState(false);
-  const [evalForm, setEvalForm] = useState({ employeeId: '', score: '80', quarter: 'Q1', year: new Date().getFullYear().toString(), notes: '' });
-  const [violForm, setViolForm] = useState({ employeeId: '', type: '', description: '', severity: 'medium' as 'low' | 'medium' | 'high' });
+  const [violForm, setViolForm] = useState({ employeeId: '', type: 'absence', description: '', penalty: '', date: new Date().toISOString().split('T')[0] });
 
   const stationName = useMemo(() => {
     const loc = stationLocations.find(s => s.value === user?.station);
@@ -65,61 +100,121 @@ const StationManagerPortal = () => {
     return employees.filter(e => e.stationLocation === user?.station);
   }, [employees, user?.station]);
 
-  const stationEvals = useMemo(() => evaluations.filter(e => e.station === user?.station), [evaluations, user?.station]);
-  const stationViols = useMemo(() => violations.filter(v => v.station === user?.station), [violations, user?.station]);
+  // Filter reviews for this station's employees
+  const stationReviews = useMemo(() => {
+    const empIds = stationEmployees.map(e => e.employeeId);
+    return reviews.filter(r => empIds.includes(r.employeeId) || r.station === user?.station);
+  }, [reviews, stationEmployees, user?.station]);
 
-  const handleAddEvaluation = () => {
-    if (!evalForm.employeeId) { toast({ title: t('اختر موظفاً', 'Select an employee'), variant: 'destructive' }); return; }
-    const emp = stationEmployees.find(e => e.id === evalForm.employeeId);
-    const newEval: Evaluation = {
-      id: `eval-${Date.now()}`,
-      employeeId: evalForm.employeeId,
-      employeeName: language === 'ar' ? emp?.nameAr || '' : emp?.nameEn || '',
-      date: new Date().toISOString().split('T')[0],
-      score: parseInt(evalForm.score) || 80,
-      quarter: evalForm.quarter,
-      year: evalForm.year,
-      notes: evalForm.notes,
+  // Filter violations for this station's employees
+  const stationViolations = useMemo(() => {
+    const empIds = stationEmployees.map(e => e.employeeId);
+    return violations.filter(v => empIds.includes(v.employeeId));
+  }, [violations, stationEmployees]);
+
+  // Eval helpers
+  const evalOverallScore = useMemo(() => {
+    const totalWeight = evalCriteria.reduce((s, c) => s + c.weight, 0);
+    const weightedSum = evalCriteria.reduce((s, c) => s + (c.score * c.weight), 0);
+    return parseFloat((weightedSum / totalWeight).toFixed(2));
+  }, [evalCriteria]);
+
+  const getScoreLabel = (score: number) => {
+    if (score >= 4.5) return { label: ar ? 'ممتاز' : 'Excellent', color: 'text-[hsl(var(--stat-green))]' };
+    if (score >= 3.5) return { label: ar ? 'جيد جداً' : 'Very Good', color: 'text-[hsl(var(--stat-blue))]' };
+    if (score >= 2.5) return { label: ar ? 'جيد' : 'Good', color: 'text-[hsl(var(--stat-yellow))]' };
+    if (score >= 1.5) return { label: ar ? 'مقبول' : 'Acceptable', color: 'text-[hsl(var(--stat-coral))]' };
+    return { label: ar ? 'ضعيف' : 'Poor', color: 'text-destructive' };
+  };
+
+  const resetEvalForm = () => {
+    setEvalEmployeeId('');
+    setEvalYear('');
+    setEvalQuarter('');
+    setEvalCriteria(initialCriteria.map(c => ({ ...c })));
+    setEvalStrengths('');
+    setEvalImprovements('');
+    setEvalGoals('');
+    setEvalComments('');
+  };
+
+  const handleAddEvaluation = (status: 'draft' | 'submitted') => {
+    if (!evalEmployeeId || !evalYear || !evalQuarter) {
+      toast({ title: t('أكمل البيانات المطلوبة', 'Complete required fields'), variant: 'destructive' });
+      return;
+    }
+    const emp = stationEmployees.find(e => e.id === evalEmployeeId);
+    if (!emp) return;
+    addReview({
+      employeeId: emp.employeeId,
+      employeeName: ar ? emp.nameAr : emp.nameEn,
+      department: emp.department,
       station: user?.station || '',
-    };
-    setEvaluations(prev => [...prev, newEval]);
+      quarter: evalQuarter,
+      year: evalYear,
+      score: evalOverallScore,
+      status,
+      reviewer: ar ? (user?.nameAr || '') : (user?.name || ''),
+      reviewDate: new Date().toISOString().split('T')[0],
+      strengths: evalStrengths,
+      improvements: evalImprovements,
+      goals: evalGoals,
+      managerComments: evalComments,
+      criteria: evalCriteria.map(c => ({ name: c.nameAr, nameEn: c.name, score: c.score, weight: c.weight })),
+    });
     toast({ title: t('تم إضافة التقييم بنجاح', 'Evaluation added successfully') });
     setEvalDialog(false);
-    setEvalForm({ employeeId: '', score: '80', quarter: 'Q1', year: new Date().getFullYear().toString(), notes: '' });
+    resetEvalForm();
   };
 
   const handleAddViolation = () => {
-    if (!violForm.employeeId || !violForm.type) { toast({ title: t('أكمل البيانات المطلوبة', 'Complete required fields'), variant: 'destructive' }); return; }
+    if (!violForm.employeeId || !violForm.type) {
+      toast({ title: t('أكمل البيانات المطلوبة', 'Complete required fields'), variant: 'destructive' });
+      return;
+    }
     const emp = stationEmployees.find(e => e.id === violForm.employeeId);
+    if (!emp) return;
     const newViol: Violation = {
-      id: `viol-${Date.now()}`,
-      employeeId: violForm.employeeId,
-      employeeName: language === 'ar' ? emp?.nameAr || '' : emp?.nameEn || '',
-      date: new Date().toISOString().split('T')[0],
+      id: `viol_${Date.now()}`,
+      employeeId: emp.employeeId,
+      date: violForm.date,
       type: violForm.type,
       description: violForm.description,
-      severity: violForm.severity,
-      station: user?.station || '',
+      penalty: violForm.penalty,
+      status: 'active',
     };
     setViolations(prev => [...prev, newViol]);
+    addNotification({ titleAr: `مخالفة جديدة للموظف: ${emp.nameAr}`, titleEn: `New violation for: ${emp.nameEn}`, type: 'warning', module: 'employee' });
     toast({ title: t('تم إضافة المخالفة بنجاح', 'Violation added successfully') });
     setViolDialog(false);
-    setViolForm({ employeeId: '', type: '', description: '', severity: 'medium' });
+    setViolForm({ employeeId: '', type: 'absence', description: '', penalty: '', date: new Date().toISOString().split('T')[0] });
+  };
+
+  const handleDeleteViolation = (id: string) => {
+    setViolations(prev => prev.filter(v => v.id !== id));
+    toast({ title: t('تم الحذف', 'Deleted') });
   };
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const severityColors = { low: 'bg-[hsl(var(--stat-yellow-bg))] text-[hsl(var(--stat-yellow))]', medium: 'bg-[hsl(var(--stat-coral-bg))] text-[hsl(var(--stat-coral))]', high: 'bg-destructive/10 text-destructive' };
+  const severityFromScore = (score: number) => {
+    if (score >= 4) return 'bg-[hsl(var(--stat-green-bg))] text-[hsl(var(--stat-green))]';
+    if (score >= 3) return 'bg-[hsl(var(--stat-blue-bg))] text-[hsl(var(--stat-blue))]';
+    if (score >= 2) return 'bg-[hsl(var(--stat-yellow-bg))] text-[hsl(var(--stat-yellow))]';
+    return 'bg-destructive/10 text-destructive';
+  };
 
-  const violationTypes = [
-    { value: 'late', ar: 'تأخر', en: 'Late Arrival' },
-    { value: 'absence', ar: 'غياب', en: 'Absence' },
-    { value: 'negligence', ar: 'إهمال', en: 'Negligence' },
-    { value: 'misconduct', ar: 'سوء سلوك', en: 'Misconduct' },
-    { value: 'safety', ar: 'مخالفة سلامة', en: 'Safety Violation' },
-    { value: 'uniform', ar: 'مخالفة زي', en: 'Uniform Violation' },
-    { value: 'other', ar: 'أخرى', en: 'Other' },
-  ];
+  const scoreInfo = getScoreLabel(evalOverallScore);
+
+  const getQuarterLabel = (q: string) => {
+    const labels: Record<string, { ar: string; en: string }> = {
+      'Q1': { ar: 'Q1 (يناير - مارس)', en: 'Q1 (Jan - Mar)' },
+      'Q2': { ar: 'Q2 (أبريل - يونيو)', en: 'Q2 (Apr - Jun)' },
+      'Q3': { ar: 'Q3 (يوليو - سبتمبر)', en: 'Q3 (Jul - Sep)' },
+      'Q4': { ar: 'Q4 (أكتوبر - ديسمبر)', en: 'Q4 (Oct - Dec)' },
+    };
+    return language === 'ar' ? labels[q]?.ar : labels[q]?.en;
+  };
 
   return (
     <div className={cn("min-h-screen bg-background", isRTL ? "font-arabic" : "font-sans")} dir={isRTL ? 'rtl' : 'ltr'}>
@@ -160,11 +255,11 @@ const StationManagerPortal = () => {
           </CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-[hsl(var(--stat-purple-bg))] flex items-center justify-center"><Star className="h-5 w-5 text-[hsl(var(--stat-purple))]" /></div>
-            <div><p className="text-2xl font-bold">{stationEvals.length}</p><p className="text-xs text-muted-foreground">{t('التقييمات', 'Evaluations')}</p></div>
+            <div><p className="text-2xl font-bold">{stationReviews.length}</p><p className="text-xs text-muted-foreground">{t('التقييمات', 'Evaluations')}</p></div>
           </CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-[hsl(var(--stat-coral-bg))] flex items-center justify-center"><AlertTriangle className="h-5 w-5 text-[hsl(var(--stat-coral))]" /></div>
-            <div><p className="text-2xl font-bold">{stationViols.length}</p><p className="text-xs text-muted-foreground">{t('المخالفات', 'Violations')}</p></div>
+            <div><p className="text-2xl font-bold">{stationViolations.length}</p><p className="text-xs text-muted-foreground">{t('المخالفات', 'Violations')}</p></div>
           </CardContent></Card>
         </div>
 
@@ -225,20 +320,34 @@ const StationManagerPortal = () => {
                     <TableHead>{t('الربع', 'Quarter')}</TableHead>
                     <TableHead>{t('السنة', 'Year')}</TableHead>
                     <TableHead>{t('الدرجة', 'Score')}</TableHead>
+                    <TableHead>{t('الحالة', 'Status')}</TableHead>
+                    <TableHead>{t('المقيّم', 'Reviewer')}</TableHead>
                     <TableHead>{t('التاريخ', 'Date')}</TableHead>
-                    <TableHead>{t('ملاحظات', 'Notes')}</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
-                    {stationEvals.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t('لا توجد تقييمات بعد', 'No evaluations yet')}</TableCell></TableRow>
-                    ) : stationEvals.map(ev => (
-                      <TableRow key={ev.id}>
-                        <TableCell className="font-medium">{ev.employeeName}</TableCell>
-                        <TableCell>{ev.quarter}</TableCell>
-                        <TableCell>{ev.year}</TableCell>
-                        <TableCell><Badge className={ev.score >= 80 ? 'bg-[hsl(var(--stat-green))]' : ev.score >= 60 ? 'bg-[hsl(var(--stat-yellow))]' : 'bg-destructive'}>{ev.score}%</Badge></TableCell>
-                        <TableCell>{ev.date}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{ev.notes}</TableCell>
+                    {stationReviews.length === 0 ? (
+                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t('لا توجد تقييمات بعد', 'No evaluations yet')}</TableCell></TableRow>
+                    ) : stationReviews.map(r => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.employeeName}</TableCell>
+                        <TableCell>{r.quarter}</TableCell>
+                        <TableCell>{r.year}</TableCell>
+                        <TableCell>
+                          <Badge className={severityFromScore(r.score)}>
+                            {r.score}/5 - {getScoreLabel(r.score).label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={
+                            r.status === 'approved' ? 'bg-[hsl(var(--stat-green-bg))] text-[hsl(var(--stat-green))] border-[hsl(var(--stat-green))]' :
+                            r.status === 'submitted' ? 'bg-[hsl(var(--stat-yellow-bg))] text-[hsl(var(--stat-yellow))] border-[hsl(var(--stat-yellow))]' :
+                            'bg-muted text-muted-foreground'
+                          }>
+                            {r.status === 'approved' ? t('معتمد', 'Approved') : r.status === 'submitted' ? t('مقدّم', 'Submitted') : t('مسودة', 'Draft')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{r.reviewer}</TableCell>
+                        <TableCell>{r.reviewDate}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -256,25 +365,37 @@ const StationManagerPortal = () => {
               </CardHeader>
               <CardContent>
                 <Table>
-                  <TableHeader><TableRow>
-                    <TableHead>{t('الموظف', 'Employee')}</TableHead>
-                    <TableHead>{t('النوع', 'Type')}</TableHead>
-                    <TableHead>{t('الخطورة', 'Severity')}</TableHead>
-                    <TableHead>{t('التاريخ', 'Date')}</TableHead>
-                    <TableHead>{t('الوصف', 'Description')}</TableHead>
-                  </TableRow></TableHeader>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('الموظف', 'Employee')}</TableHead>
+                      <TableHead>{t('التاريخ', 'Date')}</TableHead>
+                      <TableHead>{t('النوع', 'Type')}</TableHead>
+                      <TableHead>{t('الوصف', 'Description')}</TableHead>
+                      <TableHead>{t('العقوبة', 'Penalty')}</TableHead>
+                      <TableHead>{t('إجراءات', 'Actions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
-                    {stationViols.length === 0 ? (
-                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">{t('لا توجد مخالفات', 'No violations')}</TableCell></TableRow>
-                    ) : stationViols.map(v => (
-                      <TableRow key={v.id}>
-                        <TableCell className="font-medium">{v.employeeName}</TableCell>
-                        <TableCell>{violationTypes.find(vt => vt.value === v.type)?.[language === 'ar' ? 'ar' : 'en'] || v.type}</TableCell>
-                        <TableCell><Badge className={severityColors[v.severity]}>{v.severity === 'low' ? t('منخفضة', 'Low') : v.severity === 'medium' ? t('متوسطة', 'Medium') : t('عالية', 'High')}</Badge></TableCell>
-                        <TableCell>{v.date}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{v.description}</TableCell>
-                      </TableRow>
-                    ))}
+                    {stationViolations.length === 0 ? (
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t('لا توجد مخالفات', 'No violations')}</TableCell></TableRow>
+                    ) : stationViolations.map(v => {
+                      const emp = stationEmployees.find(e => e.employeeId === v.employeeId);
+                      const typeLabel = violationTypes.find(vt => vt.value === v.type);
+                      return (
+                        <TableRow key={v.id}>
+                          <TableCell className="font-medium">{ar ? emp?.nameAr : emp?.nameEn || v.employeeId}</TableCell>
+                          <TableCell>{v.date}</TableCell>
+                          <TableCell>{ar ? typeLabel?.ar : typeLabel?.en || v.type}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{v.description}</TableCell>
+                          <TableCell>{v.penalty || '-'}</TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDeleteViolation(v.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -283,48 +404,125 @@ const StationManagerPortal = () => {
         </Tabs>
       </main>
 
-      {/* Evaluation Dialog */}
-      <Dialog open={evalDialog} onOpenChange={setEvalDialog}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{t('إضافة تقييم جديد', 'Add New Evaluation')}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t('الموظف', 'Employee')}</Label>
-              <Select value={evalForm.employeeId} onValueChange={v => setEvalForm(p => ({ ...p, employeeId: v }))}>
-                <SelectTrigger><SelectValue placeholder={t('اختر موظفاً', 'Select employee')} /></SelectTrigger>
-                <SelectContent>{stationEmployees.map(emp => <SelectItem key={emp.id} value={emp.id}>{language === 'ar' ? emp.nameAr : emp.nameEn}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
+      {/* Full Evaluation Dialog - matches PerformanceReviewForm */}
+      <Dialog open={evalDialog} onOpenChange={v => { if (!v) resetEvalForm(); setEvalDialog(v); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+              <Star className="w-5 h-5 text-primary" />
+              {t('إضافة تقييم جديد', 'Add New Evaluation')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Employee & Period */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>{t('الربع', 'Quarter')}</Label>
-                <Select value={evalForm.quarter} onValueChange={v => setEvalForm(p => ({ ...p, quarter: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{['Q1','Q2','Q3','Q4'].map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}</SelectContent>
+                <Label>{t('الموظف', 'Employee')}</Label>
+                <Select value={evalEmployeeId} onValueChange={setEvalEmployeeId}>
+                  <SelectTrigger><SelectValue placeholder={t('اختر موظفاً', 'Select employee')} /></SelectTrigger>
+                  <SelectContent>{stationEmployees.map(emp => <SelectItem key={emp.id} value={emp.id}>{ar ? emp.nameAr : emp.nameEn} - {emp.department}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>{t('السنة', 'Year')}</Label>
-                <Input value={evalForm.year} onChange={e => setEvalForm(p => ({ ...p, year: e.target.value }))} />
+                <Select value={evalYear} onValueChange={setEvalYear}>
+                  <SelectTrigger><SelectValue placeholder={t('اختر السنة', 'Select year')} /></SelectTrigger>
+                  <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>{t('الدرجة', 'Score')} %</Label>
-                <Input type="number" min="0" max="100" value={evalForm.score} onChange={e => setEvalForm(p => ({ ...p, score: e.target.value }))} />
+                <Label>{t('الربع', 'Quarter')}</Label>
+                <Select value={evalQuarter} onValueChange={setEvalQuarter}>
+                  <SelectTrigger><SelectValue placeholder={t('اختر الربع', 'Select quarter')} /></SelectTrigger>
+                  <SelectContent>{quarters.map(q => <SelectItem key={q} value={q}>{getQuarterLabel(q)}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Criteria */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className={cn("flex items-center gap-2 text-base", isRTL && "flex-row-reverse")}>
+                  <Target className="w-4 h-4 text-primary" />
+                  {t('معايير التقييم', 'Evaluation Criteria')}
+                </CardTitle>
+                <CardDescription>{t('اضغط على النجوم لتحديد الدرجة (1-5)', 'Click stars to set score (1-5)')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {evalCriteria.map((criterion) => (
+                  <div key={criterion.id} className="space-y-1.5">
+                    <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+                      <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                        <Label className="text-sm font-medium">{ar ? criterion.nameAr : criterion.name}</Label>
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{criterion.weight}%</span>
+                      </div>
+                      <div className={cn("flex items-center gap-1", isRTL && "flex-row-reverse")}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className={cn("w-5 h-5 cursor-pointer transition-colors hover:scale-110", star <= criterion.score ? "text-[hsl(var(--stat-yellow))] fill-[hsl(var(--stat-yellow))]" : "text-muted-foreground hover:text-[hsl(var(--stat-yellow))]/50")}
+                            onClick={() => setEvalCriteria(prev => prev.map(c => c.id === criterion.id ? { ...c, score: star } : c))} />
+                        ))}
+                        <span className="font-bold text-sm w-6 text-center">{criterion.score}</span>
+                      </div>
+                    </div>
+                    <Progress value={criterion.score * 20} className="h-1.5" />
+                  </div>
+                ))}
+
+                {/* Overall Score */}
+                <div className={cn("flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20", isRTL && "flex-row-reverse")}>
+                  <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                    <Star className="w-5 h-5 text-[hsl(var(--stat-yellow))] fill-[hsl(var(--stat-yellow))]" />
+                    <span className="font-semibold">{t('الدرجة الإجمالية', 'Overall Score')}</span>
+                  </div>
+                  <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                    <span className={cn("font-bold text-xl", scoreInfo.color)}>{evalOverallScore}</span>
+                    <Badge variant="outline" className={cn(scoreInfo.color, "border-current")}>{scoreInfo.label}</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Comments */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}>
+                  <TrendingUp className="w-4 h-4 text-[hsl(var(--stat-green))]" />
+                  {t('نقاط القوة', 'Strengths')}
+                </Label>
+                <Textarea value={evalStrengths} onChange={e => setEvalStrengths(e.target.value)} className="min-h-[80px]" />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}>
+                  <Lightbulb className="w-4 h-4 text-[hsl(var(--stat-coral))]" />
+                  {t('مجالات التحسين', 'Improvements')}
+                </Label>
+                <Textarea value={evalImprovements} onChange={e => setEvalImprovements(e.target.value)} className="min-h-[80px]" />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>{t('ملاحظات', 'Notes')}</Label>
-              <Textarea value={evalForm.notes} onChange={e => setEvalForm(p => ({ ...p, notes: e.target.value }))} />
+              <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}>
+                <Target className="w-4 h-4 text-primary" />
+                {t('أهداف الربع القادم', 'Next Quarter Goals')}
+              </Label>
+              <Textarea value={evalGoals} onChange={e => setEvalGoals(e.target.value)} className="min-h-[60px]" />
+            </div>
+            <div className="space-y-2">
+              <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}>
+                <MessageSquare className="w-4 h-4 text-primary" />
+                {t('ملاحظات المدير', 'Manager Comments')}
+              </Label>
+              <Textarea value={evalComments} onChange={e => setEvalComments(e.target.value)} className="min-h-[60px]" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEvalDialog(false)}>{t('إلغاء', 'Cancel')}</Button>
-            <Button onClick={handleAddEvaluation}>{t('حفظ', 'Save')}</Button>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setEvalDialog(false); resetEvalForm(); }}>{t('إلغاء', 'Cancel')}</Button>
+            <Button variant="outline" onClick={() => handleAddEvaluation('draft')} className="gap-1.5"><Save className="w-4 h-4" />{t('حفظ كمسودة', 'Save Draft')}</Button>
+            <Button onClick={() => handleAddEvaluation('submitted')} className="gap-1.5"><Send className="w-4 h-4" />{t('تقديم', 'Submit')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Violation Dialog */}
+      {/* Violation Dialog - matches ViolationsTab */}
       <Dialog open={violDialog} onOpenChange={setViolDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>{t('إضافة مخالفة جديدة', 'Add New Violation')}</DialogTitle></DialogHeader>
@@ -333,32 +531,27 @@ const StationManagerPortal = () => {
               <Label>{t('الموظف', 'Employee')}</Label>
               <Select value={violForm.employeeId} onValueChange={v => setViolForm(p => ({ ...p, employeeId: v }))}>
                 <SelectTrigger><SelectValue placeholder={t('اختر موظفاً', 'Select employee')} /></SelectTrigger>
-                <SelectContent>{stationEmployees.map(emp => <SelectItem key={emp.id} value={emp.id}>{language === 'ar' ? emp.nameAr : emp.nameEn}</SelectItem>)}</SelectContent>
+                <SelectContent>{stationEmployees.map(emp => <SelectItem key={emp.id} value={emp.id}>{ar ? emp.nameAr : emp.nameEn}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>{t('نوع المخالفة', 'Violation Type')}</Label>
-                <Select value={violForm.type} onValueChange={v => setViolForm(p => ({ ...p, type: v }))}>
-                  <SelectTrigger><SelectValue placeholder={t('اختر', 'Select')} /></SelectTrigger>
-                  <SelectContent>{violationTypes.map(vt => <SelectItem key={vt.value} value={vt.value}>{language === 'ar' ? vt.ar : vt.en}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>{t('الخطورة', 'Severity')}</Label>
-                <Select value={violForm.severity} onValueChange={v => setViolForm(p => ({ ...p, severity: v as any }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">{t('منخفضة', 'Low')}</SelectItem>
-                    <SelectItem value="medium">{t('متوسطة', 'Medium')}</SelectItem>
-                    <SelectItem value="high">{t('عالية', 'High')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>{t('التاريخ', 'Date')}</Label>
+              <Input type="date" value={violForm.date} onChange={e => setViolForm(p => ({ ...p, date: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('نوع المخالفة', 'Violation Type')}</Label>
+              <Select value={violForm.type} onValueChange={v => setViolForm(p => ({ ...p, type: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{violationTypes.map(vt => <SelectItem key={vt.value} value={vt.value}>{ar ? vt.ar : vt.en}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>{t('الوصف', 'Description')}</Label>
               <Textarea value={violForm.description} onChange={e => setViolForm(p => ({ ...p, description: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('العقوبة', 'Penalty')}</Label>
+              <Input value={violForm.penalty} onChange={e => setViolForm(p => ({ ...p, penalty: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
