@@ -1,121 +1,127 @@
 import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { usePortalData } from '@/contexts/PortalDataContext';
+import { useLoanData } from '@/contexts/LoanDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { HandCoins, Plus } from 'lucide-react';
-import { toast } from 'sonner';
+import { HandCoins } from 'lucide-react';
 
 const PORTAL_EMPLOYEE_ID = 'Emp001';
 
 export const PortalLoans = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
-  const { getLoans, addLoanRequest } = usePortalData();
-  const loans = useMemo(() => getLoans(PORTAL_EMPLOYEE_ID), [getLoans]);
-  const [showDialog, setShowDialog] = useState(false);
-  const [loanType, setLoanType] = useState('');
-  const [amount, setAmount] = useState('');
-  const [installment, setInstallment] = useState('');
+  const { loans, advances } = useLoanData();
 
-  const loanTypes = [
-    { value: 'personal', ar: 'قرض شخصي', en: 'Personal Loan' },
-    { value: 'advance', ar: 'سلفة', en: 'Advance' },
-    { value: 'emergency', ar: 'قرض طوارئ', en: 'Emergency Loan' },
-  ];
+  const myLoans = useMemo(() => loans.filter(l => l.employeeId === PORTAL_EMPLOYEE_ID), [loans]);
+  const myAdvances = useMemo(() => advances.filter(a => a.employeeId === PORTAL_EMPLOYEE_ID), [advances]);
 
-  const handleSubmit = () => {
-    if (!loanType || !amount) { toast.error(ar ? 'يرجى ملء جميع الحقول' : 'Please fill all fields'); return; }
-    const t = loanTypes.find(l => l.value === loanType);
-    addLoanRequest({
-      employeeId: PORTAL_EMPLOYEE_ID,
-      typeAr: t?.ar || '', typeEn: t?.en || '',
-      amount: Number(amount),
-      installment: Number(installment) || Number(amount),
-    });
-    toast.success(ar ? 'تم تقديم طلب القرض بنجاح' : 'Loan request submitted');
-    setShowDialog(false); setLoanType(''); setAmount(''); setInstallment('');
+  const totalLoanAmount = myLoans.reduce((s, l) => s + l.amount, 0);
+  const totalPaid = myLoans.reduce((s, l) => s + l.paidAmount, 0);
+  const totalRemaining = myLoans.reduce((s, l) => s + l.remainingAmount, 0);
+  const totalAdvances = myAdvances.filter(a => a.status !== 'rejected').reduce((s, a) => s + a.amount, 0);
+
+  const statusBadge = (status: string) => {
+    const config: Record<string, { label: string; className: string }> = {
+      active: { label: ar ? 'جاري' : 'Active', className: 'bg-warning/10 text-warning border-warning' },
+      completed: { label: ar ? 'مكتمل' : 'Completed', className: 'bg-success/10 text-success border-success' },
+      pending: { label: ar ? 'معلق' : 'Pending', className: 'bg-muted text-muted-foreground' },
+      approved: { label: ar ? 'موافق عليها' : 'Approved', className: 'bg-success/10 text-success border-success' },
+      deducted: { label: ar ? 'تم الخصم' : 'Deducted', className: 'bg-muted text-muted-foreground' },
+      rejected: { label: ar ? 'مرفوض' : 'Rejected', className: 'bg-destructive/10 text-destructive border-destructive' },
+    };
+    const c = config[status] || config.pending;
+    return <Badge variant="outline" className={c.className}>{c.label}</Badge>;
   };
 
   return (
     <div className="space-y-6">
-      <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
-        <h1 className="text-2xl font-bold">{ar ? 'قروضي' : 'My Loans'}</h1>
-        <Button onClick={() => setShowDialog(true)}><Plus className="w-4 h-4 mr-1" />{ar ? 'طلب قرض' : 'Request Loan'}</Button>
-      </div>
+      <h1 className={cn("text-2xl font-bold", isRTL && "text-right")}>{ar ? 'قروضي وسلفي' : 'My Loans & Advances'}</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card><CardContent className="p-5 text-center">
           <p className="text-sm text-muted-foreground">{ar ? 'إجمالي القروض' : 'Total Loans'}</p>
-          <p className="text-3xl font-bold text-primary">{loans.reduce((s, l) => s + l.amount, 0).toLocaleString()}</p>
+          <p className="text-2xl font-bold text-primary">{totalLoanAmount.toLocaleString()}</p>
         </CardContent></Card>
         <Card><CardContent className="p-5 text-center">
           <p className="text-sm text-muted-foreground">{ar ? 'المسدد' : 'Paid'}</p>
-          <p className="text-3xl font-bold text-success">{loans.reduce((s, l) => s + l.paid, 0).toLocaleString()}</p>
+          <p className="text-2xl font-bold text-success">{totalPaid.toLocaleString()}</p>
         </CardContent></Card>
         <Card><CardContent className="p-5 text-center">
           <p className="text-sm text-muted-foreground">{ar ? 'المتبقي' : 'Remaining'}</p>
-          <p className="text-3xl font-bold text-destructive">{loans.reduce((s, l) => s + l.remaining, 0).toLocaleString()}</p>
+          <p className="text-2xl font-bold text-destructive">{totalRemaining.toLocaleString()}</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-5 text-center">
+          <p className="text-sm text-muted-foreground">{ar ? 'السلف' : 'Advances'}</p>
+          <p className="text-2xl font-bold text-warning">{totalAdvances.toLocaleString()}</p>
         </CardContent></Card>
       </div>
 
+      {/* Loans Table */}
       <Card>
-        <CardHeader><CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}><HandCoins className="w-5 h-5" />{ar ? 'القروض والسلف' : 'Loans & Advances'}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}><HandCoins className="w-5 h-5" />{ar ? 'القروض' : 'Loans'}</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader><TableRow>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'النوع' : 'Type'}</TableHead>
+              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'رقم القرض' : 'Loan ID'}</TableHead>
               <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المبلغ' : 'Amount'}</TableHead>
+              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'القسط الشهري' : 'Monthly'}</TableHead>
               <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المسدد' : 'Paid'}</TableHead>
               <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المتبقي' : 'Remaining'}</TableHead>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'القسط' : 'Installment'}</TableHead>
+              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الأقساط' : 'Installments'}</TableHead>
               <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {loans.map(l => (
+              {myLoans.map(l => (
                 <TableRow key={l.id}>
-                  <TableCell>{ar ? l.typeAr : l.typeEn}</TableCell>
+                  <TableCell className="font-mono">{l.id}</TableCell>
                   <TableCell>{l.amount.toLocaleString()}</TableCell>
-                  <TableCell className="text-success">{l.paid.toLocaleString()}</TableCell>
-                  <TableCell className="text-destructive">{l.remaining.toLocaleString()}</TableCell>
-                  <TableCell>{l.installment.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={l.status === 'paid' ? 'bg-success/10 text-success border-success' : 'bg-warning/10 text-warning border-warning'}>
-                      {l.status === 'paid' ? (ar ? 'مسدد' : 'Paid') : (ar ? 'جاري' : 'Active')}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{l.monthlyPayment.toLocaleString()}</TableCell>
+                  <TableCell className="text-success">{l.paidAmount.toLocaleString()}</TableCell>
+                  <TableCell className="text-destructive">{l.remainingAmount.toLocaleString()}</TableCell>
+                  <TableCell>{l.paidInstallments}/{l.installments}</TableCell>
+                  <TableCell>{statusBadge(l.status)}</TableCell>
                 </TableRow>
               ))}
-              {loans.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-4">{ar ? 'لا توجد قروض' : 'No loans'}</TableCell></TableRow>
+              {myLoans.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-4">{ar ? 'لا توجد قروض' : 'No loans'}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent><DialogHeader><DialogTitle>{ar ? 'طلب قرض جديد' : 'New Loan Request'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><Label>{ar ? 'نوع القرض' : 'Loan Type'}</Label>
-              <Select value={loanType} onValueChange={setLoanType}>
-                <SelectTrigger><SelectValue placeholder={ar ? 'اختر' : 'Select'} /></SelectTrigger>
-                <SelectContent>{loanTypes.map(t => <SelectItem key={t.value} value={t.value}>{ar ? t.ar : t.en}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>{ar ? 'المبلغ' : 'Amount'}</Label><Input type="number" value={amount} onChange={e => setAmount(e.target.value)} /></div>
-            <div><Label>{ar ? 'القسط الشهري' : 'Monthly Installment'}</Label><Input type="number" value={installment} onChange={e => setInstallment(e.target.value)} /></div>
-          </div>
-          <DialogFooter><Button onClick={handleSubmit}>{ar ? 'تقديم الطلب' : 'Submit'}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Advances Table */}
+      {myAdvances.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}><HandCoins className="w-5 h-5" />{ar ? 'السلف' : 'Advances'}</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الرقم' : 'ID'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المبلغ' : 'Amount'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ الطلب' : 'Request Date'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'شهر الخصم' : 'Deduction Month'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'السبب' : 'Reason'}</TableHead>
+                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {myAdvances.map(a => (
+                  <TableRow key={a.id}>
+                    <TableCell className="font-mono">{a.id}</TableCell>
+                    <TableCell>{a.amount.toLocaleString()}</TableCell>
+                    <TableCell>{a.requestDate}</TableCell>
+                    <TableCell>{a.deductionMonth}</TableCell>
+                    <TableCell>{a.reason}</TableCell>
+                    <TableCell>{statusBadge(a.status)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

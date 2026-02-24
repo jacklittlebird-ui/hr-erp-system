@@ -11,9 +11,9 @@ interface PortalHeaderProps {
 }
 
 const employee = {
-  nameAr: 'أحمد محمد علي',
-  nameEn: 'Ahmed Mohamed Ali',
-  id: 'EMP001',
+  nameAr: 'جلال عبد الرازق عبد العليم',
+  nameEn: 'Galal AbdelRazek AbdelHaliem',
+  id: 'Emp001',
 };
 
 export const PortalHeader = ({ onToggleSidebar }: PortalHeaderProps) => {
@@ -60,7 +60,7 @@ export const PortalHeader = ({ onToggleSidebar }: PortalHeaderProps) => {
           <Globe className="w-4 h-4" />
           <span className="ml-1 text-xs">{language === 'ar' ? 'EN' : 'عربي'}</span>
         </Button>
-        <NotificationDropdown variant="portal" />
+        <NotificationDropdown variant="portal" employeeId="Emp001" />
         <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1.5 text-destructive">
           <LogOut className="h-4 w-4" />
           <span className="hidden sm:inline">{language === 'ar' ? 'خروج' : 'Logout'}</span>

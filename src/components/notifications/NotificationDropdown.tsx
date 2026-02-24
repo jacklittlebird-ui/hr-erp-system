@@ -19,16 +19,11 @@ export const NotificationDropdown = ({ variant = 'header', employeeId }: Notific
   const { language, isRTL } = useLanguage();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
-  // Filter notifications by employeeId if provided
+  // Filter notifications by employeeId if provided (portal mode)
   const filteredNotifications = employeeId
-    ? notifications.filter(n => {
-        const title = (n.titleAr + ' ' + n.titleEn + ' ' + (n.descAr || '') + ' ' + (n.descEn || '')).toLowerCase();
-        return title.includes(employeeId.toLowerCase());
-      })
+    ? notifications.filter(n => !n.employeeId || n.employeeId === employeeId)
     : notifications;
-  const filteredUnreadCount = employeeId
-    ? filteredNotifications.filter(n => !n.read).length
-    : unreadCount;
+  const filteredUnreadCount = filteredNotifications.filter(n => !n.read).length;
 
   const formatTime = (ts: string) => {
     const diff = Date.now() - new Date(ts).getTime();

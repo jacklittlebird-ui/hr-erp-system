@@ -9,9 +9,15 @@ import { CheckCircle, AlertCircle, Info, AlertTriangle, Check, Trash2 } from 'lu
 const typeIcons = { success: CheckCircle, warning: AlertTriangle, info: Info, error: AlertCircle };
 const typeColors = { success: 'text-green-500', warning: 'text-yellow-500', info: 'text-blue-500', error: 'text-red-500' };
 
+const PORTAL_EMPLOYEE_ID = 'Emp001';
+
 export const PortalNotifications = () => {
   const { language, isRTL } = useLanguage();
-  const { notifications, markAsRead, markAllAsRead, clearAll, unreadCount } = useNotifications();
+  const { notifications: allNotifications, markAsRead, markAllAsRead, clearAll } = useNotifications();
+
+  // Filter: show only notifications for this employee or general (no employeeId)
+  const notifications = allNotifications.filter(n => !n.employeeId || n.employeeId === PORTAL_EMPLOYEE_ID);
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const formatTime = (ts: string) => {
     const diff = Date.now() - new Date(ts).getTime();
