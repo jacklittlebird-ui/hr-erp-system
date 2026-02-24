@@ -16,6 +16,7 @@ import { Search, Eye, Edit, Star, FileText, Printer, Download, FileSpreadsheet, 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useReportExport } from '@/hooks/useReportExport';
 import { stationLocations } from '@/data/stationLocations';
+import { initialDepartments } from '@/data/departments';
 import { toast } from 'sonner';
 
 const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
@@ -29,6 +30,7 @@ export const PerformanceList = () => {
   const [quarterFilter, setQuarterFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>('all');
   const [stationFilter, setStationFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [viewReview, setViewReview] = useState<PerformanceReview | null>(null);
   const [editReview, setEditReview] = useState<PerformanceReview | null>(null);
   const [deleteReviewId, setDeleteReviewId] = useState<string | null>(null);
@@ -72,7 +74,8 @@ export const PerformanceList = () => {
     const matchesQuarter = quarterFilter === 'all' || review.quarter === quarterFilter;
     const matchesYear = yearFilter === 'all' || review.year === yearFilter;
     const matchesStation = stationFilter === 'all' || review.station === stationFilter;
-    return matchesSearch && matchesStatus && matchesQuarter && matchesYear && matchesStation;
+    const matchesDepartment = departmentFilter === 'all' || review.department === departmentFilter;
+    return matchesSearch && matchesStatus && matchesQuarter && matchesYear && matchesStation && matchesDepartment;
   });
 
   const getStatusBadge = (status: string) => {
@@ -185,6 +188,15 @@ export const PerformanceList = () => {
                 <SelectItem value="approved">{t('performance.status.approved')}</SelectItem>
                 <SelectItem value="submitted">{t('performance.status.submitted')}</SelectItem>
                 <SelectItem value="draft">{t('performance.status.draft')}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder={language === 'ar' ? 'القسم' : 'Department'} /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{language === 'ar' ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
+                {initialDepartments.map(d => (
+                  <SelectItem key={d.id} value={d.nameAr}>{language === 'ar' ? d.nameAr : d.nameEn}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={stationFilter} onValueChange={setStationFilter}>
