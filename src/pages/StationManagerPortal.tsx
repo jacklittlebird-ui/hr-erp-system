@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Users, Star, AlertTriangle, LogOut, Globe, MapPin, Target, TrendingUp, Lightbulb, MessageSquare, Save, Send, Plus, Trash2 } from 'lucide-react';
+import { Users, Star, AlertTriangle, LogOut, Globe, MapPin, Target, TrendingUp, Lightbulb, MessageSquare, Save, Send, Plus, Trash2, Search, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Shared violation interface (matches ViolationsTab)
@@ -195,16 +195,50 @@ const StationManagerPortal = () => {
     toast({ title: t('تم الحذف', 'Deleted') });
   };
 
-  // Department filter
+  // === Employees Tab Filters ===
   const [deptFilter, setDeptFilter] = useState('all');
+  const [empSearch, setEmpSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const stationDepartments = useMemo(() => {
     const depts = [...new Set(stationEmployees.map(e => e.department).filter(Boolean))];
     return depts.sort();
   }, [stationEmployees]);
   const filteredStationEmployees = useMemo(() => {
-    if (deptFilter === 'all') return stationEmployees;
-    return stationEmployees.filter(e => e.department === deptFilter);
-  }, [stationEmployees, deptFilter]);
+    let list = stationEmployees;
+    if (deptFilter !== 'all') list = list.filter(e => e.department === deptFilter);
+    if (statusFilter !== 'all') list = list.filter(e => e.status === statusFilter);
+    if (empSearch.trim()) {
+      const q = empSearch.trim().toLowerCase();
+      list = list.filter(e => e.nameAr.toLowerCase().includes(q) || e.nameEn.toLowerCase().includes(q) || e.employeeId.toLowerCase().includes(q));
+    }
+    return list;
+  }, [stationEmployees, deptFilter, statusFilter, empSearch]);
+
+  // === Evaluations Tab Filters ===
+  const [evalFilterEmployee, setEvalFilterEmployee] = useState('all');
+  const [evalFilterQuarter, setEvalFilterQuarter] = useState('all');
+  const [evalFilterYear, setEvalFilterYear] = useState('all');
+  const [evalFilterStatus, setEvalFilterStatus] = useState('all');
+  const filteredReviews = useMemo(() => {
+    let list = stationReviews;
+    if (evalFilterEmployee !== 'all') list = list.filter(r => r.employeeId === evalFilterEmployee);
+    if (evalFilterQuarter !== 'all') list = list.filter(r => r.quarter === evalFilterQuarter);
+    if (evalFilterYear !== 'all') list = list.filter(r => r.year === evalFilterYear);
+    if (evalFilterStatus !== 'all') list = list.filter(r => r.status === evalFilterStatus);
+    return list;
+  }, [stationReviews, evalFilterEmployee, evalFilterQuarter, evalFilterYear, evalFilterStatus]);
+
+  // === Violations Tab Filters ===
+  const [violFilterEmployee, setViolFilterEmployee] = useState('all');
+  const [violFilterType, setViolFilterType] = useState('all');
+  const [violFilterStatus, setViolFilterStatus] = useState('all');
+  const filteredViolations = useMemo(() => {
+    let list = stationViolations;
+    if (violFilterEmployee !== 'all') list = list.filter(v => v.employeeId === violFilterEmployee);
+    if (violFilterType !== 'all') list = list.filter(v => v.type === violFilterType);
+    if (violFilterStatus !== 'all') list = list.filter(v => v.status === violFilterStatus);
+    return list;
+  }, [stationViolations, violFilterEmployee, violFilterType, violFilterStatus]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -285,19 +319,36 @@ const StationManagerPortal = () => {
           {/* Employees Tab */}
           <TabsContent value="employees">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
+              <CardHeader className="space-y-3">
                 <CardTitle>{t('موظفي المحطة', 'Station Employees')}</CardTitle>
-                <Select value={deptFilter} onValueChange={setDeptFilter}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder={t('جميع الأقسام', 'All Departments')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('جميع الأقسام', 'All Departments')}</SelectItem>
-                    {stationDepartments.map(dept => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder={t('بحث بالاسم أو الرقم...', 'Search by name or ID...')} value={empSearch} onChange={e => setEmpSearch(e.target.value)} className="ps-9" />
+                  </div>
+                  <Select value={deptFilter} onValueChange={setDeptFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder={t('جميع الأقسام', 'All Departments')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('جميع الأقسام', 'All Departments')}</SelectItem>
+                      {stationDepartments.map(dept => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder={t('جميع الحالات', 'All Statuses')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('جميع الحالات', 'All Statuses')}</SelectItem>
+                      <SelectItem value="active">{t('نشط', 'Active')}</SelectItem>
+                      <SelectItem value="inactive">{t('غير نشط', 'Inactive')}</SelectItem>
+                      <SelectItem value="suspended">{t('معلق', 'Suspended')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -333,9 +384,53 @@ const StationManagerPortal = () => {
           {/* Evaluations Tab */}
           <TabsContent value="evaluations">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>{t('تقييمات الموظفين', 'Employee Evaluations')}</CardTitle>
-                <Button onClick={() => setEvalDialog(true)} size="sm"><Star className="h-4 w-4 me-1.5" />{t('إضافة تقييم', 'Add Evaluation')}</Button>
+              <CardHeader className="space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <CardTitle>{t('تقييمات الموظفين', 'Employee Evaluations')}</CardTitle>
+                  <Button onClick={() => setEvalDialog(true)} size="sm"><Star className="h-4 w-4 me-1.5" />{t('إضافة تقييم', 'Add Evaluation')}</Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Select value={evalFilterEmployee} onValueChange={setEvalFilterEmployee}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder={t('جميع الموظفين', 'All Employees')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('جميع الموظفين', 'All Employees')}</SelectItem>
+                      {stationEmployees.map(emp => (
+                        <SelectItem key={emp.employeeId} value={emp.employeeId}>{ar ? emp.nameAr : emp.nameEn}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={evalFilterQuarter} onValueChange={setEvalFilterQuarter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder={t('جميع الأرباع', 'All Quarters')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('جميع الأرباع', 'All Quarters')}</SelectItem>
+                      {quarters.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={evalFilterYear} onValueChange={setEvalFilterYear}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder={t('جميع السنوات', 'All Years')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('جميع السنوات', 'All Years')}</SelectItem>
+                      {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={evalFilterStatus} onValueChange={setEvalFilterStatus}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder={t('جميع الحالات', 'All Statuses')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('جميع الحالات', 'All Statuses')}</SelectItem>
+                      <SelectItem value="draft">{t('مسودة', 'Draft')}</SelectItem>
+                      <SelectItem value="submitted">{t('مقدّم', 'Submitted')}</SelectItem>
+                      <SelectItem value="approved">{t('معتمد', 'Approved')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -349,9 +444,9 @@ const StationManagerPortal = () => {
                     <TableHead>{t('التاريخ', 'Date')}</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
-                    {stationReviews.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t('لا توجد تقييمات بعد', 'No evaluations yet')}</TableCell></TableRow>
-                    ) : stationReviews.map(r => (
+                    {filteredReviews.length === 0 ? (
+                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t('لا توجد تقييمات', 'No evaluations found')}</TableCell></TableRow>
+                    ) : filteredReviews.map(r => (
                       <TableRow key={r.id}>
                         <TableCell className="font-medium">{r.employeeName}</TableCell>
                         <TableCell>{r.quarter}</TableCell>
@@ -383,9 +478,45 @@ const StationManagerPortal = () => {
           {/* Violations Tab */}
           <TabsContent value="violations">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>{t('مخالفات الموظفين', 'Employee Violations')}</CardTitle>
-                <Button onClick={() => setViolDialog(true)} size="sm" variant="destructive"><AlertTriangle className="h-4 w-4 me-1.5" />{t('إضافة مخالفة', 'Add Violation')}</Button>
+              <CardHeader className="space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <CardTitle>{t('مخالفات الموظفين', 'Employee Violations')}</CardTitle>
+                  <Button onClick={() => setViolDialog(true)} size="sm" variant="destructive"><AlertTriangle className="h-4 w-4 me-1.5" />{t('إضافة مخالفة', 'Add Violation')}</Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Select value={violFilterEmployee} onValueChange={setViolFilterEmployee}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder={t('جميع الموظفين', 'All Employees')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('جميع الموظفين', 'All Employees')}</SelectItem>
+                      {stationEmployees.map(emp => (
+                        <SelectItem key={emp.employeeId} value={emp.employeeId}>{ar ? emp.nameAr : emp.nameEn}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={violFilterType} onValueChange={setViolFilterType}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder={t('جميع الأنواع', 'All Types')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('جميع الأنواع', 'All Types')}</SelectItem>
+                      {violationTypes.map(vt => (
+                        <SelectItem key={vt.value} value={vt.value}>{ar ? vt.ar : vt.en}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={violFilterStatus} onValueChange={setViolFilterStatus}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder={t('جميع الحالات', 'All Statuses')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('جميع الحالات', 'All Statuses')}</SelectItem>
+                      <SelectItem value="active">{t('نشطة', 'Active')}</SelectItem>
+                      <SelectItem value="resolved">{t('محلولة', 'Resolved')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -400,9 +531,9 @@ const StationManagerPortal = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {stationViolations.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t('لا توجد مخالفات', 'No violations')}</TableCell></TableRow>
-                    ) : stationViolations.map(v => {
+                    {filteredViolations.length === 0 ? (
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t('لا توجد مخالفات', 'No violations found')}</TableCell></TableRow>
+                    ) : filteredViolations.map(v => {
                       const emp = stationEmployees.find(e => e.employeeId === v.employeeId);
                       const typeLabel = violationTypes.find(vt => vt.value === v.type);
                       return (
