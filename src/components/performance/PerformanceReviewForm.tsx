@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Star, Save, Send, Users, Target, Lightbulb, TrendingUp, MessageSquare } from 'lucide-react';
+import { Star, Save, Send, Users, Target, Lightbulb, TrendingUp, MessageSquare, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { mockEmployees } from '@/data/mockEmployees';
 
@@ -68,7 +68,7 @@ export const PerformanceReviewForm = () => {
 
   const activeEmployees = mockEmployees.filter(e => e.status === 'active');
 
-  const buildReview = (status: 'draft' | 'submitted') => {
+  const buildReview = (status: 'draft' | 'submitted' | 'approved') => {
     const emp = mockEmployees.find(e => e.id === selectedEmployee);
     if (!emp) return null;
     return {
@@ -124,6 +124,19 @@ export const PerformanceReviewForm = () => {
       addReview(review);
       resetForm();
       toast.success(t('performance.form.submitted'));
+    }
+  };
+
+  const handleApprove = () => {
+    if (!selectedEmployee || !selectedYear || !selectedQuarter) {
+      toast.error(t('performance.form.fillRequired'));
+      return;
+    }
+    const review = buildReview('approved');
+    if (review) {
+      addReview(review);
+      resetForm();
+      toast.success(language === 'ar' ? 'تم اعتماد التقييم بنجاح' : 'Review approved successfully');
     }
   };
 
@@ -248,7 +261,8 @@ export const PerformanceReviewForm = () => {
 
       <div className={cn("flex gap-3", isRTL ? "flex-row-reverse justify-start" : "justify-end")}>
         <Button variant="outline" onClick={handleSaveDraft} className="gap-2"><Save className="w-4 h-4" />{t('performance.form.saveDraft')}</Button>
-        <Button onClick={handleSubmit} className="gap-2 bg-stat-green hover:bg-stat-green/90"><Send className="w-4 h-4" />{t('performance.form.submit')}</Button>
+        <Button onClick={handleSubmit} className="gap-2"><Send className="w-4 h-4" />{t('performance.form.submit')}</Button>
+        <Button onClick={handleApprove} className="gap-2 bg-stat-green hover:bg-stat-green/90"><CheckCircle className="w-4 h-4" />{language === 'ar' ? 'اعتماد' : 'Approve'}</Button>
       </div>
     </div>
   );
