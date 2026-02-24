@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePayrollData } from '@/contexts/PayrollDataContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
-import { usePersistedState } from '@/hooks/usePersistedState';
 import { useReportExport } from '@/hooks/useReportExport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,20 +12,12 @@ import { cn } from '@/lib/utils';
 import { Download, FileSpreadsheet, Banknote, Users } from 'lucide-react';
 import { stationLocations } from '@/data/stationLocations';
 
-interface BankInfo {
-  accountNumber: string;
-  bankId: string;
-  bankName: string;
-  accountType: string;
-}
-
 export const SalaryTransfer = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { getMonthlyPayroll } = usePayrollData();
   const { employees } = useEmployeeData();
   const { exportToCSV } = useReportExport();
-  const [allBankInfo] = usePersistedState<Record<string, BankInfo>>('hr_bank_info', {});
 
   const [selectedMonth, setSelectedMonth] = useState('01');
   const [selectedYear, setSelectedYear] = useState('2026');
@@ -58,7 +49,6 @@ export const SalaryTransfer = () => {
   const transferData = useMemo(() => {
     return payrollData.map(entry => {
       const emp = employees.find(e => e.employeeId === entry.employeeId);
-      const bank = allBankInfo[entry.employeeId] || { accountNumber: '', bankId: '', bankName: '', accountType: '' };
       return {
         employeeId: entry.employeeId,
         employeeName: ar ? entry.employeeName : entry.employeeNameEn,
@@ -66,14 +56,14 @@ export const SalaryTransfer = () => {
         employeeNameEn: entry.employeeNameEn,
         department: entry.department,
         station: stationLocations.find(s => s.value === entry.stationLocation)?.[ar ? 'labelAr' : 'labelEn'] || entry.stationLocation,
-        accountNumber: bank.accountNumber || '-',
-        bankId: bank.bankId || '-',
-        bankName: bank.bankName || '-',
-        accountType: bank.accountType || '-',
+        accountNumber: emp?.bankAccountNumber || '-',
+        bankId: emp?.bankIdNumber || '-',
+        bankName: emp?.bankName || '-',
+        accountType: emp?.bankAccountType || '-',
         netSalary: entry.netSalary,
       };
     });
-  }, [payrollData, employees, allBankInfo, ar]);
+  }, [payrollData, employees, ar]);
 
   const totalNet = transferData.reduce((s, e) => s + e.netSalary, 0);
 
