@@ -148,7 +148,7 @@ const SalaryReports = () => {
   // Monthly by station aggregate
   const monthlyByStation = useMemo(() => {
     const result: Array<{ stationKey: string; stationName: string; month: string; monthNum: string; count: number; basic: number; transport: number; incentives: number; stationAllowance: number; mobileAllowance: number; livingAllowance: number; overtimePay: number; bonuses: number; gross: number; insurance: number; loans: number; advances: number; mobileBill: number; leaveDeduction: number; penalty: number; totalDeductions: number; net: number; employerInsurance: number; healthInsurance: number; incomeTax: number }> = [];
-    const yearFiltered = payrollEntries.filter(e => e.year === selectedYear && (department === 'all' || e.department === department));
+    const yearFiltered = payrollEntries.filter(e => e.year === selectedYear && (selectedMonth === 'all' || e.month === selectedMonth) && (department === 'all' || e.department === department));
     const stationsInData = new Set(yearFiltered.map(e => e.stationLocation));
     stationsInData.forEach(stKey => {
       const stObj = stationLocations.find(s => s.value === stKey);
@@ -173,7 +173,7 @@ const SalaryReports = () => {
       });
     });
     return result;
-  }, [payrollEntries, selectedYear, department, monthNames, ar]);
+  }, [payrollEntries, selectedYear, selectedMonth, department, monthNames, ar]);
 
   // Group monthlyByStation by station for printing
   const handlePrintMonthlyByStation = useCallback(() => {
