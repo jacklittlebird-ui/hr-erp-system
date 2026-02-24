@@ -18,6 +18,7 @@ import { stationLocations } from '@/data/stationLocations';
 
 interface SalaryTabProps {
   employee: Employee;
+  onUpdate?: (updates: Partial<Employee>) => void;
 }
 
 interface BankInfo {
@@ -39,13 +40,16 @@ const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
 const calcEmployerContributions = (r: Pick<SalaryRecord, 'employerSocialInsurance' | 'healthInsurance' | 'incomeTax'>) =>
   r.employerSocialInsurance + r.healthInsurance + r.incomeTax;
 
-export const SalaryTab = ({ employee }: SalaryTabProps) => {
+export const SalaryTab = ({ employee, onUpdate }: SalaryTabProps) => {
   const { isRTL, language } = useLanguage();
   const ar = language === 'ar';
   const { salaryRecords, saveSalaryRecord, deleteSalaryRecord } = useSalaryData();
 
   const [bankInfo, setBankInfo] = useState<BankInfo>({
-    accountNumber: '', bankId: '', accountType: '', bankName: '',
+    accountNumber: employee.bankAccountNumber || '',
+    bankId: employee.bankIdNumber || '',
+    accountType: employee.bankAccountType || '',
+    bankName: employee.bankName || '',
   });
   const [banks, setBanks] = useState(defaultBanks);
   const [showAddBank, setShowAddBank] = useState(false);
@@ -100,8 +104,15 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
     toast({ title: ar ? 'تم الحفظ' : 'Saved', description: ar ? `تم حفظ راتب سنة ${selectedYear}` : `Salary for ${selectedYear} saved` });
   };
 
-  const handleSaveBankInfo = () => {
-    toast({ title: ar ? 'تم الحفظ' : 'Saved', description: ar ? 'تم حفظ البيانات البنكية' : 'Bank info saved' });
+  const updateBankField = (field: keyof BankInfo, value: string) => {
+    setBankInfo(p => ({ ...p, [field]: value }));
+    const fieldMap: Record<keyof BankInfo, keyof Employee> = {
+      accountNumber: 'bankAccountNumber',
+      bankId: 'bankIdNumber',
+      accountType: 'bankAccountType',
+      bankName: 'bankName',
+    };
+    onUpdate?.({ [fieldMap[field]]: value });
   };
 
   const handleAddBank = () => {
@@ -144,20 +155,20 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-1.5">
               <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'رقم الحساب البنكي' : 'Bank Account Number'}</Label>
-              <Input value={bankInfo.accountNumber} onChange={e => setBankInfo(p => ({ ...p, accountNumber: e.target.value }))} className={cn("h-9 text-sm", isRTL && "text-right")} />
+              <Input value={bankInfo.accountNumber} onChange={e => updateBankField('accountNumber', e.target.value)} className={cn("h-9 text-sm", isRTL && "text-right")} />
             </div>
             <div className="space-y-1.5">
               <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'رقم الـ ID البنكي' : 'Bank ID Number'}</Label>
-              <Input value={bankInfo.bankId} onChange={e => setBankInfo(p => ({ ...p, bankId: e.target.value }))} className={cn("h-9 text-sm", isRTL && "text-right")} />
+              <Input value={bankInfo.bankId} onChange={e => updateBankField('bankId', e.target.value)} className={cn("h-9 text-sm", isRTL && "text-right")} />
             </div>
             <div className="space-y-1.5">
               <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'نوع الحساب البنكي' : 'Account Type'}</Label>
-              <Input value={bankInfo.accountType} onChange={e => setBankInfo(p => ({ ...p, accountType: e.target.value }))} className={cn("h-9 text-sm", isRTL && "text-right")} />
+              <Input value={bankInfo.accountType} onChange={e => updateBankField('accountType', e.target.value)} className={cn("h-9 text-sm", isRTL && "text-right")} />
             </div>
             <div className="space-y-1.5">
               <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'اسم البنك' : 'Bank Name'}</Label>
               <div className="flex gap-2">
-                <Select value={bankInfo.bankName} onValueChange={v => setBankInfo(p => ({ ...p, bankName: v }))}>
+                <Select value={bankInfo.bankName} onValueChange={v => updateBankField('bankName', v)}>
                   <SelectTrigger className="h-9 text-sm flex-1"><SelectValue placeholder={ar ? '-- اختر البنك --' : '-- Select --'} /></SelectTrigger>
                   <SelectContent>
                     {banks.map(b => <SelectItem key={b.value} value={b.value}>{ar ? b.labelAr : b.labelEn}</SelectItem>)}
@@ -168,11 +179,6 @@ export const SalaryTab = ({ employee }: SalaryTabProps) => {
                 </Button>
               </div>
             </div>
-          </div>
-          <div className={cn("flex mt-4", isRTL ? "justify-start" : "justify-end")}>
-            <Button size="sm" onClick={handleSaveBankInfo} className="gap-1">
-              <Save className="h-4 w-4" />{ar ? 'حفظ البيانات البنكية' : 'Save Bank Info'}
-            </Button>
           </div>
         </CardContent>
       </Card>

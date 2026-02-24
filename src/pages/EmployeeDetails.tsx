@@ -111,7 +111,7 @@ const EmployeeDetails = () => {
       case 'contact': return <ContactInfoTab employee={employee} onUpdate={handleFieldChange} />;
       case 'identity': return <IdentityTab employee={employee} onUpdate={handleFieldChange} />;
       case 'job': return <JobInfoTab employee={employee} onUpdate={handleFieldChange} />;
-      case 'salary': return <SalaryTab employee={employee} />;
+      case 'salary': return <SalaryTab employee={employee} onUpdate={handleFieldChange} />;
       case 'leave': return <LeaveBalanceTab employee={employee} />;
       case 'leaveRecord': return <LeaveRecordTab employee={employee} />;
       case 'missionRecord': return <MissionRecordTab employee={employee} />;
