@@ -13,6 +13,7 @@ import { LoanDataProvider } from "@/contexts/LoanDataContext";
 import { UniformDataProvider } from "@/contexts/UniformDataContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { PerformanceDataProvider } from "@/contexts/PerformanceDataContext";
 import LoginPage from "./pages/LoginPage";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
@@ -104,6 +105,7 @@ const App = () => (
       <LoanDataProvider>
       <UniformDataProvider>
       <PortalDataProvider>
+      <PerformanceDataProvider>
       <AuthProvider>
       <TooltipProvider>
         <Toaster />
@@ -113,6 +115,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
       </AuthProvider>
+      </PerformanceDataProvider>
       </PortalDataProvider>
       </UniformDataProvider>
       </LoanDataProvider>
