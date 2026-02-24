@@ -778,25 +778,6 @@ const SalaryReports = () => {
 
         {/* Monthly Detail - aggregated totals per month */}
         <TabsContent value="monthly-detail">
-          {/* KPI Cards for Monthly Detail */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-            {[
-              { label: ar ? 'إجمالي الأساسي' : 'Total Basic', value: activeMonths.reduce((s, m) => s + m.basic, 0).toLocaleString(), icon: DollarSign, color: 'text-primary', bg: 'bg-primary/10' },
-              { label: ar ? 'إجمالي البدلات' : 'Total Allowances', value: activeMonths.reduce((s, m) => s + m.transport + m.incentives + m.stationAllowance + m.mobileAllowance + m.livingAllowance, 0).toLocaleString(), icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-100' },
-              { label: ar ? 'إجمالي الإجمالي' : 'Total Gross', value: activeMonths.reduce((s, m) => s + m.gross, 0).toLocaleString(), icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-100' },
-              { label: ar ? 'إجمالي الخصومات' : 'Total Deductions', value: activeMonths.reduce((s, m) => s + m.totalDeductions, 0).toLocaleString(), icon: TrendingDown, color: 'text-destructive', bg: 'bg-destructive/10' },
-              { label: ar ? 'إجمالي الصافي' : 'Total Net', value: activeMonths.reduce((s, m) => s + m.net, 0).toLocaleString(), icon: Wallet, color: 'text-blue-600', bg: 'bg-blue-100' },
-              { label: ar ? 'مساهمات صاحب العمل' : 'Employer Cost', value: activeMonths.reduce((s, m) => s + m.employerInsurance + m.healthInsurance + m.incomeTax, 0).toLocaleString(), icon: Building2, color: 'text-purple-600', bg: 'bg-purple-100' },
-            ].map((stat, i) => (
-              <Card key={i}><CardContent className="p-4">
-                <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
-                  <div className={cn("p-2 rounded-lg", stat.bg)}><stat.icon className={cn("w-5 h-5", stat.color)} /></div>
-                  <div><p className="text-xs text-muted-foreground">{stat.label}</p><p className="text-lg font-bold">{stat.value}</p></div>
-                </div>
-              </CardContent></Card>
-            ))}
-          </div>
-
           <Card>
             <CardHeader>
               <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
@@ -924,36 +905,6 @@ const SalaryReports = () => {
 
         {/* Monthly by Station */}
         <TabsContent value="monthly-station">
-          {/* KPI Cards for Monthly by Station */}
-          {(() => {
-            const totalBasic = monthlyByStation.reduce((s, r) => s + r.basic, 0);
-            const totalGrossStation = monthlyByStation.reduce((s, r) => s + r.gross, 0);
-            const totalDedStation = monthlyByStation.reduce((s, r) => s + r.totalDeductions, 0);
-            const totalNetStation = monthlyByStation.reduce((s, r) => s + r.net, 0);
-            const totalEmployerStation = monthlyByStation.reduce((s, r) => s + r.employerInsurance + r.healthInsurance + r.incomeTax, 0);
-            const stationCount = new Set(monthlyByStation.map(r => r.stationKey)).size;
-            const stationStats = [
-              { label: ar ? 'عدد المحطات' : 'Stations', value: String(stationCount), icon: MapPin, color: 'text-primary', bg: 'bg-primary/10' },
-              { label: ar ? 'إجمالي الأساسي' : 'Total Basic', value: totalBasic.toLocaleString(), icon: DollarSign, color: 'text-green-600', bg: 'bg-green-100' },
-              { label: ar ? 'إجمالي الإجمالي' : 'Total Gross', value: totalGrossStation.toLocaleString(), icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-100' },
-              { label: ar ? 'إجمالي الخصومات' : 'Total Deductions', value: totalDedStation.toLocaleString(), icon: TrendingDown, color: 'text-destructive', bg: 'bg-destructive/10' },
-              { label: ar ? 'إجمالي الصافي' : 'Total Net', value: totalNetStation.toLocaleString(), icon: Wallet, color: 'text-blue-600', bg: 'bg-blue-100' },
-              { label: ar ? 'مساهمات صاحب العمل' : 'Employer Cost', value: totalEmployerStation.toLocaleString(), icon: Building2, color: 'text-purple-600', bg: 'bg-purple-100' },
-            ];
-            return (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-                {stationStats.map((stat, i) => (
-                  <Card key={i}><CardContent className="p-4">
-                    <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
-                      <div className={cn("p-2 rounded-lg", stat.bg)}><stat.icon className={cn("w-5 h-5", stat.color)} /></div>
-                      <div><p className="text-xs text-muted-foreground">{stat.label}</p><p className="text-lg font-bold">{stat.value}</p></div>
-                    </div>
-                  </CardContent></Card>
-                ))}
-              </div>
-            );
-          })()}
-
           <Card>
             <CardHeader>
               <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
