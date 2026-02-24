@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePersistedState } from '@/hooks/usePersistedState';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { Building2, Globe, Bell, Shield, Palette, Database, Save } from 'lucide-react';
+import { applyThemeSettings } from '@/lib/themeUtils';
 
 interface SiteConfig {
   companyName: string;
@@ -99,8 +100,13 @@ const SiteSettings = () => {
   const isAr = language === 'ar';
 
   const update = (key: keyof SiteConfig, value: any) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
+    const newConfig = { ...config, [key]: value };
+    setConfig(newConfig);
     setHasChanges(true);
+    // Apply theme/color changes immediately
+    if (key === 'theme' || key === 'primaryColor') {
+      applyThemeSettings(newConfig);
+    }
   };
 
   const toggleDay = (day: string) => {
