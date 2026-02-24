@@ -184,8 +184,8 @@ const SalaryReports = () => {
       stationGroups.get(row.stationKey)!.push(row);
     });
     const headerLabels = ar
-      ? ['الشهر','العدد','الأساسي','مواصلات','حوافز','بدل محطة','بدل محمول','بدل معيشة','أجر إضافي','مكافآت','الإجمالي','تأمينات','قروض','سلف','فاتورة','إجازات','جزاءات','إجمالي خصومات','الصافي','تأمينات ص.ع','صحي','ضريبة']
-      : ['Month','Count','Basic','Trans.','Incent.','St.All.','Mob.All.','Living','OT','Bonus','Gross','Ins.','Loans','Adv.','Bill','Leave','Pen.','Tot.Ded','Net','Emp.Ins','Health','Tax'];
+      ? ['الشهر','العدد','الأساسي','مواصلات','حوافز','بدل محطة','بدل محمول','بدل معيشة','أجر إضافي','مكافآت','الإجمالي','تأمينات','قروض','سلف','فاتورة','إجازات','جزاءات','إجمالي خصومات','الصافي','تأمينات ص.ع','صحي','ضريبة','إجمالي مساهمات ص.ع']
+      : ['Month','Count','Basic','Trans.','Incent.','St.All.','Mob.All.','Living','OT','Bonus','Gross','Ins.','Loans','Adv.','Bill','Leave','Pen.','Tot.Ded','Net','Emp.Ins','Health','Tax','Total Employer'];
 
     let pages = '';
     stationGroups.forEach((rows, stKey) => {
@@ -203,6 +203,7 @@ const SalaryReports = () => {
         <td style="color:#dc2626">${r.totalDeductions.toLocaleString()}</td>
         <td style="font-weight:bold;background:#eff6ff">${r.net.toLocaleString()}</td>
         <td>${r.employerInsurance.toLocaleString()}</td><td>${r.healthInsurance.toLocaleString()}</td><td>${r.incomeTax.toLocaleString()}</td>
+        <td style="font-weight:bold;color:#1e40af">${(r.employerInsurance + r.healthInsurance + r.incomeTax).toLocaleString()}</td>
       </tr>`).join('');
       const totalRow = `<tr style="font-weight:bold;background:#f3f4f6">
         <td>${ar ? 'الإجمالي' : 'Total'}</td><td>${totals.count}</td>
@@ -215,6 +216,7 @@ const SalaryReports = () => {
         <td style="color:#dc2626">${totals.totalDeductions.toLocaleString()}</td>
         <td style="background:#dbeafe">${totals.net.toLocaleString()}</td>
         <td>${totals.employerInsurance.toLocaleString()}</td><td>${totals.healthInsurance.toLocaleString()}</td><td>${totals.incomeTax.toLocaleString()}</td>
+        <td style="font-weight:bold;color:#1e40af">${(totals.employerInsurance + totals.healthInsurance + totals.incomeTax).toLocaleString()}</td>
       </tr>`;
       pages += `<div class="station-page"><h2>${stName}</h2>
         <table><thead><tr>${headerLabels.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}${totalRow}</tbody></table></div>`;
@@ -314,6 +316,7 @@ const SalaryReports = () => {
         <td>${e.employerSocialInsurance.toLocaleString()}</td>
         <td>${e.healthInsurance.toLocaleString()}</td>
         <td>${e.incomeTax.toLocaleString()}</td>
+        <td style="font-weight:bold;color:#1e40af">${(e.employerSocialInsurance + e.healthInsurance + e.incomeTax).toLocaleString()}</td>
       </tr>
     `).join('');
 
@@ -340,11 +343,12 @@ const SalaryReports = () => {
         <td>${totals.empIns.toLocaleString()}</td>
         <td>${totals.health.toLocaleString()}</td>
         <td>${totals.tax.toLocaleString()}</td>
+        <td style="font-weight:bold;color:#1e40af">${(totals.empIns + totals.health + totals.tax).toLocaleString()}</td>
       </tr>`;
 
     const headerLabels = ar
-      ? ['الكود','الاسم','القسم','المحطة','الأساسي','مواصلات','حوافز','بدل محطة','بدل محمول','بدل معيشة','أجر إضافي','مكافآت','الإجمالي','تأمينات','قروض','سلف','فاتورة محمول','خصم إجازات','جزاءات','إجمالي الخصومات','الصافي','تأمينات صاحب العمل','تأمين صحي','ضريبة دخل']
-      : ['ID','Name','Dept','Station','Basic','Transport','Incentives','Station All.','Mobile All.','Living All.','Overtime','Bonus','Gross','Insurance','Loans','Advances','Mobile Bill','Leave Ded.','Penalty','Total Ded.','Net','Emp. Ins.','Health Ins.','Income Tax'];
+      ? ['الكود','الاسم','القسم','المحطة','الأساسي','مواصلات','حوافز','بدل محطة','بدل محمول','بدل معيشة','أجر إضافي','مكافآت','الإجمالي','تأمينات','قروض','سلف','فاتورة محمول','خصم إجازات','جزاءات','إجمالي الخصومات','الصافي','تأمينات صاحب العمل','تأمين صحي','ضريبة دخل','إجمالي مساهمات ص.ع']
+      : ['ID','Name','Dept','Station','Basic','Transport','Incentives','Station All.','Mobile All.','Living All.','Overtime','Bonus','Gross','Insurance','Loans','Advances','Mobile Bill','Leave Ded.','Penalty','Total Ded.','Net','Emp. Ins.','Health Ins.','Income Tax','Total Employer'];
 
     const w = window.open('', '_blank');
     if (!w) return;
@@ -388,8 +392,8 @@ const SalaryReports = () => {
     const months = activeMonths;
 
     const headerLabels = ar
-      ? ['الشهر','عدد الموظفين','الأساسي','مواصلات','حوافز','بدل محطة','بدل محمول','بدل معيشة','أجر إضافي','مكافآت','الإجمالي','تأمينات','قروض','سلف','فاتورة محمول','خصم إجازات','جزاءات','إجمالي الخصومات','الصافي','تأمينات صاحب العمل','تأمين صحي','ضريبة دخل']
-      : ['Month','Employees','Basic','Transport','Incentives','Station','Mobile','Living','Overtime','Bonus','Gross','Insurance','Loans','Advances','Mobile Bill','Leave Ded.','Penalty','Total Ded.','Net','Emp. Ins.','Health Ins.','Income Tax'];
+      ? ['الشهر','عدد الموظفين','الأساسي','مواصلات','حوافز','بدل محطة','بدل محمول','بدل معيشة','أجر إضافي','مكافآت','الإجمالي','تأمينات','قروض','سلف','فاتورة محمول','خصم إجازات','جزاءات','إجمالي الخصومات','الصافي','تأمينات صاحب العمل','تأمين صحي','ضريبة دخل','إجمالي مساهمات ص.ع']
+      : ['Month','Employees','Basic','Transport','Incentives','Station','Mobile','Living','Overtime','Bonus','Gross','Insurance','Loans','Advances','Mobile Bill','Leave Ded.','Penalty','Total Ded.','Net','Emp. Ins.','Health Ins.','Income Tax','Total Employer'];
 
     const rows = months.map(m => `<tr>
       <td style="font-weight:600">${m.month}</td><td>${m.count}</td>
@@ -405,6 +409,7 @@ const SalaryReports = () => {
       <td style="font-weight:bold;background:#eff6ff">${m.net.toLocaleString()}</td>
       <td>${m.employerInsurance.toLocaleString()}</td><td>${m.healthInsurance.toLocaleString()}</td>
       <td>${m.incomeTax.toLocaleString()}</td>
+      <td style="font-weight:bold;color:#1e40af">${(m.employerInsurance + m.healthInsurance + m.incomeTax).toLocaleString()}</td>
     </tr>`).join('');
 
     const w = window.open('', '_blank');
