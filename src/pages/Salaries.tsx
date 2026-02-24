@@ -9,6 +9,7 @@ import { AllowancesDeductions } from '@/components/salaries/AllowancesDeductions
 import { SalaryStructure } from '@/components/salaries/SalaryStructure';
 import { PayrollHistory } from '@/components/salaries/PayrollHistory';
 import { MobileBills } from '@/components/salaries/MobileBills';
+import { SalaryTransfer } from '@/components/salaries/SalaryTransfer';
 
 const Salaries = () => {
   const { t, isRTL } = useLanguage();
@@ -21,6 +22,7 @@ const Salaries = () => {
     { id: 'structure', label: t('salaries.tabs.structure') },
     { id: 'history', label: t('salaries.tabs.history') },
     { id: 'mobile-bills', label: isRTL ? 'فواتير الموبايل' : 'Mobile Bills' },
+    { id: 'transfer', label: isRTL ? 'تحويل الرواتب' : 'Salary Transfer' },
   ];
 
   return (
@@ -60,6 +62,9 @@ const Salaries = () => {
         </TabsContent>
         <TabsContent value="mobile-bills">
           <MobileBills />
+        </TabsContent>
+        <TabsContent value="transfer">
+          <SalaryTransfer />
         </TabsContent>
       </Tabs>
     </DashboardLayout>
