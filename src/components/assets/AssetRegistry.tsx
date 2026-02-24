@@ -10,8 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { Plus, Search, Edit, Trash2, Eye, Monitor, Laptop, Smartphone, Printer, HardDrive, Package } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Monitor, Laptop, Smartphone, Printer, HardDrive, Package, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { mockEmployees } from '@/data/mockEmployees';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 export interface Asset {
   id: string;
@@ -28,25 +30,27 @@ export interface Asset {
   condition: 'new' | 'good' | 'fair' | 'poor';
   location: string;
   notes: string;
+  assignedTo?: string; // employeeId
 }
 
 const initialAssets: Asset[] = [
-  { id: '1', assetCode: 'AST-001', nameAr: 'لابتوب Dell Latitude', nameEn: 'Dell Latitude Laptop', category: 'laptop', brand: 'Dell', model: 'Latitude 5540', serialNumber: 'DL-2026-001', purchaseDate: '2025-06-15', purchasePrice: 25000, status: 'assigned', condition: 'good', location: 'القاهرة', notes: '' },
+  { id: '1', assetCode: 'AST-001', nameAr: 'لابتوب Dell Latitude', nameEn: 'Dell Latitude Laptop', category: 'laptop', brand: 'Dell', model: 'Latitude 5540', serialNumber: 'DL-2026-001', purchaseDate: '2025-06-15', purchasePrice: 25000, status: 'assigned', condition: 'good', location: 'القاهرة', notes: '', assignedTo: 'Emp001' },
   { id: '2', assetCode: 'AST-002', nameAr: 'شاشة Samsung', nameEn: 'Samsung Monitor', category: 'desktop', brand: 'Samsung', model: '27" 4K', serialNumber: 'SM-2025-045', purchaseDate: '2025-03-20', purchasePrice: 8000, status: 'available', condition: 'new', location: 'القاهرة', notes: '' },
   { id: '3', assetCode: 'AST-003', nameAr: 'طابعة HP LaserJet', nameEn: 'HP LaserJet Printer', category: 'printer', brand: 'HP', model: 'LaserJet Pro M404', serialNumber: 'HP-2024-112', purchaseDate: '2024-11-10', purchasePrice: 12000, status: 'maintenance', condition: 'fair', location: 'الإسكندرية', notes: 'بحاجة لصيانة' },
-  { id: '4', assetCode: 'AST-004', nameAr: 'هاتف iPhone 15', nameEn: 'iPhone 15 Pro', category: 'phone', brand: 'Apple', model: 'iPhone 15 Pro', serialNumber: 'AP-2025-078', purchaseDate: '2025-09-01', purchasePrice: 45000, status: 'assigned', condition: 'new', location: 'القاهرة', notes: '' },
-  { id: '5', assetCode: 'AST-005', nameAr: 'مكتب خشبي', nameEn: 'Wooden Desk', category: 'furniture', brand: 'IKEA', model: 'MALM', serialNumber: 'IK-2024-033', purchaseDate: '2024-06-01', purchasePrice: 5000, status: 'assigned', condition: 'good', location: 'القاهرة', notes: '' },
+  { id: '4', assetCode: 'AST-004', nameAr: 'هاتف iPhone 15', nameEn: 'iPhone 15 Pro', category: 'phone', brand: 'Apple', model: 'iPhone 15 Pro', serialNumber: 'AP-2025-078', purchaseDate: '2025-09-01', purchasePrice: 45000, status: 'assigned', condition: 'new', location: 'القاهرة', notes: '', assignedTo: 'Emp001' },
+  { id: '5', assetCode: 'AST-005', nameAr: 'مكتب خشبي', nameEn: 'Wooden Desk', category: 'furniture', brand: 'IKEA', model: 'MALM', serialNumber: 'IK-2024-033', purchaseDate: '2024-06-01', purchasePrice: 5000, status: 'assigned', condition: 'good', location: 'القاهرة', notes: '', assignedTo: 'Emp002' },
   { id: '6', assetCode: 'AST-006', nameAr: 'لابتوب Lenovo ThinkPad', nameEn: 'Lenovo ThinkPad', category: 'laptop', brand: 'Lenovo', model: 'ThinkPad X1 Carbon', serialNumber: 'LN-2025-022', purchaseDate: '2025-01-15', purchasePrice: 32000, status: 'available', condition: 'new', location: 'القاهرة', notes: '' },
-  { id: '7', assetCode: 'AST-007', nameAr: 'سيارة تويوتا كورولا', nameEn: 'Toyota Corolla', category: 'vehicle', brand: 'Toyota', model: 'Corolla 2025', serialNumber: 'TY-2025-003', purchaseDate: '2025-04-01', purchasePrice: 450000, status: 'assigned', condition: 'new', location: 'القاهرة', notes: 'سيارة الإدارة' },
+  { id: '7', assetCode: 'AST-007', nameAr: 'سيارة تويوتا كورولا', nameEn: 'Toyota Corolla', category: 'vehicle', brand: 'Toyota', model: 'Corolla 2025', serialNumber: 'TY-2025-003', purchaseDate: '2025-04-01', purchasePrice: 450000, status: 'assigned', condition: 'new', location: 'القاهرة', notes: 'سيارة الإدارة', assignedTo: 'Emp004' },
   { id: '8', assetCode: 'AST-008', nameAr: 'جهاز كمبيوتر HP', nameEn: 'HP Desktop PC', category: 'desktop', brand: 'HP', model: 'ProDesk 400 G7', serialNumber: 'HP-2024-089', purchaseDate: '2024-08-20', purchasePrice: 15000, status: 'retired', condition: 'poor', location: 'القاهرة', notes: 'تم الاستغناء عنه' },
 ];
 
-const emptyForm = { nameAr: '', nameEn: '', category: 'laptop' as Asset['category'], brand: '', model: '', serialNumber: '', purchaseDate: '', purchasePrice: 0, location: '', notes: '' };
+const emptyForm = { nameAr: '', nameEn: '', category: 'laptop' as Asset['category'], brand: '', model: '', serialNumber: '', purchaseDate: '', purchasePrice: 0, location: '', notes: '', assignedTo: '' };
 
 export const AssetRegistry = () => {
   const { t, isRTL } = useLanguage();
   const { toast } = useToast();
-  const [assets, setAssets] = useState<Asset[]>(initialAssets);
+  const [assets, setAssets] = usePersistedState<Asset[]>('hr_asset_registry', initialAssets);
+  const activeEmployees = mockEmployees.filter(e => e.status === 'active');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -79,7 +83,8 @@ export const AssetRegistry = () => {
       setAssets(prev => prev.map(a => a.id === editingAsset.id ? { ...a, ...form } : a));
       toast({ title: t('assets.success'), description: t('assets.assetUpdated') });
     } else {
-      const newAsset: Asset = { id: String(Date.now()), assetCode: `AST-${String(assets.length + 1).padStart(3, '0')}`, ...form, status: 'available', condition: 'new' };
+      const newStatus = form.assignedTo ? 'assigned' : 'available';
+      const newAsset: Asset = { id: String(Date.now()), assetCode: `AST-${String(assets.length + 1).padStart(3, '0')}`, ...form, status: newStatus, condition: 'new' };
       setAssets(prev => [newAsset, ...prev]);
       toast({ title: t('assets.success'), description: t('assets.assetCreated') });
     }
@@ -90,7 +95,7 @@ export const AssetRegistry = () => {
 
   const handleEdit = (asset: Asset) => {
     setEditingAsset(asset);
-    setForm({ nameAr: asset.nameAr, nameEn: asset.nameEn, category: asset.category, brand: asset.brand, model: asset.model, serialNumber: asset.serialNumber, purchaseDate: asset.purchaseDate, purchasePrice: asset.purchasePrice, location: asset.location, notes: asset.notes });
+    setForm({ nameAr: asset.nameAr, nameEn: asset.nameEn, category: asset.category, brand: asset.brand, model: asset.model, serialNumber: asset.serialNumber, purchaseDate: asset.purchaseDate, purchasePrice: asset.purchasePrice, location: asset.location, notes: asset.notes, assignedTo: asset.assignedTo || '' });
     setDialogOpen(true);
   };
 
@@ -211,6 +216,18 @@ export const AssetRegistry = () => {
                     <div className="space-y-2"><Label>{t('assets.field.purchaseDate')}</Label><Input type="date" value={form.purchaseDate} onChange={e => setForm(f => ({ ...f, purchaseDate: e.target.value }))} /></div>
                     <div className="space-y-2"><Label>{t('assets.field.purchasePrice')}</Label><Input type="number" min={0} value={form.purchasePrice} onChange={e => setForm(f => ({ ...f, purchasePrice: +e.target.value }))} /></div>
                   </div>
+                  <div className="space-y-2">
+                    <Label>{isRTL ? 'تعيين لموظف' : 'Assign to Employee'}</Label>
+                    <Select value={form.assignedTo} onValueChange={v => setForm(f => ({ ...f, assignedTo: v === 'none' ? '' : v }))}>
+                      <SelectTrigger><SelectValue placeholder={isRTL ? 'اختر موظف...' : 'Select employee...'} /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">{isRTL ? 'بدون تعيين' : 'Not assigned'}</SelectItem>
+                        {activeEmployees.map(emp => (
+                          <SelectItem key={emp.employeeId} value={emp.employeeId}>{isRTL ? emp.nameAr : emp.nameEn} ({emp.employeeId})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2"><Label>{t('assets.field.notes')}</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} /></div>
                   <Button onClick={handleSave} className="w-full">{t('assets.save')}</Button>
                 </div>
@@ -230,7 +247,7 @@ export const AssetRegistry = () => {
                 <TableHead>{t('assets.field.name')}</TableHead>
                 <TableHead>{t('assets.field.category')}</TableHead>
                 <TableHead>{t('assets.field.brand')}</TableHead>
-                <TableHead>{t('assets.field.serialNumber')}</TableHead>
+                <TableHead>{isRTL ? 'معيّن لـ' : 'Assigned To'}</TableHead>
                 <TableHead>{t('assets.field.purchasePrice')}</TableHead>
                 <TableHead>{t('assets.field.condition')}</TableHead>
                 <TableHead>{t('assets.field.status')}</TableHead>
@@ -249,7 +266,12 @@ export const AssetRegistry = () => {
                   </TableCell>
                   <TableCell>{t(`assets.category.${asset.category}`)}</TableCell>
                   <TableCell>{asset.brand}</TableCell>
-                  <TableCell className="font-mono text-sm">{asset.serialNumber}</TableCell>
+                  <TableCell>
+                    {asset.assignedTo ? (() => {
+                      const emp = mockEmployees.find(e => e.employeeId === asset.assignedTo);
+                      return emp ? (isRTL ? emp.nameAr : emp.nameEn) : '-';
+                    })() : <span className="text-muted-foreground">-</span>}
+                  </TableCell>
                   <TableCell>{asset.purchasePrice.toLocaleString()} {t('assets.currency')}</TableCell>
                   <TableCell><Badge variant="outline">{t(`assets.condition.${asset.condition}`)}</Badge></TableCell>
                   <TableCell>{getStatusBadge(asset.status)}</TableCell>

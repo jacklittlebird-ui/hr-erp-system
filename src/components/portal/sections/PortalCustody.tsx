@@ -11,10 +11,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { Package, Plus, AlertTriangle, CheckCircle, GraduationCap, Info } from 'lucide-react';
+import { Package, Plus, AlertTriangle, CheckCircle, GraduationCap, Info, Laptop } from 'lucide-react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { toast } from '@/hooks/use-toast';
 import type { TrainingDebt } from '@/components/training/TrainingPlan';
+import type { Asset } from '@/components/assets/AssetRegistry';
 
 interface CustodyItem {
   id: number;
@@ -40,7 +41,14 @@ export const PortalCustody = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const [items, setItems] = usePersistedState<CustodyItem[]>('hr_portal_custody', initialItems);
+  const [registryAssets] = usePersistedState<Asset[]>('hr_asset_registry', []);
   const [trainingDebts] = usePersistedState<TrainingDebt[]>('hr_training_debts', []);
+
+  // Assets assigned to this employee from the registry
+  const assignedAssets = useMemo(() => 
+    registryAssets.filter(a => a.assignedTo === PORTAL_EMPLOYEE_ID && a.status === 'assigned'),
+    [registryAssets]
+  );
   const [isOpen, setIsOpen] = useState(false);
   
   const [reportItem, setReportItem] = useState<CustodyItem | null>(null);
@@ -177,6 +185,39 @@ export const PortalCustody = () => {
               </Table>
             </CardContent>
           </Card>
+
+          {/* Assigned Assets from Registry */}
+          {assignedAssets.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                  <Laptop className="w-5 h-5 text-primary" />{ar ? 'الأصول المعيّنة لي' : 'Assets Assigned to Me'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader><TableRow>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الكود' : 'Code'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الاسم' : 'Name'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الماركة' : 'Brand'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الموديل' : 'Model'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Condition'}</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {assignedAssets.map(a => (
+                      <TableRow key={a.id}>
+                        <TableCell className="font-mono">{a.assetCode}</TableCell>
+                        <TableCell className="font-medium">{ar ? a.nameAr : a.nameEn}</TableCell>
+                        <TableCell>{a.brand}</TableCell>
+                        <TableCell>{a.model}</TableCell>
+                        <TableCell><Badge variant="outline">{a.condition}</Badge></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Tab 2: Training Dues */}
