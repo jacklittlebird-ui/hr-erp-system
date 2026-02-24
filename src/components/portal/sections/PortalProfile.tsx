@@ -20,8 +20,8 @@ const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType; label
 export const PortalProfile = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
-  const { getEmployee } = useEmployeeData();
-  const employee = getEmployee(PORTAL_EMPLOYEE_ID);
+  const { getEmployeeById } = useEmployeeData();
+  const employee = getEmployeeById(PORTAL_EMPLOYEE_ID);
 
   if (!employee) {
     return <div className="p-10 text-center text-muted-foreground">{ar ? 'لم يتم العثور على بيانات الموظف' : 'Employee data not found'}</div>;

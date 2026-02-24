@@ -12,11 +12,23 @@ import type { TrainingDebt } from '@/components/training/TrainingPlan';
 
 const PORTAL_EMPLOYEE_ID = 'Emp001';
 
+interface TrainingRecord {
+  id: string;
+  employeeId: string;
+  courseName: string;
+  provider: string;
+  startDate: string;
+  endDate: string;
+  status: 'completed' | 'in_progress' | 'planned';
+  score?: string;
+}
+
 export const PortalTraining = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { getTraining } = usePortalData();
-  const courses = useMemo(() => getTraining(PORTAL_EMPLOYEE_ID), [getTraining]);
+  const portalCourses = useMemo(() => getTraining(PORTAL_EMPLOYEE_ID), [getTraining]);
+  const [trainingRecords] = usePersistedState<TrainingRecord[]>('hr_training_records', []);
   const [trainingDebts] = usePersistedState<TrainingDebt[]>('hr_training_debts', []);
 
   // Filter active debts (not expired - within 3 years)
@@ -27,6 +39,12 @@ export const PortalTraining = () => {
   }, [trainingDebts]);
 
   const totalDebt = activeDebts.reduce((s, d) => s + d.cost, 0);
+
+  // Merge portal courses with actual training records for this employee
+  const empTrainingRecords = useMemo(() => 
+    trainingRecords.filter(r => r.employeeId === PORTAL_EMPLOYEE_ID), [trainingRecords]);
+
+  const courses = portalCourses;
 
   return (
     <div className="space-y-6">
@@ -76,7 +94,7 @@ export const PortalTraining = () => {
       )}
 
       {/* Existing courses */}
-      {courses.length === 0 && activeDebts.length === 0 ? (
+      {courses.length === 0 && activeDebts.length === 0 && empTrainingRecords.length === 0 ? (
         <Card><CardContent className="p-10 text-center text-muted-foreground">{ar ? 'لا توجد دورات' : 'No courses'}</CardContent></Card>
       ) : (
         <div className="grid gap-4">
@@ -100,6 +118,45 @@ export const PortalTraining = () => {
               </CardContent>
             </Card>
           ))}
+
+          {/* Training records from admin */}
+          {empTrainingRecords.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className={cn("text-lg", isRTL && "text-right")}>{ar ? 'سجل الدورات' : 'Course Records'}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{ar ? 'اسم الدورة' : 'Course'}</TableHead>
+                      <TableHead>{ar ? 'الجهة' : 'Provider'}</TableHead>
+                      <TableHead>{ar ? 'من' : 'From'}</TableHead>
+                      <TableHead>{ar ? 'إلى' : 'To'}</TableHead>
+                      <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
+                      <TableHead>{ar ? 'الدرجة' : 'Score'}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {empTrainingRecords.map(r => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.courseName}</TableCell>
+                        <TableCell>{r.provider}</TableCell>
+                        <TableCell>{r.startDate}</TableCell>
+                        <TableCell>{r.endDate}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={r.status === 'completed' ? 'bg-success/10 text-success border-success' : r.status === 'in_progress' ? 'bg-primary/10 text-primary border-primary' : ''}>
+                            {r.status === 'completed' ? (ar ? 'مكتمل' : 'Completed') : r.status === 'in_progress' ? (ar ? 'جاري' : 'In Progress') : (ar ? 'مخطط' : 'Planned')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{r.score || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

@@ -27,6 +27,9 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 const initialNotifications: AppNotification[] = [
   { id: 'init1', titleAr: 'مرحباً بك في نظام الموارد البشرية', titleEn: 'Welcome to HR System', type: 'info', module: 'general', read: false, timestamp: new Date().toISOString() },
+  { id: 'init_emp001_1', titleAr: 'تم اعتماد إجازتك السنوية', titleEn: 'Your annual leave has been approved', descAr: 'تم اعتماد إجازتك من 10/01 إلى 12/01', descEn: 'Your leave from 01/10 to 01/12 has been approved', type: 'success', module: 'leave', employeeId: 'Emp001', read: false, timestamp: new Date(Date.now() - 86400000).toISOString() },
+  { id: 'init_emp001_2', titleAr: 'موعد تقييم الأداء الربع سنوي', titleEn: 'Quarterly performance review due', descAr: 'يرجى الاطلاع على نتائج تقييم Q4 2025', descEn: 'Please review Q4 2025 evaluation results', type: 'info', module: 'performance', employeeId: 'Emp001', read: false, timestamp: new Date(Date.now() - 172800000).toISOString() },
+  { id: 'init_emp001_3', titleAr: 'قسط القرض الشهري مستحق', titleEn: 'Monthly loan installment due', descAr: 'قسط القرض الشخصي بقيمة 2,500 ج.م مستحق هذا الشهر', descEn: 'Personal loan installment of 2,500 EGP is due this month', type: 'warning', module: 'loan', employeeId: 'Emp001', read: false, timestamp: new Date(Date.now() - 3600000).toISOString() },
 ];
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
