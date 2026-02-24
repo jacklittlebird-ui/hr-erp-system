@@ -222,13 +222,32 @@ const SalaryReports = () => {
         <table><thead><tr>${headerLabels.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}${totalRow}</tbody></table></div>`;
     });
 
+    // Compute overall totals for summary cards
+    const overallTotals = { count: 0, basic: 0, gross: 0, totalDeductions: 0, net: 0, empIns: 0, health: 0, tax: 0 };
+    monthlyByStation.forEach(r => {
+      overallTotals.count += r.count;
+      overallTotals.basic += r.basic;
+      overallTotals.gross += r.gross;
+      overallTotals.totalDeductions += r.totalDeductions;
+      overallTotals.net += r.net;
+      overallTotals.empIns += r.employerInsurance;
+      overallTotals.health += r.healthInsurance;
+      overallTotals.tax += r.incomeTax;
+    });
+    const stationCount = stationGroups.size;
+
     const w = window.open('', '_blank');
     if (!w) return;
     w.document.write(`<!DOCTYPE html><html dir="${ar ? 'rtl' : 'ltr'}"><head><title>${title}</title>
       <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700&display=swap" rel="stylesheet">
       <style>
         body { font-family: 'Baloo Bhaijaan 2', sans-serif; padding: 15px; font-size: 10px; }
-        h1 { text-align: center; font-size: 18px; margin-bottom: 10px; }
+        h1 { text-align: center; font-size: 18px; margin-bottom: 4px; }
+        .subtitle { text-align: center; color: #666; font-size: 11px; margin-bottom: 12px; }
+        .summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 15px; }
+        .summary-card { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; text-align: center; }
+        .summary-card .val { font-size: 16px; font-weight: 700; }
+        .summary-card .lbl { font-size: 9px; color: #6b7280; }
         h2 { font-size: 15px; margin: 8px 0; padding: 6px 10px; background: #1e40af; color: white; border-radius: 4px; }
         table { width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 10px; }
         th { background: #374151; color: white; padding: 4px 3px; font-size: 8px; white-space: nowrap; }
@@ -239,7 +258,15 @@ const SalaryReports = () => {
         @media print { @page { size: landscape; margin: 8mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
       </style></head><body>
       <h1>${title}</h1>
-      <p style="text-align:center;color:#666;font-size:11px;margin-bottom:15px">${new Date().toLocaleDateString(ar ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <p class="subtitle">${new Date().toLocaleDateString(ar ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <div class="summary">
+        <div class="summary-card"><div class="val">${overallTotals.gross.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الإجمالي' : 'Total Gross'}</div></div>
+        <div class="summary-card"><div class="val">${overallTotals.totalDeductions.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الخصومات' : 'Total Deductions'}</div></div>
+        <div class="summary-card"><div class="val">${overallTotals.net.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الصافي' : 'Total Net'}</div></div>
+        <div class="summary-card"><div class="val">${(overallTotals.empIns + overallTotals.health + overallTotals.tax).toLocaleString()}</div><div class="lbl">${ar ? 'مساهمات صاحب العمل' : 'Employer Cost'}</div></div>
+        <div class="summary-card"><div class="val">${overallTotals.count}</div><div class="lbl">${ar ? 'عدد السجلات' : 'Records'}</div></div>
+        <div class="summary-card"><div class="val">${stationCount}</div><div class="lbl">${ar ? 'عدد المحطات' : 'Stations'}</div></div>
+      </div>
       ${pages}
       </body></html>`);
     w.document.close();
@@ -412,13 +439,29 @@ const SalaryReports = () => {
       <td style="font-weight:bold;color:#1e40af">${(m.employerInsurance + m.healthInsurance + m.incomeTax).toLocaleString()}</td>
     </tr>`).join('');
 
+    const monthTotals = {
+      basic: months.reduce((s, m) => s + m.basic, 0),
+      gross: months.reduce((s, m) => s + m.gross, 0),
+      totalDed: months.reduce((s, m) => s + m.totalDeductions, 0),
+      net: months.reduce((s, m) => s + m.net, 0),
+      empIns: months.reduce((s, m) => s + m.employerInsurance, 0),
+      health: months.reduce((s, m) => s + m.healthInsurance, 0),
+      tax: months.reduce((s, m) => s + m.incomeTax, 0),
+      count: months.reduce((s, m) => s + m.count, 0),
+    };
+
     const w = window.open('', '_blank');
     if (!w) return;
     w.document.write(`<!DOCTYPE html><html dir="${ar ? 'rtl' : 'ltr'}"><head><title>${title}</title>
       <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700&display=swap" rel="stylesheet">
       <style>
         body { font-family: 'Baloo Bhaijaan 2', sans-serif; padding: 20px; font-size: 11px; }
-        h1 { text-align: center; font-size: 20px; margin-bottom: 15px; }
+        h1 { text-align: center; font-size: 20px; margin-bottom: 4px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 15px; font-size: 12px; }
+        .summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 15px; }
+        .summary-card { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; text-align: center; }
+        .summary-card .val { font-size: 16px; font-weight: 700; }
+        .summary-card .lbl { font-size: 9px; color: #6b7280; }
         table { width: 100%; border-collapse: collapse; }
         th { background: #1e40af; color: white; padding: 6px 4px; font-size: 9px; white-space: nowrap; }
         td { border: 1px solid #d1d5db; padding: 4px 5px; text-align: center; }
@@ -426,6 +469,15 @@ const SalaryReports = () => {
         @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
       </style></head><body>
       <h1>${title}</h1>
+      <p class="subtitle">${new Date().toLocaleDateString(ar ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <div class="summary">
+        <div class="summary-card"><div class="val">${monthTotals.gross.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الإجمالي' : 'Total Gross'}</div></div>
+        <div class="summary-card"><div class="val">${monthTotals.totalDed.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الخصومات' : 'Total Deductions'}</div></div>
+        <div class="summary-card"><div class="val">${monthTotals.net.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الصافي' : 'Total Net'}</div></div>
+        <div class="summary-card"><div class="val">${(monthTotals.empIns + monthTotals.health + monthTotals.tax).toLocaleString()}</div><div class="lbl">${ar ? 'مساهمات صاحب العمل' : 'Employer Cost'}</div></div>
+        <div class="summary-card"><div class="val">${monthTotals.count}</div><div class="lbl">${ar ? 'عدد السجلات' : 'Records'}</div></div>
+        <div class="summary-card"><div class="val">${months.length}</div><div class="lbl">${ar ? 'عدد الأشهر' : 'Months'}</div></div>
+      </div>
       <table><thead><tr>${headerLabels.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>
       </body></html>`);
     w.document.close();
