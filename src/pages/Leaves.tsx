@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAttendanceData } from '@/contexts/AttendanceDataContext';
@@ -34,7 +35,7 @@ const Leaves = () => {
   const [activeTab, setActiveTab] = useState('leaves');
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(sampleLeaveRequests);
   const [permissionRequests, setPermissionRequests] = useState<PermissionRequest[]>(samplePermissionRequests);
-  const [missionRequests, setMissionRequests] = useState<MissionRequest[]>(sampleMissionRequests);
+  const [missionRequests, setMissionRequests] = usePersistedState<MissionRequest[]>('hr_mission_requests', sampleMissionRequests);
   const [overtimeRequests, setOvertimeRequests] = useState<OvertimeRequest[]>(sampleOvertimeRequests);
 
   const handleApproveLeave = (id: string) => {

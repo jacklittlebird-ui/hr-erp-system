@@ -4,6 +4,8 @@ import { Employee } from '@/types/employee';
 import { cn } from '@/lib/utils';
 import { MapPin } from 'lucide-react';
 import { sampleMissionRequests } from '@/data/leavesData';
+import { usePersistedState } from '@/hooks/usePersistedState';
+import { MissionRequest } from '@/types/leaves';
 
 interface MissionRecordTabProps {
   employee: Employee;
@@ -36,11 +38,13 @@ const StatusBadge = ({ status }: { status: RecordStatus }) => {
 export const MissionRecordTab = ({ employee }: MissionRecordTabProps) => {
   const { t, isRTL, language } = useLanguage();
 
+  const [missionRequests] = usePersistedState<MissionRequest[]>('hr_mission_requests', sampleMissionRequests);
+
   const missions = useMemo(() => {
-    return sampleMissionRequests.filter(
+    return missionRequests.filter(
       m => m.employeeId.toLowerCase() === employee.employeeId.toLowerCase()
     );
-  }, [employee.employeeId]);
+  }, [employee.employeeId, missionRequests]);
 
   const summary = useMemo(() => ({
     total: missions.length,
