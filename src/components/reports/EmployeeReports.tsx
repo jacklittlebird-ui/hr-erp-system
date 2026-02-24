@@ -1,14 +1,28 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Users, UserPlus, UserMinus, Building2, Download, FileText, Printer } from 'lucide-react';
+import { Users, UserPlus, UserMinus, Building2, Download, FileText, Printer, Save, BookmarkPlus, Trash2, RotateCcw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useReportExport } from '@/hooks/useReportExport';
 import { stationLocations } from '@/data/stationLocations';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
+import { usePersistedState } from '@/hooks/usePersistedState';
+import { toast } from '@/hooks/use-toast';
+
+interface ExportPreset {
+  id: string;
+  name: string;
+  department: string;
+  station: string;
+  status: string;
+  createdAt: string;
+}
 
 export const EmployeeReports = () => {
   const { t, isRTL } = useLanguage();
@@ -18,7 +32,12 @@ export const EmployeeReports = () => {
   const [department, setDepartment] = useState('all');
   const [station, setStation] = useState('all');
   const [status, setStatus] = useState('all');
-  const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
+  const { reportRef, handlePrint, exportToCSV } = useReportExport();
+
+  // Presets
+  const [presets, setPresets] = usePersistedState<ExportPreset[]>('hr_report_presets', []);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [presetName, setPresetName] = useState('');
 
   const departments = useMemo(() => {
     const depts = new Set(employees.map(e => e.department).filter(d => d && d !== '-'));
@@ -36,8 +55,8 @@ export const EmployeeReports = () => {
 
   const realStats = useMemo(() => [
     { label: t('reports.totalEmployees'), value: filteredEmployees.length, icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
-    { label: t('reports.newHires'), value: filteredEmployees.filter(e => e.status === 'active').length, icon: UserPlus, color: 'text-success', bg: 'bg-success/10' },
-    { label: t('reports.terminated'), value: filteredEmployees.filter(e => e.status === 'inactive').length, icon: UserMinus, color: 'text-destructive', bg: 'bg-destructive/10' },
+    { label: ar ? 'نشط' : 'Active', value: filteredEmployees.filter(e => e.status === 'active').length, icon: UserPlus, color: 'text-success', bg: 'bg-success/10' },
+    { label: ar ? 'غير نشط' : 'Inactive', value: filteredEmployees.filter(e => e.status === 'inactive').length, icon: UserMinus, color: 'text-destructive', bg: 'bg-destructive/10' },
     { label: ar ? 'موقوف' : 'Suspended', value: filteredEmployees.filter(e => e.status === 'suspended').length, icon: Building2, color: 'text-warning', bg: 'bg-warning/10' },
   ], [filteredEmployees, t, ar]);
 
@@ -59,12 +78,26 @@ export const EmployeeReports = () => {
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [filteredEmployees, ar]);
 
+  const getStationLabel = (val: string) => {
+    if (val === 'all') return ar ? 'جميع المحطات' : 'All Stations';
+    const s = stationLocations.find(s => s.value === val);
+    return s ? (ar ? s.labelAr : s.labelEn) : val;
+  };
+
+  const getStatusLabel = (val: string) => {
+    if (val === 'all') return ar ? 'جميع الحالات' : 'All Status';
+    if (val === 'active') return ar ? 'نشط' : 'Active';
+    if (val === 'inactive') return ar ? 'غير نشط' : 'Inactive';
+    return ar ? 'موقوف' : 'Suspended';
+  };
+
   const getEmployeeExportColumns = () => [
     { header: ar ? 'كود الموظف' : 'Employee ID', key: 'employeeId' },
     { header: ar ? 'الاسم' : 'Name', key: 'name' },
     { header: ar ? 'المحطة' : 'Station', key: 'station' },
     { header: ar ? 'القسم' : 'Department', key: 'department' },
     { header: ar ? 'الوظيفة' : 'Job Title', key: 'jobTitle' },
+    { header: ar ? 'الهاتف' : 'Phone', key: 'phone' },
     { header: ar ? 'الحالة' : 'Status', key: 'status' },
   ];
 
@@ -74,17 +107,170 @@ export const EmployeeReports = () => {
     station: (() => { const s = stationLocations.find(s => s.value === e.stationLocation); return s ? (ar ? s.labelAr : s.labelEn) : (e.stationLocation || '-'); })(),
     department: e.department,
     jobTitle: e.jobTitle,
+    phone: e.phone || '-',
     status: e.status === 'active' ? (ar ? 'نشط' : 'Active') : e.status === 'inactive' ? (ar ? 'غير نشط' : 'Inactive') : (ar ? 'موقوف' : 'Suspended'),
   }));
 
   const reportTitle = t('reports.tabs.employees');
 
+  // Multi-page PDF export
+  const exportMultiPagePDF = useCallback(() => {
+    const data = getEmployeeExportData();
+    if (!data.length) {
+      toast({ title: ar ? 'لا توجد بيانات للتصدير' : 'No data to export', variant: 'destructive' });
+      return;
+    }
+    const columns = getEmployeeExportColumns();
+    const filterSummary = [
+      department !== 'all' ? `${ar ? 'القسم' : 'Dept'}: ${department}` : null,
+      station !== 'all' ? `${ar ? 'المحطة' : 'Station'}: ${getStationLabel(station)}` : null,
+      status !== 'all' ? `${ar ? 'الحالة' : 'Status'}: ${getStatusLabel(status)}` : null,
+    ].filter(Boolean).join(' | ') || (ar ? 'بدون فلاتر' : 'No filters');
+
+    const statsHtml = realStats.map(s =>
+      `<div class="stat-card"><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>`
+    ).join('');
+
+    const deptTableHtml = realDeptData.map(d =>
+      `<tr><td>${d.name}</td><td>${d.value}</td><td>${filteredEmployees.length ? ((d.value / filteredEmployees.length) * 100).toFixed(1) : 0}%</td></tr>`
+    ).join('');
+
+    const stationTableHtml = realStationData.map(d =>
+      `<tr><td>${d.name}</td><td>${d.value}</td><td>${filteredEmployees.length ? ((d.value / filteredEmployees.length) * 100).toFixed(1) : 0}%</td></tr>`
+    ).join('');
+
+    const ROWS_PER_PAGE = 25;
+    const pages = [];
+    for (let i = 0; i < data.length; i += ROWS_PER_PAGE) {
+      pages.push(data.slice(i, i + ROWS_PER_PAGE));
+    }
+
+    const employeePages = pages.map((page, pageIdx) => `
+      <div class="page-break">
+        <h2>${ar ? 'بيانات الموظفين' : 'Employee Data'} (${ar ? 'صفحة' : 'Page'} ${pageIdx + 1}/${pages.length})</h2>
+        <table>
+          <thead><tr>${columns.map(c => `<th>${c.header}</th>`).join('')}</tr></thead>
+          <tbody>${page.map(row => `<tr>${columns.map(col => `<td>${String(row[col.key as keyof typeof row] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>
+      </div>
+    `).join('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html dir="${isRTL ? 'rtl' : 'ltr'}">
+      <head>
+        <title>${reportTitle}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          * { box-sizing: border-box; }
+          body { font-family: 'Baloo Bhaijaan 2', 'Cairo', sans-serif; padding: 30px; direction: ${isRTL ? 'rtl' : 'ltr'}; color: #1f2937; }
+          h1 { text-align: center; margin-bottom: 4px; font-size: 24px; color: #1e40af; }
+          h2 { font-size: 18px; color: #1e40af; margin: 20px 0 12px; border-bottom: 2px solid #1e40af; padding-bottom: 6px; }
+          .subtitle { text-align: center; color: #6b7280; margin-bottom: 6px; font-size: 13px; }
+          .filter-bar { background: #f0f4ff; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; text-align: center; font-size: 13px; color: #374151; }
+          .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+          .stat-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; text-align: center; background: #fafbfc; }
+          .stat-value { font-size: 28px; font-weight: 700; color: #1e40af; }
+          .stat-label { font-size: 12px; color: #6b7280; margin-top: 2px; }
+          .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 10px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+          th, td { border: 1px solid #d1d5db; padding: 8px 10px; text-align: ${isRTL ? 'right' : 'left'}; font-size: 12px; }
+          th { background-color: #1e40af; color: white; font-weight: 600; }
+          tr:nth-child(even) { background-color: #f0f4ff; }
+          .footer { text-align: center; margin-top: 20px; color: #9ca3af; font-size: 11px; border-top: 1px solid #e5e7eb; padding-top: 10px; }
+          .page-break { page-break-before: always; }
+          .page-break:first-child { page-break-before: auto; }
+          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        </style>
+      </head>
+      <body>
+        <!-- Page 1: Summary -->
+        <h1>${reportTitle}</h1>
+        <p class="subtitle">${new Date().toLocaleDateString(isRTL ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <div class="filter-bar">${ar ? 'الفلاتر المطبقة' : 'Applied Filters'}: ${filterSummary}</div>
+        <div class="stats-grid">${statsHtml}</div>
+        
+        <div class="summary-grid">
+          <div>
+            <h2>${ar ? 'التوزيع حسب القسم' : 'By Department'}</h2>
+            <table>
+              <thead><tr><th>${ar ? 'القسم' : 'Department'}</th><th>${ar ? 'العدد' : 'Count'}</th><th>${ar ? 'النسبة' : '%'}</th></tr></thead>
+              <tbody>${deptTableHtml}</tbody>
+            </table>
+          </div>
+          <div>
+            <h2>${ar ? 'التوزيع حسب المحطة' : 'By Station'}</h2>
+            <table>
+              <thead><tr><th>${ar ? 'المحطة' : 'Station'}</th><th>${ar ? 'العدد' : 'Count'}</th><th>${ar ? 'النسبة' : '%'}</th></tr></thead>
+              <tbody>${stationTableHtml}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Page 2+: Employee data -->
+        ${employeePages}
+
+        <p class="footer">${ar ? 'تم إنشاء التقرير بواسطة نظام إدارة الموارد البشرية' : 'Generated by HR Management System'} — ${new Date().toLocaleString(isRTL ? 'ar-SA' : 'en-US')}</p>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({ title: ar ? 'يرجى السماح بالنوافذ المنبثقة' : 'Please allow popups', variant: 'destructive' });
+      return;
+    }
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); }, 600);
+    toast({ title: ar ? 'تم تصدير التقرير بنجاح' : 'Report exported successfully' });
+  }, [filteredEmployees, realStats, realDeptData, realStationData, department, station, status, ar, isRTL, reportTitle]);
+
+  // Presets management
+  const savePreset = useCallback(() => {
+    if (!presetName.trim()) return;
+    const newPreset: ExportPreset = {
+      id: Date.now().toString(),
+      name: presetName.trim(),
+      department,
+      station,
+      status,
+      createdAt: new Date().toISOString(),
+    };
+    setPresets(prev => [...prev, newPreset]);
+    setPresetName('');
+    setSaveDialogOpen(false);
+    toast({ title: ar ? 'تم حفظ الإعداد المسبق' : 'Preset saved' });
+  }, [presetName, department, station, status, ar]);
+
+  const loadPreset = useCallback((preset: ExportPreset) => {
+    setDepartment(preset.department);
+    setStation(preset.station);
+    setStatus(preset.status);
+    toast({ title: ar ? `تم تحميل: ${preset.name}` : `Loaded: ${preset.name}` });
+  }, [ar]);
+
+  const deletePreset = useCallback((id: string) => {
+    setPresets(prev => prev.filter(p => p.id !== id));
+    toast({ title: ar ? 'تم حذف الإعداد المسبق' : 'Preset deleted' });
+  }, [ar]);
+
+  const resetFilters = useCallback(() => {
+    setDepartment('all');
+    setStation('all');
+    setStatus('all');
+  }, []);
+
+  const hasActiveFilters = department !== 'all' || station !== 'all' || status !== 'all';
+
   return (
     <div className="space-y-6">
+      {/* Filters + Actions */}
       <Card>
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-3">
           <div className={cn("flex flex-wrap gap-4 items-center justify-between", isRTL && "flex-row-reverse")}>
-            <div className={cn("flex flex-wrap gap-4", isRTL && "flex-row-reverse")}>
+            <div className={cn("flex flex-wrap gap-3", isRTL && "flex-row-reverse")}>
               <Select value={department} onValueChange={setDepartment}>
                 <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -112,21 +298,60 @@ export const EmployeeReports = () => {
                   <SelectItem value="suspended">{ar ? 'موقوف' : 'Suspended'}</SelectItem>
                 </SelectContent>
               </Select>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={resetFilters} className="gap-1 text-muted-foreground">
+                  <RotateCcw className="w-4 h-4" />{ar ? 'إعادة ضبط' : 'Reset'}
+                </Button>
+              )}
             </div>
-            <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
-              <Button variant="outline" size="sm" onClick={() => handlePrint(reportTitle)}>
-                <Printer className="w-4 h-4 mr-2" />{t('reports.print')}
+            <div className={cn("flex gap-2 flex-wrap", isRTL && "flex-row-reverse")}>
+              <Button variant="outline" size="sm" onClick={() => setSaveDialogOpen(true)} className="gap-1">
+                <BookmarkPlus className="w-4 h-4" />{ar ? 'حفظ إعداد' : 'Save Preset'}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => exportToPDF({ title: reportTitle, data: getEmployeeExportData(), columns: getEmployeeExportColumns() })}>
-                <Download className="w-4 h-4 mr-2" />PDF
+              <Button variant="outline" size="sm" onClick={() => handlePrint(reportTitle)} className="gap-1">
+                <Printer className="w-4 h-4" />{ar ? 'طباعة' : 'Print'}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: reportTitle, data: getEmployeeExportData(), columns: getEmployeeExportColumns() })}>
-                <FileText className="w-4 h-4 mr-2" />CSV
+              <Button variant="outline" size="sm" onClick={exportMultiPagePDF} className="gap-1">
+                <Download className="w-4 h-4" />PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: reportTitle, data: getEmployeeExportData(), columns: getEmployeeExportColumns() })} className="gap-1">
+                <FileText className="w-4 h-4" />CSV
               </Button>
             </div>
           </div>
+
+          {/* Saved Presets */}
+          {presets.length > 0 && (
+            <div className={cn("flex flex-wrap gap-2 items-center pt-2 border-t border-border", isRTL && "flex-row-reverse")}>
+              <span className="text-xs text-muted-foreground font-medium">{ar ? 'الإعدادات المحفوظة:' : 'Saved Presets:'}</span>
+              {presets.map(p => (
+                <div key={p.id} className="flex items-center gap-1">
+                  <Badge
+                    variant="secondary"
+                    className="cursor-pointer hover:bg-primary/10 transition-colors px-3 py-1"
+                    onClick={() => loadPreset(p)}
+                  >
+                    {p.name}
+                  </Badge>
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => deletePreset(p.id)}>
+                    <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Active filter summary */}
+      {hasActiveFilters && (
+        <div className={cn("flex flex-wrap gap-2", isRTL && "flex-row-reverse")}>
+          {department !== 'all' && <Badge variant="outline" className="gap-1">{ar ? 'القسم' : 'Dept'}: {department}</Badge>}
+          {station !== 'all' && <Badge variant="outline" className="gap-1">{ar ? 'المحطة' : 'Station'}: {getStationLabel(station)}</Badge>}
+          {status !== 'all' && <Badge variant="outline" className="gap-1">{ar ? 'الحالة' : 'Status'}: {getStatusLabel(status)}</Badge>}
+          <Badge className="bg-primary/10 text-primary">{filteredEmployees.length} {ar ? 'موظف' : 'employees'}</Badge>
+        </div>
+      )}
 
       <div ref={reportRef}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -183,6 +408,40 @@ export const EmployeeReports = () => {
           </Card>
         </div>
       </div>
+
+      {/* Save Preset Dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent className="sm:max-w-md" dir={isRTL ? 'rtl' : 'ltr'}>
+          <DialogHeader>
+            <DialogTitle>{ar ? 'حفظ إعداد مسبق' : 'Save Export Preset'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{ar ? 'اسم الإعداد' : 'Preset Name'}</label>
+              <Input
+                value={presetName}
+                onChange={e => setPresetName(e.target.value)}
+                placeholder={ar ? 'مثال: تقرير القاهرة - النشطين' : 'e.g. Cairo Active Report'}
+                onKeyDown={e => e.key === 'Enter' && savePreset()}
+              />
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">{ar ? 'الفلاتر الحالية:' : 'Current filters:'}</p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">{ar ? 'القسم' : 'Dept'}: {department === 'all' ? (ar ? 'الكل' : 'All') : department}</Badge>
+                <Badge variant="outline">{ar ? 'المحطة' : 'Station'}: {getStationLabel(station)}</Badge>
+                <Badge variant="outline">{ar ? 'الحالة' : 'Status'}: {getStatusLabel(status)}</Badge>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>{ar ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={savePreset} disabled={!presetName.trim()} className="gap-1">
+              <Save className="w-4 h-4" />{ar ? 'حفظ' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
