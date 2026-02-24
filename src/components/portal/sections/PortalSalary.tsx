@@ -64,7 +64,7 @@ export const PortalSalary = () => {
   const getEmployerContributions = (slip: typeof latest) => {
     if (!slip) return [];
     return [
-      { l: ar ? 'تأمينات صاحب العمل' : 'Employer Social Insurance', v: slip.employerSocialInsurance },
+      { l: ar ? 'حصة صاحب العمل في التأمينات' : 'Employer Social Insurance', v: slip.employerSocialInsurance },
       { l: ar ? 'التأمين الصحي' : 'Health Insurance', v: slip.healthInsurance },
       { l: ar ? 'ضريبة الدخل' : 'Income Tax', v: slip.incomeTax },
     ];
@@ -85,7 +85,7 @@ export const PortalSalary = () => {
   ] : [];
 
   const employerContributions = latest ? getEmployerContributions(latest) : salaryRecord ? [
-    { l: ar ? 'تأمينات صاحب العمل' : 'Employer Social Insurance', v: salaryRecord.employerSocialInsurance },
+    { l: ar ? 'حصة صاحب العمل في التأمينات' : 'Employer Social Insurance', v: salaryRecord.employerSocialInsurance },
     { l: ar ? 'التأمين الصحي' : 'Health Insurance', v: salaryRecord.healthInsurance },
     { l: ar ? 'ضريبة الدخل' : 'Income Tax', v: salaryRecord.incomeTax },
   ] : [];
@@ -267,9 +267,9 @@ export const PortalSalary = () => {
                       {activeLoans.map(l => (
                         <TableRow key={l.id}>
                           <TableCell className="font-mono">{l.id}</TableCell>
-                          <TableCell>{l.amount.toLocaleString()}</TableCell>
-                          <TableCell className="text-destructive font-medium">{l.monthlyPayment.toLocaleString()}</TableCell>
-                          <TableCell>{l.remainingAmount.toLocaleString()}</TableCell>
+                          <TableCell>{l.amount.toLocaleString('ar-EG')}</TableCell>
+                          <TableCell className="text-destructive font-medium">{l.monthlyPayment.toLocaleString('ar-EG')}</TableCell>
+                          <TableCell>{l.remainingAmount.toLocaleString('ar-EG')}</TableCell>
                           <TableCell>
                             <Badge variant="outline">{l.paidInstallments}/{l.installments}</Badge>
                           </TableCell>
@@ -277,7 +277,7 @@ export const PortalSalary = () => {
                       ))}
                       <TableRow className="bg-muted/50 font-bold">
                         <TableCell colSpan={2}>{ar ? 'إجمالي الخصم الشهري' : 'Total Monthly Deduction'}</TableCell>
-                        <TableCell className="text-destructive">{monthlyLoanPayment.toLocaleString()}</TableCell>
+                        <TableCell className="text-destructive">{monthlyLoanPayment.toLocaleString('ar-EG')}</TableCell>
                         <TableCell colSpan={2} />
                       </TableRow>
                     </TableBody>
@@ -304,35 +304,24 @@ export const PortalSalary = () => {
                     <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الإجمالي' : 'Gross'}</TableHead>
                     <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الخصومات' : 'Deductions'}</TableHead>
                     <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الصافي' : 'Net'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'إجراءات' : 'Actions'}</TableHead>
-                  </TableRow></TableHeader>
+                   </TableRow></TableHeader>
                   <TableBody>
                     {payroll.map((p, i) => {
                       const pGross = p.basicSalary + p.transportAllowance + p.incentives + p.stationAllowance + p.mobileAllowance + p.livingAllowance + p.overtimePay + p.bonusAmount;
                       const allowances = p.transportAllowance + p.incentives + p.stationAllowance + p.mobileAllowance + p.livingAllowance;
                       return (
-                        <TableRow key={i}>
+                        <TableRow key={i} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedSlip(p)}>
                           <TableCell className="font-medium">{months[parseInt(p.month) - 1]} {p.year}</TableCell>
                           <TableCell>{p.basicSalary.toLocaleString()}</TableCell>
                           <TableCell className="text-success">{allowances.toLocaleString()}</TableCell>
                           <TableCell className="font-medium">{pGross.toLocaleString()}</TableCell>
                           <TableCell className="text-destructive">{p.totalDeductions.toLocaleString()}</TableCell>
                           <TableCell className="font-bold text-primary">{p.netSalary.toLocaleString()}</TableCell>
-                          <TableCell>
-                            <div className={cn("flex gap-1", isRTL && "flex-row-reverse")}>
-                              <Button size="sm" variant="ghost" onClick={() => setSelectedSlip(p)}>
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => printSlip(p)}>
-                                <Printer className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
                         </TableRow>
                       );
                     })}
                     {payroll.length === 0 && (
-                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-4">{ar ? 'لا توجد كشوف رواتب معالجة' : 'No processed payslips'}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-4">{ar ? 'لا توجد كشوف رواتب معالجة' : 'No processed payslips'}</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
@@ -410,9 +399,6 @@ export const PortalSalary = () => {
                   <span className="text-2xl font-bold text-primary">{slip.netSalary.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
                 </div>
 
-                <Button className="w-full gap-2" variant="outline" onClick={() => printSlip(slip)}>
-                  <Printer className="w-4 h-4" />{ar ? 'طباعة القسيمة' : 'Print Slip'}
-                </Button>
               </div>
             );
           })()}
