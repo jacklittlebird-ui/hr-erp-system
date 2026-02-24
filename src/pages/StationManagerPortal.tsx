@@ -195,6 +195,17 @@ const StationManagerPortal = () => {
     toast({ title: t('تم الحذف', 'Deleted') });
   };
 
+  // Department filter
+  const [deptFilter, setDeptFilter] = useState('all');
+  const stationDepartments = useMemo(() => {
+    const depts = [...new Set(stationEmployees.map(e => e.department).filter(Boolean))];
+    return depts.sort();
+  }, [stationEmployees]);
+  const filteredStationEmployees = useMemo(() => {
+    if (deptFilter === 'all') return stationEmployees;
+    return stationEmployees.filter(e => e.department === deptFilter);
+  }, [stationEmployees, deptFilter]);
+
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const severityFromScore = (score: number) => {
@@ -274,7 +285,20 @@ const StationManagerPortal = () => {
           {/* Employees Tab */}
           <TabsContent value="employees">
             <Card>
-              <CardHeader><CardTitle>{t('موظفي المحطة', 'Station Employees')}</CardTitle></CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
+                <CardTitle>{t('موظفي المحطة', 'Station Employees')}</CardTitle>
+                <Select value={deptFilter} onValueChange={setDeptFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder={t('جميع الأقسام', 'All Departments')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('جميع الأقسام', 'All Departments')}</SelectItem>
+                    {stationDepartments.map(dept => (
+                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader><TableRow>
@@ -285,9 +309,9 @@ const StationManagerPortal = () => {
                     <TableHead>{t('الحالة', 'Status')}</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
-                    {stationEmployees.length === 0 ? (
-                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">{t('لا يوجد موظفين في هذه المحطة', 'No employees in this station')}</TableCell></TableRow>
-                    ) : stationEmployees.map(emp => (
+                    {filteredStationEmployees.length === 0 ? (
+                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">{t('لا يوجد موظفين', 'No employees found')}</TableCell></TableRow>
+                    ) : filteredStationEmployees.map(emp => (
                       <TableRow key={emp.id}>
                         <TableCell className="font-mono text-sm">{emp.employeeId}</TableCell>
                         <TableCell className="font-medium">{language === 'ar' ? emp.nameAr : emp.nameEn}</TableCell>
