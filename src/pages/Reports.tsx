@@ -9,6 +9,7 @@ import { LeaveReports } from '@/components/reports/LeaveReports';
 import { SalaryReports } from '@/components/reports/SalaryReports';
 import { PerformanceReports } from '@/components/reports/PerformanceReports';
 import { TrainingReports } from '@/components/reports/TrainingReports';
+import { TrainingDebtReport } from '@/components/reports/TrainingDebtReport';
 
 const Reports = () => {
   const { t, isRTL } = useLanguage();
@@ -21,6 +22,7 @@ const Reports = () => {
     { id: 'salaries', label: t('reports.tabs.salaries') },
     { id: 'performance', label: t('reports.tabs.performance') },
     { id: 'training', label: t('reports.tabs.training') },
+    { id: 'trainingDebt', label: isRTL ? 'ديون التدريب' : 'Training Debts' },
   ];
 
   return (
@@ -65,6 +67,10 @@ const Reports = () => {
 
         <TabsContent value="training">
           <TrainingReports />
+        </TabsContent>
+
+        <TabsContent value="trainingDebt">
+          <TrainingDebtReport />
         </TabsContent>
       </Tabs>
     </DashboardLayout>
