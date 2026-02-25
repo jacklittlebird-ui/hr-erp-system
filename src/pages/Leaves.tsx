@@ -204,9 +204,17 @@ const Leaves = () => {
     fetchData();
   };
 
+  // Helper: resolve employee_code to UUID
+  const resolveEmployeeUUID = async (employeeCode: string): Promise<string | null> => {
+    const { data } = await supabase.from('employees').select('id').eq('employee_code', employeeCode).single();
+    return data?.id || null;
+  };
+
   const handleNewLeave = async (data: Omit<LeaveRequest, 'id' | 'status' | 'submittedDate'>) => {
+    const uuid = await resolveEmployeeUUID(data.employeeId);
+    if (!uuid) return;
     await supabase.from('leave_requests').insert({
-      employee_id: data.employeeId,
+      employee_id: uuid,
       leave_type: data.leaveType,
       start_date: data.startDate,
       end_date: data.endDate,
@@ -218,8 +226,10 @@ const Leaves = () => {
   };
 
   const handleNewPermission = async (data: Omit<PermissionRequest, 'id' | 'status' | 'submittedDate'>) => {
+    const uuid = await resolveEmployeeUUID(data.employeeId);
+    if (!uuid) return;
     await supabase.from('permission_requests').insert({
-      employee_id: data.employeeId,
+      employee_id: uuid,
       permission_type: data.permissionType,
       date: data.date,
       start_time: data.fromTime,
@@ -232,8 +242,10 @@ const Leaves = () => {
   };
 
   const handleNewMission = async (data: Omit<MissionRequest, 'id' | 'status' | 'submittedDate'>) => {
+    const uuid = await resolveEmployeeUUID(data.employeeId);
+    if (!uuid) return;
     await supabase.from('missions').insert({
-      employee_id: data.employeeId,
+      employee_id: uuid,
       mission_type: data.missionType,
       date: data.date,
       destination: data.destination,
@@ -244,8 +256,10 @@ const Leaves = () => {
   };
 
   const handleNewOvertime = async (data: Omit<OvertimeRequest, 'id' | 'status' | 'submittedDate'>) => {
+    const uuid = await resolveEmployeeUUID(data.employeeId);
+    if (!uuid) return;
     await supabase.from('overtime_requests').insert({
-      employee_id: data.employeeId,
+      employee_id: uuid,
       date: data.date,
       hours: data.hours,
       reason: data.reason,
