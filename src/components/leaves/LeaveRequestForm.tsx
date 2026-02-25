@@ -49,6 +49,7 @@ export const LeaveRequestForm = ({ onSubmit }: LeaveRequestFormProps) => {
       employeeName: 'Current User',
       employeeNameAr: 'المستخدم الحالي',
       department: 'IT',
+      station: '',
       leaveType: leaveType as LeaveRequest['leaveType'],
       startDate: format(startDate, 'yyyy-MM-dd'),
       endDate: format(endDate, 'yyyy-MM-dd'),

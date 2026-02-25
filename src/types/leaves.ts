@@ -4,6 +4,7 @@ export interface LeaveRequest {
   employeeName: string;
   employeeNameAr: string;
   department: string;
+  station: string;
   leaveType: 'annual' | 'sick' | 'casual' | 'unpaid' | 'maternity' | 'paternity';
   startDate: string;
   endDate: string;
@@ -22,6 +23,7 @@ export interface PermissionRequest {
   employeeName: string;
   employeeNameAr: string;
   department: string;
+  station: string;
   permissionType: 'early_leave' | 'late_arrival' | 'personal' | 'medical';
   date: string;
   fromTime: string;
@@ -46,6 +48,7 @@ export interface MissionRequest {
   employeeName: string;
   employeeNameAr: string;
   department: string;
+  station: string;
   missionType: MissionType;
   date: string;
   destination?: string;
@@ -60,6 +63,7 @@ export interface OvertimeRequest {
   employeeName: string;
   employeeNameAr: string;
   department: string;
+  station: string;
   date: string;
   hours: number;
   overtimeType: 'regular' | 'holiday' | 'weekend';
@@ -73,6 +77,7 @@ export interface EmployeeLeaveBalance {
   employeeName: string;
   employeeNameAr: string;
   department: string;
+  station: string;
   annualTotal: number;
   annualUsed: number;
   annualRemaining: number;
