@@ -3,13 +3,14 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, AlertTriangle, Trash2 } from 'lucide-react';
+import { Plus, AlertTriangle, Trash2, CheckCircle } from 'lucide-react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { toast } from '@/hooks/use-toast';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -21,7 +22,7 @@ interface Violation {
   type: string;
   description: string;
   penalty: string;
-  status: 'active' | 'resolved';
+  status: 'active' | 'resolved' | 'pending';
 }
 
 const violationTypes = [
@@ -65,6 +66,11 @@ export const ViolationsTab = ({ employee }: ViolationsTabProps) => {
     toast({ title: ar ? 'تم الحذف' : 'Deleted' });
   };
 
+  const handleApprove = (id: string) => {
+    setViolations(prev => prev.map(v => v.id === id ? { ...v, status: 'active' } : v));
+    toast({ title: ar ? 'تمت الموافقة على المخالفة' : 'Violation approved' });
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
@@ -86,13 +92,14 @@ export const ViolationsTab = ({ employee }: ViolationsTabProps) => {
               <TableHead className="text-destructive-foreground">{ar ? 'النوع' : 'Type'}</TableHead>
               <TableHead className="text-destructive-foreground">{ar ? 'الوصف' : 'Description'}</TableHead>
               <TableHead className="text-destructive-foreground">{ar ? 'العقوبة' : 'Penalty'}</TableHead>
+              <TableHead className="text-destructive-foreground">{ar ? 'الحالة' : 'Status'}</TableHead>
               <TableHead className="text-destructive-foreground">{ar ? 'إجراءات' : 'Actions'}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {empViolations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-30" />
                   {ar ? 'لا توجد مخالفات' : 'No violations'}
                 </TableCell>
@@ -107,9 +114,25 @@ export const ViolationsTab = ({ employee }: ViolationsTabProps) => {
                     <TableCell className="max-w-[200px] truncate">{v.description}</TableCell>
                     <TableCell>{v.penalty}</TableCell>
                     <TableCell>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(v.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <Badge variant="outline" className={
+                        v.status === 'pending' ? 'bg-warning/10 text-warning border-warning' :
+                        v.status === 'active' ? 'bg-destructive/10 text-destructive border-destructive' :
+                        'bg-muted text-muted-foreground'
+                      }>
+                        {v.status === 'pending' ? (ar ? 'بانتظار الموافقة' : 'Pending') : v.status === 'active' ? (ar ? 'نشطة' : 'Active') : (ar ? 'محلولة' : 'Resolved')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {v.status === 'pending' && (
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-success" onClick={() => handleApprove(v.id)} title={ar ? 'موافقة' : 'Approve'}>
+                            <CheckCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(v.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
