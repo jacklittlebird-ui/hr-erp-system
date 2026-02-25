@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Check, ChevronsUpDown, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockEmployees } from '@/data/mockEmployees';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 
 interface EmployeeSelectorProps {
   value: string;
@@ -18,7 +18,8 @@ export const EmployeeSelector = ({ value, onChange, label }: EmployeeSelectorPro
   const { t, isRTL, language } = useLanguage();
   const [open, setOpen] = useState(false);
 
-  const activeEmployees = useMemo(() => mockEmployees.filter(e => e.status === 'active'), []);
+  const { employees } = useEmployeeData();
+  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'active'), [employees]);
 
   const selectedEmployee = activeEmployees.find(e => e.employeeId === value);
 
