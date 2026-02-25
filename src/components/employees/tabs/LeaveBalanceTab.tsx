@@ -261,17 +261,11 @@ export const LeaveBalanceTab = ({ employee, onUpdate, onDirectSave }: LeaveBalan
           switch (card.key) {
             case 'annual':
               totalValue = annualTotal;
-              setTotal = (val) => {
-                setAnnualTotal(val);
-                onUpdate?.({ annualLeaveBalance: val });
-              };
+              setTotal = setAnnualTotal;
               break;
             case 'sick':
               totalValue = sickTotal;
-              setTotal = (val) => {
-                setSickTotal(val);
-                onUpdate?.({ sickLeaveBalance: val });
-              };
+              setTotal = setSickTotal;
               break;
             case 'casual':
               totalValue = casualTotal;
