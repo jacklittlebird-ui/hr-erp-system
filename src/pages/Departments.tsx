@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -17,20 +17,40 @@ import { cn } from '@/lib/utils';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { initialDepartments, Department } from '@/data/departments';
+import { supabase } from '@/integrations/supabase/client';
 
 const CHART_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16'];
+
+interface DeptRow {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  is_active: boolean;
+  created_at: string;
+}
 
 const Departments = () => {
   const { t, isRTL } = useLanguage();
   const { employees: allEmployees } = useEmployeeData();
-  const [departments, setDepartments] = useState<Department[]>(initialDepartments);
+  const [departments, setDepartments] = useState<DeptRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [nameAr, setNameAr] = useState('');
   const [nameEn, setNameEn] = useState('');
   const [selectedManager, setSelectedManager] = useState('');
   const [managerOpen, setManagerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
+
+  const fetchDepartments = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('departments')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (!error && data) setDepartments(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchDepartments(); }, [fetchDepartments]);
 
   const activeEmployees = useMemo(() => allEmployees.filter(e => e.status === 'active'), [allEmployees]);
 
@@ -44,62 +64,61 @@ const Departments = () => {
     return emp ? (isRTL ? emp.nameAr : emp.nameEn) : '';
   }, [selectedManager, isRTL, allEmployees]);
 
-  const totalEmployees = departments.reduce((sum, d) => sum + d.employeeCount, 0);
+  // Count employees per department
+  const deptEmployeeCount = useMemo(() => {
+    const counts: Record<string, number> = {};
+    allEmployees.forEach(e => {
+      if (e.departmentId) {
+        counts[e.departmentId] = (counts[e.departmentId] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [allEmployees]);
+
+  const totalEmployees = Object.values(deptEmployeeCount).reduce((s, c) => s + c, 0);
   const avgSize = departments.length ? Math.round(totalEmployees / departments.length) : 0;
 
   const chartData = departments.map((d, i) => ({
-    name: isRTL ? d.nameAr : d.nameEn,
-    value: d.employeeCount,
+    name: isRTL ? d.name_ar : d.name_en,
+    value: deptEmployeeCount[d.id] || 0,
     color: CHART_COLORS[i % CHART_COLORS.length],
   }));
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!nameAr.trim() || !nameEn.trim()) {
       toast.error(isRTL ? 'يرجى إدخال اسم القسم بالعربي والإنجليزي' : 'Please enter department name in Arabic and English');
       return;
     }
-    if (!selectedManager) {
-      toast.error(isRTL ? 'يرجى اختيار مدير القسم' : 'Please select a department manager');
-      return;
-    }
 
     if (editingId) {
-      setDepartments(prev => prev.map(d =>
-        d.id === editingId ? { ...d, nameAr, nameEn, managerId: selectedManager } : d
-      ));
+      const { error } = await supabase.from('departments').update({ name_ar: nameAr, name_en: nameEn }).eq('id', editingId);
+      if (error) { toast.error(isRTL ? 'خطأ في التحديث' : 'Update error'); return; }
       toast.success(isRTL ? 'تم تحديث القسم بنجاح' : 'Department updated successfully');
       setEditingId(null);
     } else {
-      const newDept: Department = {
-        id: String(Date.now()),
-        nameAr,
-        nameEn,
-        managerId: selectedManager,
-        employeeCount: 0,
-        createdAt: new Date().toISOString().split('T')[0],
-      };
-      setDepartments(prev => [...prev, newDept]);
+      const { error } = await supabase.from('departments').insert({ name_ar: nameAr, name_en: nameEn });
+      if (error) { toast.error(isRTL ? 'خطأ في الإضافة' : 'Insert error'); return; }
       toast.success(isRTL ? 'تم إضافة القسم بنجاح' : 'Department added successfully');
     }
 
     setNameAr('');
     setNameEn('');
     setSelectedManager('');
+    fetchDepartments();
   };
 
-  const handleEdit = (dept: Department) => {
+  const handleEdit = (dept: DeptRow) => {
     setEditingId(dept.id);
-    setNameAr(dept.nameAr);
-    setNameEn(dept.nameEn);
-    setSelectedManager(dept.managerId);
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
+    setNameAr(dept.name_ar);
+    setNameEn(dept.name_en);
+    setTimeout(() => { formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
   };
 
-  const handleDelete = (id: string) => {
-    setDepartments(prev => prev.filter(d => d.id !== id));
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('departments').delete().eq('id', id);
+    if (error) { toast.error(isRTL ? 'خطأ في الحذف' : 'Delete error'); return; }
     toast.success(isRTL ? 'تم حذف القسم بنجاح' : 'Department deleted successfully');
+    fetchDepartments();
   };
 
   const handleCancelEdit = () => {
@@ -163,9 +182,7 @@ const Departments = () => {
                 <UserCheck className="w-5 h-5" />
                 <span className="text-sm font-medium">{t('departmentsPage.managers')}</span>
               </div>
-              <p className="text-2xl font-bold text-foreground">
-                {new Set(departments.map(d => d.managerId)).size}
-              </p>
+              <p className="text-2xl font-bold text-foreground">{departments.length}</p>
               <p className="text-xs text-muted-foreground">{t('departmentsPage.uniqueManagers')}</p>
             </CardContent>
           </Card>
@@ -181,7 +198,7 @@ const Departments = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className={cn(isRTL && "text-right block")}>{t('departments.nameAr')}</Label>
                   <Input
@@ -199,63 +216,6 @@ const Departments = () => {
                     placeholder={isRTL ? 'أدخل اسم القسم بالإنجليزي' : 'Department name in English'}
                     className={cn(isRTL && "text-right")}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label className={cn(isRTL && "text-right block")}>{t('departments.manager')}</Label>
-                  <Popover open={managerOpen} onOpenChange={setManagerOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={managerOpen}
-                        className={cn(
-                          "w-full justify-between font-normal h-10",
-                          !selectedManager && "text-muted-foreground",
-                          isRTL && "flex-row-reverse text-right"
-                        )}
-                      >
-                        {selectedManagerLabel || (isRTL ? 'اختر مدير القسم' : 'Select manager')}
-                        <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[320px] p-0 z-50 bg-popover" align="start">
-                      <Command>
-                        <CommandInput
-                          placeholder={isRTL ? 'ابحث عن موظف...' : 'Search employee...'}
-                          className={cn(isRTL && "text-right")}
-                        />
-                        <CommandList>
-                          <CommandEmpty>{isRTL ? 'لم يتم العثور على موظف' : 'No employee found'}</CommandEmpty>
-                          <CommandGroup>
-                            {activeEmployees.map((emp) => (
-                              <CommandItem
-                                key={emp.id}
-                                value={`${emp.nameAr} ${emp.nameEn}`}
-                                onSelect={() => {
-                                  setSelectedManager(emp.id);
-                                  setManagerOpen(false);
-                                }}
-                                className={cn(isRTL && "flex-row-reverse text-right")}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedManager === emp.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <div className={cn("flex flex-col", isRTL && "items-end")}>
-                                  <span className="font-medium">{isRTL ? emp.nameAr : emp.nameEn}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {emp.employeeId} - {isRTL ? emp.nameEn : emp.nameAr}
-                                  </span>
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
                 </div>
               </div>
               <div className={cn("flex gap-3", isRTL ? "justify-start" : "justify-end")}>
@@ -324,7 +284,6 @@ const Departments = () => {
                     <TableHead className={cn("font-semibold", isRTL && "text-right")}>#</TableHead>
                     <TableHead className={cn("font-semibold", isRTL && "text-right")}>{t('departmentsPage.deptNameAr')}</TableHead>
                     <TableHead className={cn("font-semibold", isRTL && "text-right")}>{t('departmentsPage.deptNameEn')}</TableHead>
-                    <TableHead className={cn("font-semibold", isRTL && "text-right")}>{t('departmentsPage.deptManager')}</TableHead>
                     <TableHead className={cn("font-semibold", isRTL && "text-right")}>{t('departmentsPage.empCount')}</TableHead>
                     <TableHead className={cn("font-semibold", isRTL && "text-right")}>{t('departmentsPage.actions')}</TableHead>
                   </TableRow>
@@ -333,16 +292,11 @@ const Departments = () => {
                   {departments.map((dept, index) => (
                     <TableRow key={dept.id} className="hover:bg-muted/30">
                       <TableCell className="font-medium">{index + 1}</TableCell>
-                      <TableCell className={cn(isRTL && "text-right")}>{dept.nameAr}</TableCell>
-                      <TableCell>{dept.nameEn}</TableCell>
-                      <TableCell className={cn(isRTL && "text-right")}>
-                        <Badge variant="outline" className="font-normal">
-                          {getManagerName(dept.managerId)}
-                        </Badge>
-                      </TableCell>
+                      <TableCell className={cn(isRTL && "text-right")}>{dept.name_ar}</TableCell>
+                      <TableCell>{dept.name_en}</TableCell>
                       <TableCell>
                         <Badge className="bg-blue-500/10 text-blue-700 border-blue-200 hover:bg-blue-500/20">
-                          {dept.employeeCount} {isRTL ? 'موظف' : 'emp'}
+                          {deptEmployeeCount[dept.id] || 0} {isRTL ? 'موظف' : 'emp'}
                         </Badge>
                       </TableCell>
                       <TableCell>
