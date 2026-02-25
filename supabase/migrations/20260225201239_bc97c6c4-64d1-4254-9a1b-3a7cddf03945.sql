@@ -1,0 +1,1 @@
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS has_gov_health_insurance boolean DEFAULT false;

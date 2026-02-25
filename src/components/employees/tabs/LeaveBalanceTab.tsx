@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 interface LeaveBalanceTabProps {
   employee: Employee;
   onUpdate?: (updates: Partial<Employee>) => void;
+  onDirectSave?: (updates: Partial<Employee>) => Promise<void>;
 }
 
 interface YearlyBalance {
@@ -105,7 +106,7 @@ const leaveCardConfig = [
   },
 ];
 
-export const LeaveBalanceTab = ({ employee, onUpdate }: LeaveBalanceTabProps) => {
+export const LeaveBalanceTab = ({ employee, onUpdate, onDirectSave }: LeaveBalanceTabProps) => {
   const { t, isRTL } = useLanguage();
   const { toast } = useToast();
   
@@ -151,7 +152,7 @@ export const LeaveBalanceTab = ({ employee, onUpdate }: LeaveBalanceTabProps) =>
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const yearNum = Number(selectedYear);
     const newBalance: YearlyBalance = {
       year: yearNum,
@@ -173,16 +174,35 @@ export const LeaveBalanceTab = ({ employee, onUpdate }: LeaveBalanceTabProps) =>
       return [...prev, newBalance].sort((a, b) => b.year - a.year);
     });
 
-    // Push to parent for DB save
-    onUpdate?.({
+    const updates: Partial<Employee> = {
       annualLeaveBalance: annualTotal,
       sickLeaveBalance: sickTotal,
-    });
+    };
 
-    toast({
-      title: t('leaveBalance.saved'),
-      description: t('leaveBalance.savedMessage'),
-    });
+    // Push to parent for accumulation
+    onUpdate?.(updates);
+
+    // Also directly save to DB if handler provided
+    if (onDirectSave) {
+      try {
+        await onDirectSave(updates);
+        toast({
+          title: t('leaveBalance.saved'),
+          description: t('leaveBalance.savedMessage'),
+        });
+      } catch {
+        toast({
+          title: 'خطأ',
+          description: 'حدث خطأ أثناء حفظ الرصيد',
+          variant: 'destructive',
+        });
+      }
+    } else {
+      toast({
+        title: t('leaveBalance.saved'),
+        description: t('leaveBalance.savedMessage'),
+      });
+    }
   };
 
   // History: last 4 years from saved balances
