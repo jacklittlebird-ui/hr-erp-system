@@ -29,14 +29,7 @@ interface Candidate {
   source: string;
 }
 
-const initialCandidates: Candidate[] = [
-  { id: '1', nameAr: 'أحمد محمد علي', nameEn: 'Ahmed Mohamed Ali', email: 'ahmed@email.com', phone: '01012345678', appliedPosition: 'مهندس برمجيات', department: 'تقنية المعلومات', experience: 5, education: 'بكالوريوس حاسبات', status: 'interview', appliedDate: '2026-01-20', notes: 'مرشح قوي', source: 'LinkedIn' },
-  { id: '2', nameAr: 'سارة أحمد حسن', nameEn: 'Sara Ahmed Hassan', email: 'sara@email.com', phone: '01098765432', appliedPosition: 'محاسب مالي', department: 'المالية', experience: 3, education: 'بكالوريوس تجارة', status: 'screening', appliedDate: '2026-01-25', notes: '', source: 'موقع الشركة' },
-  { id: '3', nameAr: 'محمود خالد', nameEn: 'Mahmoud Khaled', email: 'mahmoud@email.com', phone: '01155667788', appliedPosition: 'مهندس برمجيات', department: 'تقنية المعلومات', experience: 7, education: 'ماجستير حاسبات', status: 'offer', appliedDate: '2026-01-18', notes: 'خبرة ممتازة في React', source: 'LinkedIn' },
-  { id: '4', nameAr: 'نورا محمد', nameEn: 'Noura Mohamed', email: 'noura@email.com', phone: '01234567890', appliedPosition: 'أخصائي موارد بشرية', department: 'الموارد البشرية', experience: 2, education: 'بكالوريوس إدارة', status: 'new', appliedDate: '2026-02-01', notes: '', source: 'Indeed' },
-  { id: '5', nameAr: 'عمر فاروق', nameEn: 'Omar Farouk', email: 'omar@email.com', phone: '01177889900', appliedPosition: 'فني صيانة', department: 'العمليات', experience: 4, education: 'دبلوم فني', status: 'hired', appliedDate: '2026-01-10', notes: 'تم التعيين', source: 'إحالة موظف' },
-  { id: '6', nameAr: 'فاطمة علي', nameEn: 'Fatma Ali', email: 'fatma@email.com', phone: '01066778899', appliedPosition: 'مدير تسويق', department: 'التسويق', experience: 8, education: 'ماجستير تسويق', status: 'rejected', appliedDate: '2026-01-12', notes: 'لا تتوافق مع المتطلبات', source: 'LinkedIn' },
-];
+const initialCandidates: Candidate[] = [];
 
 export const Candidates = () => {
   const { t, isRTL } = useLanguage();

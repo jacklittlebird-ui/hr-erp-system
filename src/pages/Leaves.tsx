@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAttendanceData } from '@/contexts/AttendanceDataContext';
@@ -12,136 +11,246 @@ import { NewRequestForm } from '@/components/leaves/NewRequestForm';
 import { LeaveBalanceOverview } from '@/components/leaves/LeaveBalanceOverview';
 import { LeaveCalendar } from '@/components/leaves/LeaveCalendar';
 import { LeaveApprovals } from '@/components/leaves/LeaveApprovals';
-import {
-  sampleLeaveRequests,
-  samplePermissionRequests,
-  sampleMissionRequests,
-  sampleOvertimeRequests,
-  sampleLeaveBalances,
-} from '@/data/leavesData';
+import { supabase } from '@/integrations/supabase/client';
 import {
   LeaveRequest,
   PermissionRequest,
   MissionRequest,
   OvertimeRequest,
+  EmployeeLeaveBalance,
   MISSION_TIME_CONFIG,
 } from '@/types/leaves';
 import { FileText, Plus, CheckCircle, BarChart3, Calendar, ShieldCheck, Briefcase, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Leaves = () => {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language } = useLanguage();
   const { addMissionAttendance } = useAttendanceData();
   const [activeTab, setActiveTab] = useState('leaves');
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(sampleLeaveRequests);
-  const [permissionRequests, setPermissionRequests] = useState<PermissionRequest[]>(samplePermissionRequests);
-  const [missionRequests, setMissionRequests] = usePersistedState<MissionRequest[]>('hr_mission_requests', sampleMissionRequests);
-  const [overtimeRequests, setOvertimeRequests] = useState<OvertimeRequest[]>(sampleOvertimeRequests);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [permissionRequests, setPermissionRequests] = useState<PermissionRequest[]>([]);
+  const [missionRequests, setMissionRequests] = useState<MissionRequest[]>([]);
+  const [overtimeRequests, setOvertimeRequests] = useState<OvertimeRequest[]>([]);
+  const [leaveBalances, setLeaveBalances] = useState<EmployeeLeaveBalance[]>([]);
 
-  const handleApproveLeave = (id: string) => {
-    setLeaveRequests(prev => prev.map(req =>
-      req.id === id
-        ? { ...req, status: 'approved' as const, approvedBy: 'Current User', approvedDate: new Date().toISOString().split('T')[0] }
-        : req
-    ));
+  const fetchData = async () => {
+    // Fetch employees for name mapping
+    const { data: employees } = await supabase.from('employees').select('id, name_en, name_ar, department_id, annual_leave_balance, sick_leave_balance');
+    const { data: departments } = await supabase.from('departments').select('id, name_ar, name_en');
+    const empMap = new Map(employees?.map(e => [e.id, e]) || []);
+    const deptMap = new Map(departments?.map(d => [d.id, d]) || []);
+
+    const getEmpInfo = (empId: string) => {
+      const e = empMap.get(empId);
+      const d = e?.department_id ? deptMap.get(e.department_id) : null;
+      return {
+        employeeName: e?.name_en || '',
+        employeeNameAr: e?.name_ar || '',
+        department: d ? (language === 'ar' ? d.name_ar : d.name_en) : '',
+      };
+    };
+
+    // Leave requests
+    const { data: leaves } = await supabase.from('leave_requests').select('*').order('created_at', { ascending: false });
+    setLeaveRequests((leaves || []).map(l => {
+      const info = getEmpInfo(l.employee_id);
+      return {
+        id: l.id,
+        employeeId: l.employee_id,
+        employeeName: info.employeeName,
+        employeeNameAr: info.employeeNameAr,
+        department: info.department,
+        leaveType: l.leave_type as LeaveRequest['leaveType'],
+        startDate: l.start_date,
+        endDate: l.end_date,
+        days: l.days,
+        reason: l.reason || '',
+        status: l.status as LeaveRequest['status'],
+        submittedDate: l.created_at.split('T')[0],
+        rejectionReason: l.rejection_reason || undefined,
+      };
+    }));
+
+    // Permission requests
+    const { data: perms } = await supabase.from('permission_requests').select('*').order('created_at', { ascending: false });
+    setPermissionRequests((perms || []).map(p => {
+      const info = getEmpInfo(p.employee_id);
+      return {
+        id: p.id,
+        employeeId: p.employee_id,
+        employeeName: info.employeeName,
+        employeeNameAr: info.employeeNameAr,
+        department: info.department,
+        permissionType: p.permission_type as PermissionRequest['permissionType'],
+        date: p.date,
+        fromTime: p.start_time,
+        toTime: p.end_time,
+        durationHours: p.hours || 0,
+        reason: p.reason || '',
+        status: p.status as PermissionRequest['status'],
+        submittedDate: p.created_at.split('T')[0],
+      };
+    }));
+
+    // Mission requests
+    const { data: missions } = await supabase.from('missions').select('*').order('created_at', { ascending: false });
+    setMissionRequests((missions || []).map(m => {
+      const info = getEmpInfo(m.employee_id);
+      return {
+        id: m.id,
+        employeeId: m.employee_id,
+        employeeName: info.employeeName,
+        employeeNameAr: info.employeeNameAr,
+        department: info.department,
+        missionType: m.mission_type as MissionRequest['missionType'],
+        date: m.date,
+        destination: m.destination || '',
+        reason: m.reason || '',
+        status: m.status as MissionRequest['status'],
+        submittedDate: m.created_at.split('T')[0],
+      };
+    }));
+
+    // Overtime requests
+    const { data: ot } = await supabase.from('overtime_requests').select('*').order('created_at', { ascending: false });
+    setOvertimeRequests((ot || []).map(o => {
+      const info = getEmpInfo(o.employee_id);
+      return {
+        id: o.id,
+        employeeId: o.employee_id,
+        employeeName: info.employeeName,
+        employeeNameAr: info.employeeNameAr,
+        department: info.department,
+        date: o.date,
+        hours: o.hours,
+        overtimeType: 'regular' as OvertimeRequest['overtimeType'],
+        reason: o.reason || '',
+        status: o.status as OvertimeRequest['status'],
+        submittedDate: o.created_at.split('T')[0],
+      };
+    }));
+
+    // Leave balances from employees
+    const balances: EmployeeLeaveBalance[] = (employees || []).map(e => {
+      const d = e.department_id ? deptMap.get(e.department_id) : null;
+      // Count approved leaves
+      const empLeaves = (leaves || []).filter(l => l.employee_id === e.id && l.status === 'approved');
+      const annualUsed = empLeaves.filter(l => l.leave_type === 'annual').reduce((s, l) => s + l.days, 0);
+      const sickUsed = empLeaves.filter(l => l.leave_type === 'sick').reduce((s, l) => s + l.days, 0);
+      const casualUsed = empLeaves.filter(l => l.leave_type === 'casual').reduce((s, l) => s + l.days, 0);
+      return {
+        employeeId: e.id,
+        employeeName: e.name_en,
+        employeeNameAr: e.name_ar,
+        department: d ? (language === 'ar' ? d.name_ar : d.name_en) : '',
+        annualTotal: e.annual_leave_balance || 21,
+        annualUsed,
+        annualRemaining: (e.annual_leave_balance || 21) - annualUsed,
+        sickTotal: e.sick_leave_balance || 7,
+        sickUsed,
+        sickRemaining: (e.sick_leave_balance || 7) - sickUsed,
+        casualTotal: 7,
+        casualUsed,
+        casualRemaining: 7 - casualUsed,
+      };
+    });
+    setLeaveBalances(balances);
   };
 
-  const handleRejectLeave = (id: string, reason: string) => {
-    setLeaveRequests(prev => prev.map(req =>
-      req.id === id
-        ? { ...req, status: 'rejected' as const, rejectionReason: reason }
-        : req
-    ));
+  useEffect(() => { fetchData(); }, [language]);
+
+  const handleApproveLeave = async (id: string) => {
+    await supabase.from('leave_requests').update({ status: 'approved' }).eq('id', id);
+    fetchData();
   };
 
-  const handleApprovePermission = (id: string) => {
-    setPermissionRequests(prev => prev.map(req =>
-      req.id === id ? { ...req, status: 'approved' as const } : req
-    ));
+  const handleRejectLeave = async (id: string, reason: string) => {
+    await supabase.from('leave_requests').update({ status: 'rejected', rejection_reason: reason }).eq('id', id);
+    fetchData();
   };
 
-  const handleRejectPermission = (id: string, reason: string) => {
-    setPermissionRequests(prev => prev.map(req =>
-      req.id === id ? { ...req, status: 'rejected' as const } : req
-    ));
+  const handleApprovePermission = async (id: string) => {
+    await supabase.from('permission_requests').update({ status: 'approved' }).eq('id', id);
+    fetchData();
   };
 
-  const handleApproveMission = (id: string) => {
+  const handleRejectPermission = async (id: string, _reason: string) => {
+    await supabase.from('permission_requests').update({ status: 'rejected' }).eq('id', id);
+    fetchData();
+  };
+
+  const handleApproveMission = async (id: string) => {
+    await supabase.from('missions').update({ status: 'approved' }).eq('id', id);
     const mission = missionRequests.find(r => r.id === id);
-    setMissionRequests(prev => prev.map(req =>
-      req.id === id ? { ...req, status: 'approved' as const } : req
-    ));
-    // Create attendance record for approved mission
     if (mission) {
       const config = MISSION_TIME_CONFIG[mission.missionType];
-      addMissionAttendance(
-        mission.employeeId,
-        mission.employeeName,
-        mission.employeeNameAr,
-        mission.department,
-        mission.date,
-        config.checkIn,
-        config.checkOut,
-        config.hours
-      );
+      addMissionAttendance(mission.employeeId, mission.employeeName, mission.employeeNameAr, mission.department, mission.date, config.checkIn, config.checkOut, config.hours);
     }
+    fetchData();
   };
 
-  const handleRejectMission = (id: string, reason: string) => {
-    setMissionRequests(prev => prev.map(req =>
-      req.id === id ? { ...req, status: 'rejected' as const } : req
-    ));
+  const handleRejectMission = async (id: string, _reason: string) => {
+    await supabase.from('missions').update({ status: 'rejected' }).eq('id', id);
+    fetchData();
   };
 
-  const handleApproveOvertime = (id: string) => {
-    setOvertimeRequests(prev => prev.map(req =>
-      req.id === id ? { ...req, status: 'approved' as const } : req
-    ));
+  const handleApproveOvertime = async (id: string) => {
+    await supabase.from('overtime_requests').update({ status: 'approved' }).eq('id', id);
+    fetchData();
   };
 
-  const handleRejectOvertime = (id: string, reason: string) => {
-    setOvertimeRequests(prev => prev.map(req =>
-      req.id === id ? { ...req, status: 'rejected' as const } : req
-    ));
+  const handleRejectOvertime = async (id: string, _reason: string) => {
+    await supabase.from('overtime_requests').update({ status: 'rejected' }).eq('id', id);
+    fetchData();
   };
 
-  const handleNewLeave = (data: Omit<LeaveRequest, 'id' | 'status' | 'submittedDate'>) => {
-    setLeaveRequests(prev => [...prev, {
-      ...data,
-      id: String(prev.length + 1),
-      status: 'pending',
-      submittedDate: new Date().toISOString().split('T')[0],
-    }]);
+  const handleNewLeave = async (data: Omit<LeaveRequest, 'id' | 'status' | 'submittedDate'>) => {
+    await supabase.from('leave_requests').insert({
+      employee_id: data.employeeId,
+      leave_type: data.leaveType,
+      start_date: data.startDate,
+      end_date: data.endDate,
+      days: data.days,
+      reason: data.reason,
+    });
+    fetchData();
     setActiveTab('leaves');
   };
 
-  const handleNewPermission = (data: Omit<PermissionRequest, 'id' | 'status' | 'submittedDate'>) => {
-    setPermissionRequests(prev => [...prev, {
-      ...data,
-      id: `P${prev.length + 1}`,
-      status: 'pending',
-      submittedDate: new Date().toISOString().split('T')[0],
-    }]);
+  const handleNewPermission = async (data: Omit<PermissionRequest, 'id' | 'status' | 'submittedDate'>) => {
+    await supabase.from('permission_requests').insert({
+      employee_id: data.employeeId,
+      permission_type: data.permissionType,
+      date: data.date,
+      start_time: data.fromTime,
+      end_time: data.toTime,
+      hours: data.durationHours,
+      reason: data.reason,
+    });
+    fetchData();
     setActiveTab('permissions');
   };
 
-  const handleNewMission = (data: Omit<MissionRequest, 'id' | 'status' | 'submittedDate'>) => {
-    setMissionRequests(prev => [...prev, {
-      ...data,
-      id: `M${prev.length + 1}`,
-      status: 'pending',
-      submittedDate: new Date().toISOString().split('T')[0],
-    }]);
+  const handleNewMission = async (data: Omit<MissionRequest, 'id' | 'status' | 'submittedDate'>) => {
+    await supabase.from('missions').insert({
+      employee_id: data.employeeId,
+      mission_type: data.missionType,
+      date: data.date,
+      destination: data.destination,
+      reason: data.reason,
+    });
+    fetchData();
     setActiveTab('missions');
   };
 
-  const handleNewOvertime = (data: Omit<OvertimeRequest, 'id' | 'status' | 'submittedDate'>) => {
-    setOvertimeRequests(prev => [...prev, {
-      ...data,
-      id: `O${prev.length + 1}`,
-      status: 'pending',
-      submittedDate: new Date().toISOString().split('T')[0],
-    }]);
+  const handleNewOvertime = async (data: Omit<OvertimeRequest, 'id' | 'status' | 'submittedDate'>) => {
+    await supabase.from('overtime_requests').insert({
+      employee_id: data.employeeId,
+      date: data.date,
+      hours: data.hours,
+      reason: data.reason,
+    });
+    fetchData();
     setActiveTab('overtime');
   };
 
@@ -159,98 +268,40 @@ const Leaves = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={cn(
-            "grid w-full grid-cols-4 lg:grid-cols-8 mb-6",
-            isRTL && "direction-rtl"
-          )}>
-            <TabsTrigger value="leaves" className="flex items-center gap-1.5">
-              <FileText className="w-4 h-4" />
-              <span className="hidden lg:inline">{t('leaves.tabs.leaves')}</span>
+          <TabsList className={cn("grid w-full grid-cols-4 lg:grid-cols-8 mb-6", isRTL && "direction-rtl")}>
+            <TabsTrigger value="leaves" className="flex items-center gap-1.5"><FileText className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.leaves')}</span></TabsTrigger>
+            <TabsTrigger value="permissions" className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.permissions')}</span></TabsTrigger>
+            <TabsTrigger value="missions" className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.missions')}</span></TabsTrigger>
+            <TabsTrigger value="overtime" className="flex items-center gap-1.5"><PlusCircle className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.overtime')}</span></TabsTrigger>
+            <TabsTrigger value="new" className="flex items-center gap-1.5"><Plus className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.newRequest')}</span></TabsTrigger>
+            <TabsTrigger value="approvals" className="flex items-center gap-1.5 relative"><CheckCircle className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.approvals')}</span>
+              {pendingCount > 0 && (<span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">{pendingCount}</span>)}
             </TabsTrigger>
-            <TabsTrigger value="permissions" className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4" />
-              <span className="hidden lg:inline">{t('leaves.tabs.permissions')}</span>
-            </TabsTrigger>
-            <TabsTrigger value="missions" className="flex items-center gap-1.5">
-              <Briefcase className="w-4 h-4" />
-              <span className="hidden lg:inline">{t('leaves.tabs.missions')}</span>
-            </TabsTrigger>
-            <TabsTrigger value="overtime" className="flex items-center gap-1.5">
-              <PlusCircle className="w-4 h-4" />
-              <span className="hidden lg:inline">{t('leaves.tabs.overtime')}</span>
-            </TabsTrigger>
-            <TabsTrigger value="new" className="flex items-center gap-1.5">
-              <Plus className="w-4 h-4" />
-              <span className="hidden lg:inline">{t('leaves.tabs.newRequest')}</span>
-            </TabsTrigger>
-            <TabsTrigger value="approvals" className="flex items-center gap-1.5 relative">
-              <CheckCircle className="w-4 h-4" />
-              <span className="hidden lg:inline">{t('leaves.tabs.approvals')}</span>
-              {pendingCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {pendingCount}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="balance" className="flex items-center gap-1.5">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden lg:inline">{t('leaves.tabs.balance')}</span>
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="flex items-center gap-1.5">
-              <Calendar className="w-4 h-4" />
-              <span className="hidden lg:inline">{t('leaves.tabs.calendar')}</span>
-            </TabsTrigger>
+            <TabsTrigger value="balance" className="flex items-center gap-1.5"><BarChart3 className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.balance')}</span></TabsTrigger>
+            <TabsTrigger value="calendar" className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.calendar')}</span></TabsTrigger>
           </TabsList>
 
-          <TabsContent value="leaves">
-            <LeaveRequestsList requests={leaveRequests} />
-          </TabsContent>
-
-          <TabsContent value="permissions">
-            <PermissionRequestsList requests={permissionRequests} />
-          </TabsContent>
-
-          <TabsContent value="missions">
-            <MissionRequestsList requests={missionRequests} />
-          </TabsContent>
-
-          <TabsContent value="overtime">
-            <OvertimeRequestsList requests={overtimeRequests} />
-          </TabsContent>
-
+          <TabsContent value="leaves"><LeaveRequestsList requests={leaveRequests} /></TabsContent>
+          <TabsContent value="permissions"><PermissionRequestsList requests={permissionRequests} /></TabsContent>
+          <TabsContent value="missions"><MissionRequestsList requests={missionRequests} /></TabsContent>
+          <TabsContent value="overtime"><OvertimeRequestsList requests={overtimeRequests} /></TabsContent>
           <TabsContent value="new">
-            <NewRequestForm
-              onSubmitLeave={handleNewLeave}
-              onSubmitPermission={handleNewPermission}
-              onSubmitMission={handleNewMission}
-              onSubmitOvertime={handleNewOvertime}
-            />
+            <NewRequestForm onSubmitLeave={handleNewLeave} onSubmitPermission={handleNewPermission} onSubmitMission={handleNewMission} onSubmitOvertime={handleNewOvertime} />
           </TabsContent>
-
           <TabsContent value="approvals">
             <LeaveApprovals
               leaveRequests={leaveRequests.filter(r => r.status === 'pending')}
               permissionRequests={permissionRequests.filter(r => r.status === 'pending')}
               missionRequests={missionRequests.filter(r => r.status === 'pending')}
               overtimeRequests={overtimeRequests.filter(r => r.status === 'pending')}
-              onApproveLeave={handleApproveLeave}
-              onRejectLeave={handleRejectLeave}
-              onApprovePermission={handleApprovePermission}
-              onRejectPermission={handleRejectPermission}
-              onApproveMission={handleApproveMission}
-              onRejectMission={handleRejectMission}
-              onApproveOvertime={handleApproveOvertime}
-              onRejectOvertime={handleRejectOvertime}
+              onApproveLeave={handleApproveLeave} onRejectLeave={handleRejectLeave}
+              onApprovePermission={handleApprovePermission} onRejectPermission={handleRejectPermission}
+              onApproveMission={handleApproveMission} onRejectMission={handleRejectMission}
+              onApproveOvertime={handleApproveOvertime} onRejectOvertime={handleRejectOvertime}
             />
           </TabsContent>
-
-          <TabsContent value="balance">
-            <LeaveBalanceOverview balances={sampleLeaveBalances} />
-          </TabsContent>
-
-          <TabsContent value="calendar">
-            <LeaveCalendar requests={leaveRequests.filter(r => r.status === 'approved')} />
-          </TabsContent>
+          <TabsContent value="balance"><LeaveBalanceOverview balances={leaveBalances} /></TabsContent>
+          <TabsContent value="calendar"><LeaveCalendar requests={leaveRequests.filter(r => r.status === 'approved')} /></TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>

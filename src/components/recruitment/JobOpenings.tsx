@@ -28,13 +28,7 @@ interface JobOpening {
   description: string;
 }
 
-const initialOpenings: JobOpening[] = [
-  { id: '1', titleAr: 'مهندس برمجيات', titleEn: 'Software Engineer', department: 'تقنية المعلومات', location: 'القاهرة', type: 'full-time', status: 'open', vacancies: 3, applicants: 24, postedDate: '2026-01-15', closingDate: '2026-03-15', description: 'مطلوب مهندس برمجيات ذو خبرة' },
-  { id: '2', titleAr: 'محاسب مالي', titleEn: 'Financial Accountant', department: 'المالية', location: 'القاهرة', type: 'full-time', status: 'open', vacancies: 1, applicants: 12, postedDate: '2026-01-20', closingDate: '2026-02-28', description: 'مطلوب محاسب مالي' },
-  { id: '3', titleAr: 'مدير تسويق', titleEn: 'Marketing Manager', department: 'التسويق', location: 'الإسكندرية', type: 'full-time', status: 'on-hold', vacancies: 1, applicants: 8, postedDate: '2026-01-10', closingDate: '2026-03-01', description: 'مطلوب مدير تسويق' },
-  { id: '4', titleAr: 'أخصائي موارد بشرية', titleEn: 'HR Specialist', department: 'الموارد البشرية', location: 'القاهرة', type: 'full-time', status: 'closed', vacancies: 2, applicants: 18, postedDate: '2025-12-01', closingDate: '2026-01-31', description: 'مطلوب أخصائي موارد بشرية' },
-  { id: '5', titleAr: 'فني صيانة', titleEn: 'Maintenance Technician', department: 'العمليات', location: 'القاهرة', type: 'contract', status: 'open', vacancies: 4, applicants: 30, postedDate: '2026-02-01', closingDate: '2026-04-01', description: 'مطلوب فني صيانة' },
-];
+const initialOpenings: JobOpening[] = [];
 
 export const JobOpenings = () => {
   const { t, isRTL } = useLanguage();

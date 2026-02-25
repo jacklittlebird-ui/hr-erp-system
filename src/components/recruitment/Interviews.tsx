@@ -28,13 +28,7 @@ interface Interview {
   location: string;
 }
 
-const initialInterviews: Interview[] = [
-  { id: '1', candidateName: 'أحمد محمد علي', position: 'مهندس برمجيات', department: 'تقنية المعلومات', interviewDate: '2026-02-10', interviewTime: '10:00', interviewType: 'in-person', interviewer: 'م. خالد أحمد', status: 'scheduled', location: 'قاعة الاجتماعات 1' },
-  { id: '2', candidateName: 'سارة أحمد حسن', position: 'محاسب مالي', department: 'المالية', interviewDate: '2026-02-11', interviewTime: '14:00', interviewType: 'video', interviewer: 'أ. محمد حسن', status: 'scheduled', location: 'Google Meet' },
-  { id: '3', candidateName: 'محمود خالد', position: 'مهندس برمجيات', department: 'تقنية المعلومات', interviewDate: '2026-02-08', interviewTime: '11:00', interviewType: 'technical', interviewer: 'م. أحمد فاروق', status: 'completed', rating: 9, feedback: 'أداء ممتاز في الاختبار التقني', location: 'قاعة الاجتماعات 2' },
-  { id: '4', candidateName: 'نورا محمد', position: 'أخصائي موارد بشرية', department: 'الموارد البشرية', interviewDate: '2026-02-12', interviewTime: '09:00', interviewType: 'phone', interviewer: 'أ. ليلى أحمد', status: 'scheduled', location: 'هاتف' },
-  { id: '5', candidateName: 'فاطمة علي', position: 'مدير تسويق', department: 'التسويق', interviewDate: '2026-02-05', interviewTime: '15:00', interviewType: 'in-person', interviewer: 'أ. حسن محمود', status: 'cancelled', location: 'قاعة الاجتماعات 1' },
-];
+const initialInterviews: Interview[] = [];
 
 export const Interviews = () => {
   const { t, isRTL } = useLanguage();
