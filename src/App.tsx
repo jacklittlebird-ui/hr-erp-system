@@ -38,18 +38,27 @@ import SiteSettingsPage from "./pages/SiteSettings";
 import Documents from "./pages/Documents";
 import Uniforms from "./pages/Uniforms";
 import NotFound from "./pages/NotFound";
+import SetupPage from "./pages/SetupPage";
 
 const queryClient = new QueryClient();
 
+const LoadingScreen = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+  </div>
+);
+
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: string[] }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!allowedRoles.includes(user!.role)) return <Navigate to="/login" replace />;
   return <>{children}</>;
 };
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
   if (isAuthenticated) {
     if (user?.role === 'employee') return <Navigate to="/employee-portal" replace />;
     if (user?.role === 'station_manager') return <Navigate to="/station-manager" replace />;
@@ -61,6 +70,7 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
+    <Route path="/setup" element={<SetupPage />} />
     
     {/* Admin routes */}
     <Route path="/" element={<ProtectedRoute allowedRoles={['admin']}><Index /></ProtectedRoute>} />
