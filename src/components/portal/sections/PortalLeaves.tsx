@@ -13,10 +13,10 @@ import { cn } from '@/lib/utils';
 import { Calendar, Plus, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const PORTAL_EMPLOYEE_ID = 'Emp001';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalLeaves = () => {
+  const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { getLeaveBalances, getLeaveRequests, addLeaveRequest, getPermissions, addPermission } = usePortalData();

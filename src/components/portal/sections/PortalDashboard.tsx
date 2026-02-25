@@ -11,10 +11,13 @@ import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { ar as arLocale, enUS } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
-
-const PORTAL_EMPLOYEE_ID = 'Emp001';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 
 export const PortalDashboard = () => {
+  const PORTAL_EMPLOYEE_ID = usePortalEmployee();
+  const { getEmployeeById } = useEmployeeData();
+  const employee = getEmployeeById(PORTAL_EMPLOYEE_ID);
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { getEmployeePayroll } = usePayrollData();
@@ -47,7 +50,7 @@ export const PortalDashboard = () => {
   const totalPending = pendingLeaves + pendingMissions + pendingRequests;
 
   const handleCheckIn = () => {
-    checkIn(PORTAL_EMPLOYEE_ID, 'Galal AbdelRazek AbdelHaliem', 'جلال عبد الرازق عبد العليم', 'الإدارة');
+    checkIn(PORTAL_EMPLOYEE_ID, employee?.nameEn || '', employee?.nameAr || '', employee?.department || '');
     toast({ title: ar ? 'تم تسجيل الحضور' : 'Checked In', description: format(new Date(), 'HH:mm') });
   };
 

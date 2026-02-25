@@ -16,8 +16,7 @@ import { cn } from '@/lib/utils';
 import { MapPin, Plus, CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-
-const PORTAL_EMPLOYEE_ID = 'Emp001';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 const missionTypeLabels: Record<PortalMissionType, { ar: string; en: string; timeAr: string; timeEn: string }> = {
   morning: { ar: 'مأمورية صباحية', en: 'Morning Mission', timeAr: 'تسجيل تلقائي 09:00', timeEn: 'Auto check-in 09:00' },
@@ -26,10 +25,11 @@ const missionTypeLabels: Record<PortalMissionType, { ar: string; en: string; tim
 };
 
 export const PortalMissions = () => {
+  const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { getMissions, addMission } = usePortalData();
-  const missions = useMemo(() => getMissions(PORTAL_EMPLOYEE_ID), [getMissions]);
+  const missions = useMemo(() => getMissions(PORTAL_EMPLOYEE_ID), [getMissions, PORTAL_EMPLOYEE_ID]);
   const [showDialog, setShowDialog] = useState(false);
   const [missionType, setMissionType] = useState<string>('');
   const [date, setDate] = useState<Date>();

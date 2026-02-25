@@ -11,10 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { ClipboardList, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-
-const PORTAL_EMPLOYEE_ID = 'Emp001';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalRequests = () => {
+  const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { getRequests, addRequest } = usePortalData();

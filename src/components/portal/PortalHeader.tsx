@@ -1,5 +1,6 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { cn } from '@/lib/utils';
 import { Menu, Globe, User, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -10,16 +11,18 @@ interface PortalHeaderProps {
   onToggleSidebar: () => void;
 }
 
-const employee = {
-  nameAr: 'جلال عبد الرازق عبد العليم',
-  nameEn: 'Galal AbdelRazek AbdelHaliem',
-  id: 'Emp001',
-};
-
 export const PortalHeader = ({ onToggleSidebar }: PortalHeaderProps) => {
   const { language, setLanguage, isRTL } = useLanguage();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const { getEmployeeById } = useEmployeeData();
   const navigate = useNavigate();
+
+  const employeeId = user?.employeeId || '';
+  const employee = getEmployeeById(employeeId);
+
+  const displayName = language === 'ar'
+    ? (employee?.nameAr || user?.nameAr || '')
+    : (employee?.nameEn || user?.name || '');
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -37,10 +40,8 @@ export const PortalHeader = ({ onToggleSidebar }: PortalHeaderProps) => {
             <User className="w-4 h-4 text-primary-foreground" />
           </div>
           <div className={isRTL ? "text-right" : ""}>
-            <p className="text-sm font-semibold leading-tight">
-              {language === 'ar' ? employee.nameAr : employee.nameEn}
-            </p>
-            <p className="text-xs text-muted-foreground">{employee.id}</p>
+            <p className="text-sm font-semibold leading-tight">{displayName}</p>
+            <p className="text-xs text-muted-foreground">{employeeId}</p>
           </div>
         </div>
       </div>
@@ -60,7 +61,7 @@ export const PortalHeader = ({ onToggleSidebar }: PortalHeaderProps) => {
           <Globe className="w-4 h-4" />
           <span className="ml-1 text-xs">{language === 'ar' ? 'EN' : 'عربي'}</span>
         </Button>
-        <NotificationDropdown variant="portal" employeeId="Emp001" />
+        <NotificationDropdown variant="portal" employeeId={employeeId} />
         <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1.5 text-destructive">
           <LogOut className="h-4 w-4" />
           <span className="hidden sm:inline">{language === 'ar' ? 'خروج' : 'Logout'}</span>
