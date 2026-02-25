@@ -292,12 +292,11 @@ const OvertimeForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
   const [employeeId, setEmployeeId] = useState('');
   const [overtimeType, setOvertimeType] = useState('');
   const [date, setDate] = useState<Date>();
-  const [hours, setHours] = useState('');
   const [reason, setReason] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!employeeId || !overtimeType || !date || !hours || !reason) {
+    if (!employeeId || !overtimeType || !date || !reason) {
       toast({ title: t('leaves.form.error'), description: t('leaves.form.fillAllFields'), variant: 'destructive' });
       return;
     }
@@ -308,12 +307,12 @@ const OvertimeForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
       employeeNameAr: emp?.nameAr || '',
       department: emp?.department || '',
       date: format(date, 'yyyy-MM-dd'),
-      hours: Number(hours),
+      hours: 0,
       overtimeType,
       reason,
     });
     toast({ title: t('leaves.form.success'), description: t('leaves.overtime.requestSubmitted') });
-    setEmployeeId(''); setOvertimeType(''); setDate(undefined); setHours(''); setReason('');
+    setEmployeeId(''); setOvertimeType(''); setDate(undefined); setReason('');
   };
 
   return (
