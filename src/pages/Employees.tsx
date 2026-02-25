@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -8,7 +8,7 @@ import { EmployeeFilters } from '@/components/employees/EmployeeFilters';
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw, Download, Upload, Printer, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { AddEmployeeDialog } from '@/components/employees/AddEmployeeDialog';
 import { useReportExport } from '@/hooks/useReportExport';
 import { stationLocations } from '@/data/stationLocations';
 
@@ -20,6 +20,7 @@ const Employees = () => {
   const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   const ar = isRTL;
 
@@ -90,7 +91,7 @@ const Employees = () => {
               <Button variant="secondary" size="sm" className="gap-2" onClick={() => exportToPDF({ title: reportTitle, data: getExportData(), columns: exportColumns })}><Download className="w-4 h-4" />PDF</Button>
               <Button variant="secondary" size="sm" className="gap-2" onClick={() => exportToCSV({ title: reportTitle, data: getExportData(), columns: exportColumns })}><FileText className="w-4 h-4" />CSV</Button>
               <Button variant="secondary" size="sm" className="gap-2"><Upload className="w-4 h-4" />{t('employees.importExcel')}</Button>
-              <Button size="sm" className="gap-2 bg-success hover:bg-success/90 text-success-foreground"><Plus className="w-4 h-4" />{t('employees.addEmployee')}</Button>
+              <Button size="sm" className="gap-2 bg-success hover:bg-success/90 text-success-foreground" onClick={() => setShowAddDialog(true)}><Plus className="w-4 h-4" />{t('employees.addEmployee')}</Button>
             </div>
           </div>
         </div>
@@ -100,6 +101,7 @@ const Employees = () => {
           <EmployeeTable employees={filteredEmployees} />
         </div>
       </div>
+      <AddEmployeeDialog open={showAddDialog} onClose={() => setShowAddDialog(false)} />
     </DashboardLayout>
   );
 };
