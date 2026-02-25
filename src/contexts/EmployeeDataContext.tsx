@@ -125,6 +125,9 @@ function mapUpdates(updates: Partial<Employee>): Record<string, any> {
     bankName: 'bank_name',
     notes: 'notes',
     jobTitle: 'job_title_ar',
+    // Additional fields that were missing
+    mobile: 'phone',
+    homePhone: 'phone',
   };
 
   const dbUpdates: Record<string, any> = {};
