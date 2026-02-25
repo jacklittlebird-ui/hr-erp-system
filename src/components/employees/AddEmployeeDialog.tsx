@@ -4,12 +4,14 @@ import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { Employee } from '@/types/employee';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { X, User, Phone, CreditCard, Briefcase, Shield, FileCheck, Award, Building2, MoreHorizontal, Calendar, Wallet, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  Save, X, User, Phone, CreditCard, Briefcase, Wallet, Calendar,
+  Shield, FileCheck, Award, Building2, Clock, CalendarDays, MapPin,
+  BarChart3, AlertTriangle, FileText, Receipt, HandCoins, GraduationCap, StickyNote,
+} from 'lucide-react';
 import { BasicInfoTab } from './tabs/BasicInfoTab';
 import { ContactInfoTab } from './tabs/ContactInfoTab';
 import { IdentityTab } from './tabs/IdentityTab';
@@ -21,6 +23,7 @@ import { DepartmentsTab } from './tabs/DepartmentsTab';
 import { OtherTab } from './tabs/OtherTab';
 import { LeaveBalanceTab } from './tabs/LeaveBalanceTab';
 import { SalaryTab } from './tabs/SalaryTab';
+import { NotesTab } from './tabs/NotesTab';
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -32,13 +35,14 @@ const tabs = [
   { id: 'contact', icon: Phone, labelKey: 'employees.tabs.contactInfo' },
   { id: 'identity', icon: CreditCard, labelKey: 'employees.tabs.identity' },
   { id: 'job', icon: Briefcase, labelKey: 'employees.tabs.jobInfo' },
+  { id: 'salary', icon: Wallet, labelKey: 'employees.tabs.salary' },
+  { id: 'leave', icon: Calendar, labelKey: 'employees.tabs.leaveBalance' },
   { id: 'insurance', icon: Shield, labelKey: 'employees.tabs.insurance' },
   { id: 'permits', icon: FileCheck, labelKey: 'employees.tabs.permits' },
   { id: 'certificates', icon: Award, labelKey: 'employees.tabs.certificates' },
   { id: 'departments', icon: Building2, labelKey: 'employees.tabs.departments' },
-  { id: 'other', icon: MoreHorizontal, labelKey: 'employees.tabs.other' },
-  { id: 'leave', icon: Calendar, labelKey: 'employees.tabs.leaveBalance' },
-  { id: 'salary', icon: Wallet, labelKey: 'employees.tabs.salary' },
+  { id: 'other', icon: StickyNote, labelKey: 'employees.tabs.other' },
+  { id: 'notes', icon: StickyNote, labelKey: 'employees.tabs.notes' },
 ];
 
 const emptyEmployee: Employee = {
@@ -57,6 +61,7 @@ export const AddEmployeeDialog = ({ open, onClose }: AddEmployeeDialogProps) => 
   const ar = isRTL;
   const { refreshEmployees } = useEmployeeData();
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('basic');
   const updatesRef = useRef<Partial<Employee>>({});
   const [employee, setEmployee] = useState<Employee>({ ...emptyEmployee });
 
@@ -130,9 +135,9 @@ export const AddEmployeeDialog = ({ open, onClose }: AddEmployeeDialogProps) => 
 
       toast.success(ar ? 'تم إضافة الموظف بنجاح' : 'Employee added successfully');
       await refreshEmployees();
-      // Reset
       updatesRef.current = {};
       setEmployee({ ...emptyEmployee });
+      setActiveTab('basic');
       onClose();
     } catch (err: any) {
       console.error(err);
@@ -145,7 +150,26 @@ export const AddEmployeeDialog = ({ open, onClose }: AddEmployeeDialogProps) => 
   const handleClose = () => {
     updatesRef.current = {};
     setEmployee({ ...emptyEmployee });
+    setActiveTab('basic');
     onClose();
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'basic': return <BasicInfoTab employee={employee} onUpdate={handleUpdate} />;
+      case 'contact': return <ContactInfoTab employee={employee} onUpdate={handleUpdate} />;
+      case 'identity': return <IdentityTab employee={employee} onUpdate={handleUpdate} />;
+      case 'job': return <JobInfoTab employee={employee} onUpdate={handleUpdate} />;
+      case 'salary': return <SalaryTab employee={employee} onUpdate={handleUpdate} />;
+      case 'leave': return <LeaveBalanceTab employee={employee} />;
+      case 'insurance': return <InsuranceTab employee={employee} onUpdate={handleUpdate} />;
+      case 'permits': return <PermitsTab employee={employee} onUpdate={handleUpdate} />;
+      case 'certificates': return <CertificatesTab employee={employee} onUpdate={handleUpdate} />;
+      case 'departments': return <DepartmentsTab employee={employee} />;
+      case 'other': return <OtherTab employee={employee} onUpdate={handleUpdate} />;
+      case 'notes': return <NotesTab employee={employee} onUpdate={handleUpdate} />;
+      default: return null;
+    }
   };
 
   return (
@@ -162,72 +186,36 @@ export const AddEmployeeDialog = ({ open, onClose }: AddEmployeeDialogProps) => 
         </div>
 
         {/* Content */}
-        <Tabs defaultValue="basic" className="flex flex-col h-[calc(90vh-60px)]" dir={isRTL ? 'rtl' : 'ltr'}>
-          {/* Tabs Navigation */}
-          <div className="border-b bg-background">
-            <ScrollArea className="w-full">
-              <TabsList className={cn(
-                "inline-flex h-12 items-center justify-start bg-transparent p-0 w-max",
-                isRTL && "flex-row-reverse"
-              )}>
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <TabsTrigger
-                      key={tab.id}
-                      value={tab.id}
-                      className={cn(
-                        "inline-flex items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground border-b-2 border-transparent rounded-none",
-                        "data-[state=active]:text-primary data-[state=active]:border-primary",
-                        "hover:text-foreground transition-colors",
-                        isRTL && "flex-row-reverse"
-                      )}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span className="whitespace-nowrap">{t(tab.labelKey)}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+        <div className="flex flex-col h-[calc(90vh-60px)]">
+          {/* Tab Grid - same style as EmployeeDetails */}
+          <div className="border-b bg-muted/30 p-4">
+            <div className="flex flex-wrap gap-2">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm font-medium",
+                      isActive
+                        ? "bg-primary text-primary-foreground border-primary shadow-md"
+                        : "bg-card text-foreground border-border hover:border-primary/50 hover:bg-muted/50",
+                      isRTL && "flex-row-reverse"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="whitespace-nowrap">{t(tab.labelKey)}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Tab Contents */}
+          {/* Tab Content */}
           <div className="flex-1 overflow-auto">
-            <TabsContent value="basic" className="mt-0 h-full">
-              <BasicInfoTab employee={employee} onUpdate={handleUpdate} />
-            </TabsContent>
-            <TabsContent value="contact" className="mt-0 h-full">
-              <ContactInfoTab employee={employee} onUpdate={handleUpdate} />
-            </TabsContent>
-            <TabsContent value="identity" className="mt-0 h-full">
-              <IdentityTab employee={employee} onUpdate={handleUpdate} />
-            </TabsContent>
-            <TabsContent value="job" className="mt-0 h-full">
-              <JobInfoTab employee={employee} onUpdate={handleUpdate} />
-            </TabsContent>
-            <TabsContent value="insurance" className="mt-0 h-full">
-              <InsuranceTab employee={employee} onUpdate={handleUpdate} />
-            </TabsContent>
-            <TabsContent value="permits" className="mt-0 h-full">
-              <PermitsTab employee={employee} onUpdate={handleUpdate} />
-            </TabsContent>
-            <TabsContent value="certificates" className="mt-0 h-full">
-              <CertificatesTab employee={employee} onUpdate={handleUpdate} />
-            </TabsContent>
-            <TabsContent value="departments" className="mt-0 h-full">
-              <DepartmentsTab employee={employee} />
-            </TabsContent>
-            <TabsContent value="other" className="mt-0 h-full">
-              <OtherTab employee={employee} onUpdate={handleUpdate} />
-            </TabsContent>
-            <TabsContent value="leave" className="mt-0 h-full">
-              <LeaveBalanceTab employee={employee} />
-            </TabsContent>
-            <TabsContent value="salary" className="mt-0 h-full">
-              <SalaryTab employee={employee} onUpdate={handleUpdate} />
-            </TabsContent>
+            {renderTabContent()}
           </div>
 
           {/* Footer */}
@@ -243,7 +231,7 @@ export const AddEmployeeDialog = ({ open, onClose }: AddEmployeeDialogProps) => 
               {ar ? 'إلغاء' : 'Cancel'}
             </Button>
           </div>
-        </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );
