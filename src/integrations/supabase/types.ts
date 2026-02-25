@@ -265,6 +265,7 @@ export type Database = {
           has_cairo_airport_annual_permit: boolean | null
           has_cairo_airport_temp_permit: boolean | null
           has_contract: boolean | null
+          has_gov_health_insurance: boolean | null
           has_health_insurance: boolean | null
           has_id_copy: boolean | null
           has_military_service_cert: boolean | null
@@ -346,6 +347,7 @@ export type Database = {
           has_cairo_airport_annual_permit?: boolean | null
           has_cairo_airport_temp_permit?: boolean | null
           has_contract?: boolean | null
+          has_gov_health_insurance?: boolean | null
           has_health_insurance?: boolean | null
           has_id_copy?: boolean | null
           has_military_service_cert?: boolean | null
@@ -427,6 +429,7 @@ export type Database = {
           has_cairo_airport_annual_permit?: boolean | null
           has_cairo_airport_temp_permit?: boolean | null
           has_contract?: boolean | null
+          has_gov_health_insurance?: boolean | null
           has_health_insurance?: boolean | null
           has_id_copy?: boolean | null
           has_military_service_cert?: boolean | null
