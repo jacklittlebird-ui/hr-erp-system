@@ -1,14 +1,21 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { cn } from '@/lib/utils';
 import { MapPin } from 'lucide-react';
-import { sampleMissionRequests } from '@/data/leavesData';
-import { usePersistedState } from '@/hooks/usePersistedState';
-import { MissionRequest } from '@/types/leaves';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MissionRecordTabProps {
   employee: Employee;
+}
+
+interface MissionRow {
+  id: string;
+  mission_type: string;
+  date: string;
+  destination: string | null;
+  reason: string | null;
+  status: string;
 }
 
 type RecordStatus = 'approved' | 'pending' | 'rejected';
@@ -36,15 +43,30 @@ const StatusBadge = ({ status }: { status: RecordStatus }) => {
 };
 
 export const MissionRecordTab = ({ employee }: MissionRecordTabProps) => {
-  const { t, isRTL, language } = useLanguage();
+  const { isRTL, language } = useLanguage();
+  const [missions, setMissions] = useState<MissionRow[]>([]);
 
-  const [missionRequests] = usePersistedState<MissionRequest[]>('hr_mission_requests', sampleMissionRequests);
+  // Resolve employee UUID from employee code
+  useEffect(() => {
+    const fetch = async () => {
+      // First get UUID
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('employee_code', employee.employeeId)
+        .single();
+      if (!emp) return;
 
-  const missions = useMemo(() => {
-    return missionRequests.filter(
-      m => m.employeeId.toLowerCase() === employee.employeeId.toLowerCase()
-    );
-  }, [employee.employeeId, missionRequests]);
+      const { data } = await supabase
+        .from('missions')
+        .select('id, mission_type, date, destination, reason, status')
+        .eq('employee_id', emp.id)
+        .order('created_at', { ascending: false });
+
+      setMissions(data || []);
+    };
+    fetch();
+  }, [employee.employeeId]);
 
   const summary = useMemo(() => ({
     total: missions.length,
@@ -75,15 +97,15 @@ export const MissionRecordTab = ({ employee }: MissionRecordTabProps) => {
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 text-center">
-          <p className={cn("text-sm font-medium text-yellow-700 mb-1")}>{language === 'ar' ? 'قيد المراجعة' : 'Pending'}</p>
+          <p className="text-sm font-medium text-yellow-700 mb-1">{language === 'ar' ? 'قيد المراجعة' : 'Pending'}</p>
           <p className="text-3xl font-bold text-yellow-600">{summary.pendingCount}</p>
         </div>
         <div className="rounded-xl border-2 border-green-200 bg-green-50 p-4 text-center">
-          <p className={cn("text-sm font-medium text-green-700 mb-1")}>{language === 'ar' ? 'موافق عليها' : 'Approved'}</p>
+          <p className="text-sm font-medium text-green-700 mb-1">{language === 'ar' ? 'موافق عليها' : 'Approved'}</p>
           <p className="text-3xl font-bold text-green-600">{summary.approvedCount}</p>
         </div>
         <div className="rounded-xl border-2 border-red-200 bg-red-50 p-4 text-center">
-          <p className={cn("text-sm font-medium text-red-700 mb-1")}>{language === 'ar' ? 'مرفوضة' : 'Rejected'}</p>
+          <p className="text-sm font-medium text-red-700 mb-1">{language === 'ar' ? 'مرفوضة' : 'Rejected'}</p>
           <p className="text-3xl font-bold text-red-600">{summary.rejectedCount}</p>
         </div>
       </div>
@@ -119,7 +141,7 @@ export const MissionRecordTab = ({ employee }: MissionRecordTabProps) => {
               </tr>
             ) : (
               missions.map((record, idx) => {
-                const typeLabel = missionTypeLabels[record.missionType];
+                const typeLabel = missionTypeLabels[record.mission_type];
                 return (
                   <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
                     <td className="px-4 py-3 text-sm text-foreground">
@@ -127,8 +149,8 @@ export const MissionRecordTab = ({ employee }: MissionRecordTabProps) => {
                     </td>
                     <td className="px-4 py-3 text-sm text-foreground">{record.date}</td>
                     <td className="px-4 py-3 text-sm text-foreground">{record.destination || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
-                    <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
+                    <td className="px-4 py-3 text-sm text-foreground">{record.reason || '-'}</td>
+                    <td className="px-4 py-3"><StatusBadge status={record.status as RecordStatus} /></td>
                   </tr>
                 );
               })
