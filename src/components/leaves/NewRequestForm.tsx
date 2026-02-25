@@ -332,10 +332,6 @@ const OvertimeForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
           </Select>
         </div>
         <DatePickerField label={t('leaves.overtime.date')} date={date} onSelect={setDate} />
-        <div className="space-y-2">
-          <Label>{t('leaves.overtime.hours')} <span className="text-destructive">*</span></Label>
-          <Input type="number" min="0.5" max="24" step="0.5" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="0" />
-        </div>
       </div>
       <div className="space-y-2">
         <Label>{t('leaves.overtime.reason')} <span className="text-destructive">*</span></Label>
