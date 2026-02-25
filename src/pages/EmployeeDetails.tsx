@@ -93,16 +93,29 @@ const EmployeeDetails = () => {
     );
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const updates = pendingUpdates.current;
     if (Object.keys(updates).length > 0) {
-      updateEmployee(employee.id, updates);
-      pendingUpdates.current = {};
+      try {
+        await updateEmployee(employee.id, updates);
+        pendingUpdates.current = {};
+        toast({
+          title: language === 'ar' ? 'تم الحفظ' : 'Saved',
+          description: language === 'ar' ? 'تم حفظ جميع بيانات الموظف بنجاح' : 'All employee data saved successfully',
+        });
+      } catch (err) {
+        toast({
+          title: language === 'ar' ? 'خطأ' : 'Error',
+          description: language === 'ar' ? 'حدث خطأ أثناء حفظ البيانات' : 'An error occurred while saving',
+          variant: 'destructive',
+        });
+      }
+    } else {
+      toast({
+        title: language === 'ar' ? 'لا توجد تغييرات' : 'No changes',
+        description: language === 'ar' ? 'لم يتم إجراء أي تغييرات' : 'No changes were made',
+      });
     }
-    toast({
-      title: language === 'ar' ? 'تم الحفظ' : 'Saved',
-      description: language === 'ar' ? 'تم حفظ جميع بيانات الموظف بنجاح' : 'All employee data saved successfully',
-    });
   };
 
   const renderTabContent = () => {
