@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Plus, Search, Edit, Trash2, Eye, Monitor, Laptop, Smartphone, Printer, HardDrive, Package, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { mockEmployees } from '@/data/mockEmployees';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
 export interface Asset {
@@ -49,8 +49,9 @@ const emptyForm = { nameAr: '', nameEn: '', category: 'laptop' as Asset['categor
 export const AssetRegistry = () => {
   const { t, isRTL } = useLanguage();
   const { toast } = useToast();
+  const { employees } = useEmployeeData();
   const [assets, setAssets] = usePersistedState<Asset[]>('hr_asset_registry', initialAssets);
-  const activeEmployees = mockEmployees.filter(e => e.status === 'active');
+  const activeEmployees = employees.filter(e => e.status === 'active');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -69,7 +70,7 @@ export const AssetRegistry = () => {
 
   const filtered = assets.filter(a => {
     const q = search.toLowerCase();
-    const empName = a.assignedTo ? (() => { const emp = mockEmployees.find(e => e.employeeId === a.assignedTo); return emp ? `${emp.nameAr} ${emp.nameEn}`.toLowerCase() : ''; })() : '';
+    const empName = a.assignedTo ? (() => { const emp = employees.find(e => e.employeeId === a.assignedTo); return emp ? `${emp.nameAr} ${emp.nameEn}`.toLowerCase() : ''; })() : '';
     const matchSearch = !search || a.nameAr.includes(search) || a.nameEn.toLowerCase().includes(q) || a.assetCode.toLowerCase().includes(q) || a.serialNumber.toLowerCase().includes(q) || a.brand.toLowerCase().includes(q) || a.model.toLowerCase().includes(q) || a.location.toLowerCase().includes(q) || a.category.includes(q) || empName.includes(q);
     const matchStatus = statusFilter === 'all' || a.status === statusFilter;
     const matchCategory = categoryFilter === 'all' || a.category === categoryFilter;
@@ -270,7 +271,7 @@ export const AssetRegistry = () => {
                   <TableCell>{asset.brand}</TableCell>
                   <TableCell>
                     {asset.assignedTo ? (() => {
-                      const emp = mockEmployees.find(e => e.employeeId === asset.assignedTo);
+                      const emp = employees.find(e => e.employeeId === asset.assignedTo);
                       return emp ? (isRTL ? emp.nameAr : emp.nameEn) : '-';
                     })() : <span className="text-muted-foreground">-</span>}
                   </TableCell>

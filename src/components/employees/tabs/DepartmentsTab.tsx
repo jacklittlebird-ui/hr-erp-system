@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Save, Building2, Users, UserCheck, TrendingUp, ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockEmployees } from '@/data/mockEmployees';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { toast } from 'sonner';
 
 interface DepartmentsTabProps {
@@ -23,18 +23,19 @@ const departmentCodes = [
 
 export const DepartmentsTab = ({ employee }: DepartmentsTabProps) => {
   const { t, isRTL } = useLanguage();
+  const { employees: allEmployees } = useEmployeeData();
   const [nameAr, setNameAr] = useState('');
   const [nameEn, setNameEn] = useState('');
   const [selectedManager, setSelectedManager] = useState('');
   const [managerOpen, setManagerOpen] = useState(false);
   const [checkedDepts, setCheckedDepts] = useState<string[]>(employee.departmentAccess || []);
 
-  const employees = useMemo(() => mockEmployees.filter(e => e.status === 'active'), []);
+  const employees = useMemo(() => allEmployees.filter(e => e.status === 'active'), [allEmployees]);
 
   const selectedManagerName = useMemo(() => {
-    const emp = mockEmployees.find(e => e.id === selectedManager);
+    const emp = allEmployees.find(e => e.id === selectedManager);
     return emp ? (isRTL ? emp.nameAr : emp.nameEn) : '';
-  }, [selectedManager, isRTL]);
+  }, [selectedManager, isRTL, allEmployees]);
 
   const handleSave = () => {
     if (!nameAr.trim() || !nameEn.trim()) {

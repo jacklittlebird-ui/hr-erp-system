@@ -14,7 +14,7 @@ import { format, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { EmployeeSelector } from './EmployeeSelector';
-import { mockEmployees } from '@/data/mockEmployees';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 
 interface NewRequestFormProps {
   onSubmitLeave: (data: any) => void;
@@ -77,6 +77,7 @@ export const NewRequestForm = ({ onSubmitLeave, onSubmitPermission, onSubmitMiss
 // ==================== Leave Form ====================
 const LeaveForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
   const { t, isRTL } = useLanguage();
+  const { employees: allEmployees } = useEmployeeData();
   const [employeeId, setEmployeeId] = useState('');
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -92,7 +93,7 @@ const LeaveForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
       toast({ title: t('leaves.form.error'), description: t('leaves.form.fillAllFields'), variant: 'destructive' });
       return;
     }
-    const emp = mockEmployees.find(e => e.employeeId === employeeId);
+    const emp = allEmployees.find((e: any) => e.employeeId === employeeId);
     onSubmit({
       employeeId,
       employeeName: emp?.nameEn || '',
@@ -145,6 +146,7 @@ const LeaveForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
 // ==================== Permission Form ====================
 const PermissionForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
   const { t, isRTL } = useLanguage();
+  const { employees: allEmployees } = useEmployeeData();
   const [employeeId, setEmployeeId] = useState('');
   const [permissionType, setPermissionType] = useState('');
   const [date, setDate] = useState<Date>();
@@ -158,7 +160,7 @@ const PermissionForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
       toast({ title: t('leaves.form.error'), description: t('leaves.form.fillAllFields'), variant: 'destructive' });
       return;
     }
-    const emp = mockEmployees.find(e => e.employeeId === employeeId);
+    const emp = allEmployees.find((e: any) => e.employeeId === employeeId);
     const [fH, fM] = fromTime.split(':').map(Number);
     const [tH, tM] = toTime.split(':').map(Number);
     const durationHours = Math.max(0, (tH * 60 + tM - fH * 60 - fM) / 60);
@@ -216,6 +218,7 @@ const PermissionForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
 // ==================== Mission Form ====================
 const MissionForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
   const { t, isRTL, language } = useLanguage();
+  const { employees: allEmployees } = useEmployeeData();
   const ar = language === 'ar';
   const [employeeId, setEmployeeId] = useState('');
   const [missionType, setMissionType] = useState('');
@@ -235,7 +238,7 @@ const MissionForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
       toast({ title: t('leaves.form.error'), description: t('leaves.form.fillAllFields'), variant: 'destructive' });
       return;
     }
-    const emp = mockEmployees.find(e => e.employeeId === employeeId);
+    const emp = allEmployees.find((e: any) => e.employeeId === employeeId);
     onSubmit({
       employeeId,
       employeeName: emp?.nameEn || '',
@@ -285,6 +288,7 @@ const MissionForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
 // ==================== Overtime Form ====================
 const OvertimeForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
   const { t, isRTL } = useLanguage();
+  const { employees: allEmployees } = useEmployeeData();
   const [employeeId, setEmployeeId] = useState('');
   const [overtimeType, setOvertimeType] = useState('');
   const [date, setDate] = useState<Date>();
@@ -297,7 +301,7 @@ const OvertimeForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
       toast({ title: t('leaves.form.error'), description: t('leaves.form.fillAllFields'), variant: 'destructive' });
       return;
     }
-    const emp = mockEmployees.find(e => e.employeeId === employeeId);
+    const emp = allEmployees.find((e: any) => e.employeeId === employeeId);
     onSubmit({
       employeeId,
       employeeName: emp?.nameEn || '',

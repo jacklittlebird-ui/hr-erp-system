@@ -11,7 +11,7 @@ import { Printer, FileSpreadsheet, Download, Package, DollarSign, Wrench, Trendi
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useReportExport } from '@/hooks/useReportExport';
-import { mockEmployees } from '@/data/mockEmployees';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
 import type { Asset } from './AssetRegistry';
 
@@ -34,6 +34,7 @@ export const AssetReports = () => {
   const [assets] = usePersistedState<Asset[]>('hr_asset_registry', initialAssets);
   const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
   const stationPrintRef = useRef<HTMLDivElement>(null);
+  const { employees } = useEmployeeData();
 
   // Filters
   const [employeeFilter, setEmployeeFilter] = useState('all');
@@ -41,7 +42,7 @@ export const AssetReports = () => {
 
   const getEmpName = (empId?: string) => {
     if (!empId) return ar ? 'غير معيّن' : 'Unassigned';
-    const emp = mockEmployees.find(e => e.employeeId === empId);
+    const emp = employees.find(e => e.employeeId === empId);
     return emp ? (ar ? emp.nameAr : emp.nameEn) : empId;
   };
 
@@ -61,10 +62,10 @@ export const AssetReports = () => {
   const assignedEmployees = useMemo(() => {
     const ids = new Set(assets.filter(a => a.assignedTo).map(a => a.assignedTo!));
     return Array.from(ids).map(id => {
-      const emp = mockEmployees.find(e => e.employeeId === id);
+      const emp = employees.find(e => e.employeeId === id);
       return { id, name: emp ? (ar ? emp.nameAr : emp.nameEn) : id };
     });
-  }, [assets, ar]);
+  }, [assets, ar, employees]);
 
   // Unique locations
   const uniqueLocations = useMemo(() => {

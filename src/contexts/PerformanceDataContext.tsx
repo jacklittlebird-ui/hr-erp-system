@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
-import { mockEmployees } from '@/data/mockEmployees';
+// Employee data comes from EmployeeDataContext where needed
 
 export interface CriteriaItem {
   name: string;
