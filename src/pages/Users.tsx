@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,88 +12,163 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Search, Edit, Trash2, Shield, Users as UsersIcon, UserCheck, UserX } from 'lucide-react';
+import { Plus, Search, Shield, Users as UsersIcon, UserCheck, MapPin, User, RefreshCw, Eye, EyeOff } from 'lucide-react';
 
 interface SystemUser {
-  id: string;
-  name: string;
+  user_id: string;
   email: string;
-  role: string;
-  group: string;
-  status: 'active' | 'inactive';
-  lastLogin: string;
-  createdAt: string;
+  full_name: string;
+  role: 'admin' | 'station_manager' | 'employee';
+  station_code?: string;
+  station_name?: string;
+  employee_code?: string;
+  created_at: string;
 }
-
-const initialUsers: SystemUser[] = [
-  { id: '1', name: 'أحمد محمد', email: 'ahmed@company.com', role: 'مدير النظام', group: 'الإدارة العليا', status: 'active', lastLogin: '2026-02-20', createdAt: '2025-01-01' },
-  { id: '2', name: 'سارة أحمد', email: 'sara@company.com', role: 'مدير الموارد البشرية', group: 'الموارد البشرية', status: 'active', lastLogin: '2026-02-19', createdAt: '2025-03-15' },
-  { id: '3', name: 'محمد علي', email: 'mohamed@company.com', role: 'محاسب', group: 'المالية', status: 'active', lastLogin: '2026-02-18', createdAt: '2025-06-01' },
-  { id: '4', name: 'فاطمة حسن', email: 'fatma@company.com', role: 'موظف', group: 'العمليات', status: 'inactive', lastLogin: '2026-01-10', createdAt: '2025-08-20' },
-];
 
 const Users = () => {
   const { language, isRTL } = useLanguage();
-  const [users, setUsers] = usePersistedState<SystemUser[]>('hr_system_users', initialUsers);
+  const { session } = useAuth();
+  const [users, setUsers] = useState<SystemUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
-  const [form, setForm] = useState<{ name: string; email: string; role: string; group: string; status: 'active' | 'inactive' }>({ name: '', email: '', role: '', group: '', status: 'active' });
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [stations, setStations] = useState<{ id: string; code: string; name_ar: string; name_en: string }[]>([]);
+  const [employees, setEmployees] = useState<{ id: string; employee_code: string; name_ar: string; name_en: string }[]>([]);
+
+  const [form, setForm] = useState({
+    full_name: '',
+    email: '',
+    password: '',
+    role: '' as string,
+    station_code: '',
+    employee_code: '',
+  });
 
   const isAr = language === 'ar';
 
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Get all user_roles with profiles
+      const { data: roles, error } = await supabase
+        .from('user_roles')
+        .select('user_id, role, station_id, employee_id');
+
+      if (error) throw error;
+
+      // Get profiles for these users
+      const userIds = [...new Set(roles?.map(r => r.user_id) || [])];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, created_at')
+        .in('id', userIds);
+
+      // Get stations
+      const { data: stationsData } = await supabase.from('stations').select('id, code, name_ar, name_en');
+
+      // Get employees
+      const { data: empsData } = await supabase.from('employees').select('id, employee_code, name_ar, name_en');
+
+      const mapped: SystemUser[] = (roles || []).map(r => {
+        const profile = profiles?.find(p => p.id === r.user_id);
+        const station = stationsData?.find(s => s.id === r.station_id);
+        const emp = empsData?.find(e => e.id === r.employee_id);
+        return {
+          user_id: r.user_id,
+          email: profile?.email || '',
+          full_name: profile?.full_name || '',
+          role: r.role as SystemUser['role'],
+          station_code: station?.code,
+          station_name: isAr ? station?.name_ar : station?.name_en,
+          employee_code: emp?.employee_code,
+          created_at: profile?.created_at || '',
+        };
+      });
+
+      setUsers(mapped);
+      if (stationsData) setStations(stationsData);
+      if (empsData) setEmployees(empsData);
+    } catch (err: any) {
+      toast({ title: isAr ? 'خطأ' : 'Error', description: err.message, variant: 'destructive' });
+    }
+    setLoading(false);
+  }, [isAr]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
   const filtered = users.filter(u =>
-    u.name.includes(search) || u.email.includes(search) || u.role.includes(search)
+    u.full_name.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase()) ||
+    u.role.includes(search.toLowerCase())
   );
 
-  const openAdd = () => {
-    setEditingUser(null);
-    setForm({ name: '', email: '', role: '', group: '', status: 'active' });
-    setDialogOpen(true);
-  };
-
-  const openEdit = (user: SystemUser) => {
-    setEditingUser(user);
-    setForm({ name: user.name, email: user.email, role: user.role, group: user.group, status: user.status });
-    setDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    if (!form.name || !form.email) {
-      toast({ title: isAr ? 'خطأ' : 'Error', description: isAr ? 'يرجى ملء الحقول المطلوبة' : 'Please fill required fields', variant: 'destructive' });
+  const handleCreate = async () => {
+    if (!form.full_name || !form.email || !form.password || !form.role) {
+      toast({ title: isAr ? 'خطأ' : 'Error', description: isAr ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields', variant: 'destructive' });
       return;
     }
-    if (editingUser) {
-      setUsers(prev => prev.map(u => u.id === editingUser.id ? { ...u, ...form } : u));
-      toast({ title: isAr ? 'تم التحديث' : 'Updated', description: isAr ? 'تم تحديث بيانات المستخدم' : 'User updated successfully' });
-    } else {
-      const newUser: SystemUser = {
-        id: Date.now().toString(),
-        ...form,
-        lastLogin: '-',
-        createdAt: new Date().toISOString().split('T')[0],
-      };
-      setUsers(prev => [...prev, newUser]);
-      toast({ title: isAr ? 'تمت الإضافة' : 'Added', description: isAr ? 'تم إضافة مستخدم جديد' : 'New user added' });
+
+    if (form.password.length < 6) {
+      toast({ title: isAr ? 'خطأ' : 'Error', description: isAr ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' : 'Password must be at least 6 characters', variant: 'destructive' });
+      return;
     }
-    setDialogOpen(false);
+
+    if (form.role === 'station_manager' && !form.station_code) {
+      toast({ title: isAr ? 'خطأ' : 'Error', description: isAr ? 'يرجى اختيار المحطة' : 'Please select a station', variant: 'destructive' });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('setup-user', {
+        body: {
+          email: form.email,
+          password: form.password,
+          full_name: form.full_name,
+          role: form.role,
+          station_code: form.station_code || undefined,
+          employee_code: form.employee_code || undefined,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: isAr ? 'تم بنجاح' : 'Success', description: isAr ? 'تم إنشاء المستخدم بنجاح' : 'User created successfully' });
+      setDialogOpen(false);
+      setForm({ full_name: '', email: '', password: '', role: '', station_code: '', employee_code: '' });
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: isAr ? 'خطأ' : 'Error', description: err.message, variant: 'destructive' });
+    }
+    setCreating(false);
   };
 
-  const handleDelete = (id: string) => {
-    setUsers(prev => prev.filter(u => u.id !== id));
-    setDeleteConfirm(null);
-    toast({ title: isAr ? 'تم الحذف' : 'Deleted', description: isAr ? 'تم حذف المستخدم' : 'User deleted' });
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'admin': return <Badge className="bg-primary/10 text-primary border-primary/30">{isAr ? 'مدير النظام' : 'Admin'}</Badge>;
+      case 'station_manager': return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30">{isAr ? 'مدير محطة' : 'Station Manager'}</Badge>;
+      case 'employee': return <Badge className="bg-sky-500/10 text-sky-600 border-sky-500/30">{isAr ? 'موظف' : 'Employee'}</Badge>;
+      default: return <Badge variant="outline">{role}</Badge>;
+    }
   };
 
-  const toggleStatus = (id: string) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' } : u));
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'admin': return <Shield className="w-4 h-4 text-primary" />;
+      case 'station_manager': return <MapPin className="w-4 h-4 text-amber-600" />;
+      default: return <User className="w-4 h-4 text-sky-600" />;
+    }
   };
 
-  const activeCount = users.filter(u => u.status === 'active').length;
-  const inactiveCount = users.filter(u => u.status === 'inactive').length;
+  const adminCount = users.filter(u => u.role === 'admin').length;
+  const smCount = users.filter(u => u.role === 'station_manager').length;
+  const empCount = users.filter(u => u.role === 'employee').length;
 
   return (
     <DashboardLayout>
@@ -100,11 +176,16 @@ const Users = () => {
         <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
           <div>
             <h1 className="text-2xl font-bold text-foreground">{isAr ? 'إدارة المستخدمين' : 'User Management'}</h1>
-            <p className="text-muted-foreground">{isAr ? 'إدارة مستخدمي النظام وصلاحياتهم' : 'Manage system users and permissions'}</p>
+            <p className="text-muted-foreground">{isAr ? 'إنشاء وإدارة حسابات المستخدمين والأدوار' : 'Create and manage user accounts and roles'}</p>
           </div>
-          <Button onClick={openAdd} className={cn("gap-2", isRTL && "flex-row-reverse")}>
-            <Plus className="w-4 h-4" /> {isAr ? 'إضافة مستخدم' : 'Add User'}
-          </Button>
+          <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
+            <Button variant="outline" size="icon" onClick={fetchUsers} disabled={loading}>
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            </Button>
+            <Button onClick={() => setDialogOpen(true)} className={cn("gap-2", isRTL && "flex-row-reverse")}>
+              <Plus className="w-4 h-4" /> {isAr ? 'إضافة مستخدم' : 'Add User'}
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -114,16 +195,16 @@ const Users = () => {
             <div><p className="text-2xl font-bold">{users.length}</p><p className="text-xs text-muted-foreground">{isAr ? 'إجمالي المستخدمين' : 'Total Users'}</p></div>
           </CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-500/10"><UserCheck className="w-5 h-5 text-green-600" /></div>
-            <div><p className="text-2xl font-bold">{activeCount}</p><p className="text-xs text-muted-foreground">{isAr ? 'نشط' : 'Active'}</p></div>
+            <div className="p-2 rounded-lg bg-primary/10"><Shield className="w-5 h-5 text-primary" /></div>
+            <div><p className="text-2xl font-bold">{adminCount}</p><p className="text-xs text-muted-foreground">{isAr ? 'مديرو النظام' : 'Admins'}</p></div>
           </CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-500/10"><UserX className="w-5 h-5 text-red-600" /></div>
-            <div><p className="text-2xl font-bold">{inactiveCount}</p><p className="text-xs text-muted-foreground">{isAr ? 'غير نشط' : 'Inactive'}</p></div>
+            <div className="p-2 rounded-lg bg-amber-500/10"><MapPin className="w-5 h-5 text-amber-600" /></div>
+            <div><p className="text-2xl font-bold">{smCount}</p><p className="text-xs text-muted-foreground">{isAr ? 'مديرو المحطات' : 'Station Managers'}</p></div>
           </CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/10"><Shield className="w-5 h-5 text-blue-600" /></div>
-            <div><p className="text-2xl font-bold">{new Set(users.map(u => u.role)).size}</p><p className="text-xs text-muted-foreground">{isAr ? 'الأدوار' : 'Roles'}</p></div>
+            <div className="p-2 rounded-lg bg-sky-500/10"><UserCheck className="w-5 h-5 text-sky-600" /></div>
+            <div><p className="text-2xl font-bold">{empCount}</p><p className="text-xs text-muted-foreground">{isAr ? 'الموظفون' : 'Employees'}</p></div>
           </CardContent></Card>
         </div>
 
@@ -139,96 +220,136 @@ const Users = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{isAr ? 'الاسم' : 'Name'}</TableHead>
+                  <TableHead>{isAr ? 'المستخدم' : 'User'}</TableHead>
                   <TableHead>{isAr ? 'البريد' : 'Email'}</TableHead>
                   <TableHead>{isAr ? 'الدور' : 'Role'}</TableHead>
-                  <TableHead>{isAr ? 'المجموعة' : 'Group'}</TableHead>
-                  <TableHead>{isAr ? 'الحالة' : 'Status'}</TableHead>
-                  <TableHead>{isAr ? 'آخر دخول' : 'Last Login'}</TableHead>
-                  <TableHead>{isAr ? 'الإجراءات' : 'Actions'}</TableHead>
+                  <TableHead>{isAr ? 'التفاصيل' : 'Details'}</TableHead>
+                  <TableHead>{isAr ? 'تاريخ الإنشاء' : 'Created'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map(user => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell><Badge variant="outline">{user.role}</Badge></TableCell>
-                    <TableCell>{user.group}</TableCell>
+                {loading ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
+                    {isAr ? 'جاري التحميل...' : 'Loading...'}
+                  </TableCell></TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{isAr ? 'لا توجد نتائج' : 'No results'}</TableCell></TableRow>
+                ) : filtered.map(user => (
+                  <TableRow key={user.user_id}>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch checked={user.status === 'active'} onCheckedChange={() => toggleStatus(user.id)} />
-                        <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-                          {user.status === 'active' ? (isAr ? 'نشط' : 'Active') : (isAr ? 'معطل' : 'Inactive')}
-                        </Badge>
+                      <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                        {getRoleIcon(user.role)}
+                        <span className="font-medium">{user.full_name}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{user.lastLogin}</TableCell>
+                    <TableCell dir="ltr" className="text-left">{user.email}</TableCell>
+                    <TableCell>{getRoleBadge(user.role)}</TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(user)}><Edit className="w-4 h-4" /></Button>
-                        <Button size="icon" variant="ghost" className="text-destructive" onClick={() => setDeleteConfirm(user.id)}><Trash2 className="w-4 h-4" /></Button>
-                      </div>
+                      {user.role === 'station_manager' && user.station_name && (
+                        <Badge variant="outline" className="gap-1"><MapPin className="w-3 h-3" />{user.station_name}</Badge>
+                      )}
+                      {user.role === 'employee' && user.employee_code && (
+                        <Badge variant="outline">{user.employee_code}</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString(isAr ? 'ar-EG' : 'en-US') : '-'}
                     </TableCell>
                   </TableRow>
                 ))}
-                {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{isAr ? 'لا توجد نتائج' : 'No results'}</TableCell></TableRow>
-                )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
 
-        {/* Add/Edit Dialog */}
+        {/* Create User Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>{editingUser ? (isAr ? 'تعديل مستخدم' : 'Edit User') : (isAr ? 'إضافة مستخدم' : 'Add User')}</DialogTitle>
+              <DialogTitle>{isAr ? 'إنشاء مستخدم جديد' : 'Create New User'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div><Label>{isAr ? 'الاسم' : 'Name'}</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
-              <div><Label>{isAr ? 'البريد الإلكتروني' : 'Email'}</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-              <div><Label>{isAr ? 'الدور' : 'Role'}</Label>
-                <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
+              <div>
+                <Label>{isAr ? 'الاسم الكامل' : 'Full Name'} *</Label>
+                <Input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder={isAr ? 'مثال: أحمد محمد' : 'e.g. Ahmed Mohamed'} />
+              </div>
+              <div>
+                <Label>{isAr ? 'البريد الإلكتروني' : 'Email'} *</Label>
+                <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} dir="ltr" placeholder="user@company.com" />
+              </div>
+              <div>
+                <Label>{isAr ? 'كلمة المرور' : 'Password'} *</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                    dir="ltr"
+                    placeholder={isAr ? '6 أحرف على الأقل' : 'Min 6 characters'}
+                    className="pe-10"
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className={cn("absolute top-1/2 -translate-y-1/2 text-muted-foreground", isRTL ? "left-3" : "right-3")}>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <Label>{isAr ? 'الدور' : 'Role'} *</Label>
+                <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v, station_code: '', employee_code: '' }))}>
                   <SelectTrigger><SelectValue placeholder={isAr ? 'اختر الدور' : 'Select role'} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="مدير النظام">{isAr ? 'مدير النظام' : 'System Admin'}</SelectItem>
-                    <SelectItem value="مدير الموارد البشرية">{isAr ? 'مدير الموارد البشرية' : 'HR Manager'}</SelectItem>
-                    <SelectItem value="محاسب">{isAr ? 'محاسب' : 'Accountant'}</SelectItem>
-                    <SelectItem value="مشرف">{isAr ? 'مشرف' : 'Supervisor'}</SelectItem>
-                    <SelectItem value="موظف">{isAr ? 'موظف' : 'Employee'}</SelectItem>
+                    <SelectItem value="admin">
+                      <span className="flex items-center gap-2"><Shield className="w-4 h-4" /> {isAr ? 'مدير النظام' : 'Admin'}</span>
+                    </SelectItem>
+                    <SelectItem value="station_manager">
+                      <span className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {isAr ? 'مدير محطة' : 'Station Manager'}</span>
+                    </SelectItem>
+                    <SelectItem value="employee">
+                      <span className="flex items-center gap-2"><User className="w-4 h-4" /> {isAr ? 'موظف' : 'Employee'}</span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>{isAr ? 'المجموعة' : 'Group'}</Label>
-                <Select value={form.group} onValueChange={v => setForm(f => ({ ...f, group: v }))}>
-                  <SelectTrigger><SelectValue placeholder={isAr ? 'اختر المجموعة' : 'Select group'} /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="الإدارة العليا">{isAr ? 'الإدارة العليا' : 'Senior Management'}</SelectItem>
-                    <SelectItem value="الموارد البشرية">{isAr ? 'الموارد البشرية' : 'HR'}</SelectItem>
-                    <SelectItem value="المالية">{isAr ? 'المالية' : 'Finance'}</SelectItem>
-                    <SelectItem value="العمليات">{isAr ? 'العمليات' : 'Operations'}</SelectItem>
-                    <SelectItem value="تقنية المعلومات">{isAr ? 'تقنية المعلومات' : 'IT'}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
+              {form.role === 'station_manager' && (
+                <div>
+                  <Label>{isAr ? 'المحطة' : 'Station'} *</Label>
+                  <Select value={form.station_code} onValueChange={v => setForm(f => ({ ...f, station_code: v }))}>
+                    <SelectTrigger><SelectValue placeholder={isAr ? 'اختر المحطة' : 'Select station'} /></SelectTrigger>
+                    <SelectContent>
+                      {stations.map(s => (
+                        <SelectItem key={s.code} value={s.code}>
+                          <span className="flex items-center gap-2"><MapPin className="w-3 h-3" /> {isAr ? s.name_ar : s.name_en}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {form.role === 'employee' && (
+                <div>
+                  <Label>{isAr ? 'رقم الموظف' : 'Employee Code'}</Label>
+                  <Select value={form.employee_code} onValueChange={v => setForm(f => ({ ...f, employee_code: v }))}>
+                    <SelectTrigger><SelectValue placeholder={isAr ? 'اختر الموظف (اختياري)' : 'Select employee (optional)'} /></SelectTrigger>
+                    <SelectContent>
+                      {employees.map(e => (
+                        <SelectItem key={e.employee_code} value={e.employee_code}>
+                          {e.employee_code} — {isAr ? e.name_ar : e.name_en}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">{isAr ? 'اختياري: لربط الحساب بسجل موظف موجود' : 'Optional: link to existing employee record'}</p>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>{isAr ? 'إلغاء' : 'Cancel'}</Button>
-              <Button onClick={handleSave}>{isAr ? 'حفظ' : 'Save'}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirm */}
-        <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader><DialogTitle>{isAr ? 'تأكيد الحذف' : 'Confirm Delete'}</DialogTitle></DialogHeader>
-            <p className="text-muted-foreground">{isAr ? 'هل أنت متأكد من حذف هذا المستخدم؟' : 'Are you sure you want to delete this user?'}</p>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteConfirm(null)}>{isAr ? 'إلغاء' : 'Cancel'}</Button>
-              <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>{isAr ? 'حذف' : 'Delete'}</Button>
+              <Button onClick={handleCreate} disabled={creating}>
+                {creating ? (isAr ? 'جاري الإنشاء...' : 'Creating...') : (isAr ? 'إنشاء الحساب' : 'Create Account')}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
