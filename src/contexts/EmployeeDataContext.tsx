@@ -8,7 +8,7 @@ interface EmployeeDataContextType {
   loading: boolean;
   getEmployee: (id: string) => Employee | undefined;
   getEmployeeById: (employeeId: string) => Employee | undefined;
-  updateEmployee: (id: string, updates: Partial<Employee>) => void;
+  updateEmployee: (id: string, updates: Partial<Employee>) => Promise<void>;
   addEmployee: (employee: Employee) => void;
   refreshEmployees: () => Promise<void>;
 }
@@ -26,10 +26,14 @@ function mapRow(row: any): Employee {
     jobTitle: row.job_title_ar || '',
     phone: row.phone || '',
     status: row.status as Employee['status'],
+    avatar: row.avatar || undefined,
     stationLocation: row.stations?.code || '',
-    firstName: row.name_en?.split(' ')[0] || '',
+    firstName: row.first_name || row.name_en?.split(' ')[0] || '',
+    fatherName: row.father_name || undefined,
+    familyName: row.family_name || undefined,
     birthDate: row.birth_date || undefined,
     birthPlace: row.birth_place || undefined,
+    birthGovernorate: row.birth_governorate || undefined,
     gender: row.gender || undefined,
     religion: row.religion || undefined,
     nationality: row.nationality || undefined,
@@ -46,6 +50,7 @@ function mapRow(row: any): Employee {
     idIssueDate: row.id_issue_date || undefined,
     idExpiryDate: row.id_expiry_date || undefined,
     issuingAuthority: row.issuing_authority || undefined,
+    issuingGovernorate: row.issuing_governorate || undefined,
     militaryStatus: row.military_status || undefined,
     departmentId: row.department_id || undefined,
     jobTitleAr: row.job_title_ar || undefined,
@@ -53,7 +58,9 @@ function mapRow(row: any): Employee {
     jobLevel: row.job_level || undefined,
     jobDegree: row.job_degree || undefined,
     hireDate: row.hire_date || undefined,
+    recruitedBy: row.recruited_by || undefined,
     employmentStatus: row.employment_status || undefined,
+    resigned: row.resigned ?? undefined,
     resignationDate: row.resignation_date || undefined,
     resignationReason: row.resignation_reason || undefined,
     socialInsuranceNo: row.social_insurance_no || undefined,
@@ -63,6 +70,25 @@ function mapRow(row: any): Employee {
     hasHealthInsurance: row.has_health_insurance ?? undefined,
     hasSocialInsurance: row.has_social_insurance ?? undefined,
     contractType: row.contract_type || undefined,
+    hasCairoAirportTempPermit: row.has_cairo_airport_temp_permit ?? undefined,
+    hasCairoAirportAnnualPermit: row.has_cairo_airport_annual_permit ?? undefined,
+    hasAirportsTempPermit: row.has_airports_temp_permit ?? undefined,
+    hasAirportsAnnualPermit: row.has_airports_annual_permit ?? undefined,
+    tempPermitNo: row.temp_permit_no || undefined,
+    annualPermitNo: row.annual_permit_no || undefined,
+    airportsTempPermitNo: row.airports_temp_permit_no || undefined,
+    airportsAnnualPermitNo: row.airports_annual_permit_no || undefined,
+    airportsPermitType: row.airports_permit_type || undefined,
+    permitNameEn: row.permit_name_en || undefined,
+    permitNameAr: row.permit_name_ar || undefined,
+    hasQualificationCert: row.has_qualification_cert ?? undefined,
+    hasMilitaryServiceCert: row.has_military_service_cert ?? undefined,
+    hasBirthCert: row.has_birth_cert ?? undefined,
+    hasIdCopy: row.has_id_copy ?? undefined,
+    hasPledge: row.has_pledge ?? undefined,
+    hasContract: row.has_contract ?? undefined,
+    hasReceipt: row.has_receipt ?? undefined,
+    attachments: row.attachments || undefined,
     basicSalary: row.basic_salary ?? undefined,
     annualLeaveBalance: row.annual_leave_balance ?? undefined,
     sickLeaveBalance: row.sick_leave_balance ?? undefined,
@@ -82,8 +108,13 @@ async function mapUpdates(updates: Partial<Employee>): Promise<Record<string, an
     employeeId: 'employee_code',
     phone: 'phone',
     status: 'status',
+    avatar: 'avatar',
+    firstName: 'first_name',
+    fatherName: 'father_name',
+    familyName: 'family_name',
     birthDate: 'birth_date',
     birthPlace: 'birth_place',
+    birthGovernorate: 'birth_governorate',
     gender: 'gender',
     religion: 'religion',
     nationality: 'nationality',
@@ -99,6 +130,7 @@ async function mapUpdates(updates: Partial<Employee>): Promise<Record<string, an
     idIssueDate: 'id_issue_date',
     idExpiryDate: 'id_expiry_date',
     issuingAuthority: 'issuing_authority',
+    issuingGovernorate: 'issuing_governorate',
     militaryStatus: 'military_status',
     departmentId: 'department_id',
     jobTitleAr: 'job_title_ar',
@@ -106,7 +138,9 @@ async function mapUpdates(updates: Partial<Employee>): Promise<Record<string, an
     jobLevel: 'job_level',
     jobDegree: 'job_degree',
     hireDate: 'hire_date',
+    recruitedBy: 'recruited_by',
     employmentStatus: 'employment_status',
+    resigned: 'resigned',
     resignationDate: 'resignation_date',
     resignationReason: 'resignation_reason',
     socialInsuranceNo: 'social_insurance_no',
@@ -116,6 +150,25 @@ async function mapUpdates(updates: Partial<Employee>): Promise<Record<string, an
     hasHealthInsurance: 'has_health_insurance',
     hasSocialInsurance: 'has_social_insurance',
     contractType: 'contract_type',
+    hasCairoAirportTempPermit: 'has_cairo_airport_temp_permit',
+    tempPermitNo: 'temp_permit_no',
+    hasCairoAirportAnnualPermit: 'has_cairo_airport_annual_permit',
+    annualPermitNo: 'annual_permit_no',
+    hasAirportsTempPermit: 'has_airports_temp_permit',
+    hasAirportsAnnualPermit: 'has_airports_annual_permit',
+    airportsTempPermitNo: 'airports_temp_permit_no',
+    airportsAnnualPermitNo: 'airports_annual_permit_no',
+    airportsPermitType: 'airports_permit_type',
+    permitNameEn: 'permit_name_en',
+    permitNameAr: 'permit_name_ar',
+    hasQualificationCert: 'has_qualification_cert',
+    hasMilitaryServiceCert: 'has_military_service_cert',
+    hasBirthCert: 'has_birth_cert',
+    hasIdCopy: 'has_id_copy',
+    hasPledge: 'has_pledge',
+    hasContract: 'has_contract',
+    hasReceipt: 'has_receipt',
+    attachments: 'attachments',
     basicSalary: 'basic_salary',
     annualLeaveBalance: 'annual_leave_balance',
     sickLeaveBalance: 'sick_leave_balance',
@@ -138,20 +191,24 @@ async function mapUpdates(updates: Partial<Employee>): Promise<Record<string, an
     }
   }
 
-  // Handle stationLocation specially - need to look up station_id by code
+  // Handle stationLocation specially - resolve station_id by code (or accept UUID directly)
   if ('stationLocation' in updates) {
-    const stationCode = updates.stationLocation;
-    if (stationCode) {
+    const stationValue = (updates.stationLocation || '').trim();
+
+    if (!stationValue) {
+      dbUpdates['station_id'] = null;
+    } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stationValue)) {
+      dbUpdates['station_id'] = stationValue;
+    } else {
       const { data: stationData } = await supabase
         .from('stations')
         .select('id')
-        .eq('code', stationCode)
-        .single();
-      if (stationData) {
+        .eq('code', stationValue)
+        .maybeSingle();
+
+      if (stationData?.id) {
         dbUpdates['station_id'] = stationData.id;
       }
-    } else {
-      dbUpdates['station_id'] = null;
     }
   }
 
@@ -198,10 +255,9 @@ export const EmployeeDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const { error } = await supabase.from('employees').update(dbUpdates).eq('id', id);
     if (error) {
       console.error('Error updating employee:', error);
-      return;
+      throw error;
     }
 
-    // Optimistic update locally + re-fetch for joined data
     setEmployees(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
     const emp = employees.find(e => e.id === id);
     addNotification({ titleAr: `تم تحديث بيانات الموظف: ${emp?.nameAr || id}`, titleEn: `Employee updated: ${emp?.nameEn || id}`, type: 'success', module: 'employee' });

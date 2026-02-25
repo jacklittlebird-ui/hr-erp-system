@@ -229,13 +229,20 @@ export type Database = {
       employees: {
         Row: {
           address: string | null
+          airports_annual_permit_no: string | null
+          airports_permit_type: string | null
+          airports_temp_permit_no: string | null
           annual_leave_balance: number | null
+          annual_permit_no: string | null
+          attachments: string | null
+          avatar: string | null
           bank_account_number: string | null
           bank_account_type: string | null
           bank_id_number: string | null
           bank_name: string | null
           basic_salary: number | null
           birth_date: string | null
+          birth_governorate: string | null
           birth_place: string | null
           children_count: number | null
           city: string | null
@@ -246,10 +253,24 @@ export type Database = {
           email: string | null
           employee_code: string
           employment_status: string | null
+          family_name: string | null
+          father_name: string | null
+          first_name: string | null
           gender: string | null
           governorate: string | null
           graduation_year: string | null
+          has_airports_annual_permit: boolean | null
+          has_airports_temp_permit: boolean | null
+          has_birth_cert: boolean | null
+          has_cairo_airport_annual_permit: boolean | null
+          has_cairo_airport_temp_permit: boolean | null
+          has_contract: boolean | null
           has_health_insurance: boolean | null
+          has_id_copy: boolean | null
+          has_military_service_cert: boolean | null
+          has_pledge: boolean | null
+          has_qualification_cert: boolean | null
+          has_receipt: boolean | null
           has_social_insurance: boolean | null
           health_insurance_card_no: string | null
           hire_date: string | null
@@ -257,6 +278,7 @@ export type Database = {
           id_expiry_date: string | null
           id_issue_date: string | null
           issuing_authority: string | null
+          issuing_governorate: string | null
           job_degree: string | null
           job_level: string | null
           job_title_ar: string | null
@@ -268,28 +290,40 @@ export type Database = {
           national_id: string | null
           nationality: string | null
           notes: string | null
+          permit_name_ar: string | null
+          permit_name_en: string | null
           phone: string | null
+          recruited_by: string | null
           religion: string | null
           resignation_date: string | null
           resignation_reason: string | null
+          resigned: boolean | null
           sick_leave_balance: number | null
           social_insurance_end_date: string | null
           social_insurance_no: string | null
           social_insurance_start_date: string | null
           station_id: string | null
           status: Database["public"]["Enums"]["employee_status"]
+          temp_permit_no: string | null
           updated_at: string
           user_id: string | null
         }
         Insert: {
           address?: string | null
+          airports_annual_permit_no?: string | null
+          airports_permit_type?: string | null
+          airports_temp_permit_no?: string | null
           annual_leave_balance?: number | null
+          annual_permit_no?: string | null
+          attachments?: string | null
+          avatar?: string | null
           bank_account_number?: string | null
           bank_account_type?: string | null
           bank_id_number?: string | null
           bank_name?: string | null
           basic_salary?: number | null
           birth_date?: string | null
+          birth_governorate?: string | null
           birth_place?: string | null
           children_count?: number | null
           city?: string | null
@@ -300,10 +334,24 @@ export type Database = {
           email?: string | null
           employee_code: string
           employment_status?: string | null
+          family_name?: string | null
+          father_name?: string | null
+          first_name?: string | null
           gender?: string | null
           governorate?: string | null
           graduation_year?: string | null
+          has_airports_annual_permit?: boolean | null
+          has_airports_temp_permit?: boolean | null
+          has_birth_cert?: boolean | null
+          has_cairo_airport_annual_permit?: boolean | null
+          has_cairo_airport_temp_permit?: boolean | null
+          has_contract?: boolean | null
           has_health_insurance?: boolean | null
+          has_id_copy?: boolean | null
+          has_military_service_cert?: boolean | null
+          has_pledge?: boolean | null
+          has_qualification_cert?: boolean | null
+          has_receipt?: boolean | null
           has_social_insurance?: boolean | null
           health_insurance_card_no?: string | null
           hire_date?: string | null
@@ -311,6 +359,7 @@ export type Database = {
           id_expiry_date?: string | null
           id_issue_date?: string | null
           issuing_authority?: string | null
+          issuing_governorate?: string | null
           job_degree?: string | null
           job_level?: string | null
           job_title_ar?: string | null
@@ -322,28 +371,40 @@ export type Database = {
           national_id?: string | null
           nationality?: string | null
           notes?: string | null
+          permit_name_ar?: string | null
+          permit_name_en?: string | null
           phone?: string | null
+          recruited_by?: string | null
           religion?: string | null
           resignation_date?: string | null
           resignation_reason?: string | null
+          resigned?: boolean | null
           sick_leave_balance?: number | null
           social_insurance_end_date?: string | null
           social_insurance_no?: string | null
           social_insurance_start_date?: string | null
           station_id?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
+          temp_permit_no?: string | null
           updated_at?: string
           user_id?: string | null
         }
         Update: {
           address?: string | null
+          airports_annual_permit_no?: string | null
+          airports_permit_type?: string | null
+          airports_temp_permit_no?: string | null
           annual_leave_balance?: number | null
+          annual_permit_no?: string | null
+          attachments?: string | null
+          avatar?: string | null
           bank_account_number?: string | null
           bank_account_type?: string | null
           bank_id_number?: string | null
           bank_name?: string | null
           basic_salary?: number | null
           birth_date?: string | null
+          birth_governorate?: string | null
           birth_place?: string | null
           children_count?: number | null
           city?: string | null
@@ -354,10 +415,24 @@ export type Database = {
           email?: string | null
           employee_code?: string
           employment_status?: string | null
+          family_name?: string | null
+          father_name?: string | null
+          first_name?: string | null
           gender?: string | null
           governorate?: string | null
           graduation_year?: string | null
+          has_airports_annual_permit?: boolean | null
+          has_airports_temp_permit?: boolean | null
+          has_birth_cert?: boolean | null
+          has_cairo_airport_annual_permit?: boolean | null
+          has_cairo_airport_temp_permit?: boolean | null
+          has_contract?: boolean | null
           has_health_insurance?: boolean | null
+          has_id_copy?: boolean | null
+          has_military_service_cert?: boolean | null
+          has_pledge?: boolean | null
+          has_qualification_cert?: boolean | null
+          has_receipt?: boolean | null
           has_social_insurance?: boolean | null
           health_insurance_card_no?: string | null
           hire_date?: string | null
@@ -365,6 +440,7 @@ export type Database = {
           id_expiry_date?: string | null
           id_issue_date?: string | null
           issuing_authority?: string | null
+          issuing_governorate?: string | null
           job_degree?: string | null
           job_level?: string | null
           job_title_ar?: string | null
@@ -376,16 +452,21 @@ export type Database = {
           national_id?: string | null
           nationality?: string | null
           notes?: string | null
+          permit_name_ar?: string | null
+          permit_name_en?: string | null
           phone?: string | null
+          recruited_by?: string | null
           religion?: string | null
           resignation_date?: string | null
           resignation_reason?: string | null
+          resigned?: boolean | null
           sick_leave_balance?: number | null
           social_insurance_end_date?: string | null
           social_insurance_no?: string | null
           social_insurance_start_date?: string | null
           station_id?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
+          temp_permit_no?: string | null
           updated_at?: string
           user_id?: string | null
         }
