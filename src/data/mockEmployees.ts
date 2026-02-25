@@ -10,6 +10,7 @@ export const mockEmployees: Employee[] = [
     jobTitle: 'موظف',
     phone: '01000010001',
     status: 'active',
+    stationLocation: 'cairo',
   },
   {
     id: '2',
@@ -20,6 +21,7 @@ export const mockEmployees: Employee[] = [
     jobTitle: 'مطور برمجيات',
     phone: '01000020002',
     status: 'active',
+    stationLocation: 'cairo',
   },
   {
     id: '3',
@@ -30,6 +32,7 @@ export const mockEmployees: Employee[] = [
     jobTitle: 'محاسبة',
     phone: '01000030003',
     status: 'inactive',
+    stationLocation: 'alex',
   },
   {
     id: '4',
@@ -40,5 +43,6 @@ export const mockEmployees: Employee[] = [
     jobTitle: 'موظف',
     phone: '',
     status: 'active',
+    stationLocation: 'cairo',
   },
 ];
