@@ -14,7 +14,7 @@ import {
   ChevronDown, Check, Edit2, Trash2, BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockEmployees } from '@/data/mockEmployees';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { initialDepartments, Department } from '@/data/departments';
@@ -23,6 +23,7 @@ const CHART_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#f59e0b', '#ef4444', '#0
 
 const Departments = () => {
   const { t, isRTL } = useLanguage();
+  const { employees: allEmployees } = useEmployeeData();
   const [departments, setDepartments] = useState<Department[]>(initialDepartments);
   const [nameAr, setNameAr] = useState('');
   const [nameEn, setNameEn] = useState('');
@@ -31,17 +32,17 @@ const Departments = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
-  const activeEmployees = useMemo(() => mockEmployees.filter(e => e.status === 'active'), []);
+  const activeEmployees = useMemo(() => allEmployees.filter(e => e.status === 'active'), [allEmployees]);
 
   const getManagerName = (managerId: string) => {
-    const emp = mockEmployees.find(e => e.id === managerId);
+    const emp = allEmployees.find(e => e.id === managerId);
     return emp ? (isRTL ? emp.nameAr : emp.nameEn) : '-';
   };
 
   const selectedManagerLabel = useMemo(() => {
-    const emp = mockEmployees.find(e => e.id === selectedManager);
+    const emp = allEmployees.find(e => e.id === selectedManager);
     return emp ? (isRTL ? emp.nameAr : emp.nameEn) : '';
-  }, [selectedManager, isRTL]);
+  }, [selectedManager, isRTL, allEmployees]);
 
   const totalEmployees = departments.reduce((sum, d) => sum + d.employeeCount, 0);
   const avgSize = departments.length ? Math.round(totalEmployees / departments.length) : 0;

@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { cn } from '@/lib/utils';
 import { Upload, Trash2, Smartphone, Search, Printer, FileText, FileSpreadsheet, Phone, Users, DollarSign, Calendar, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { mockEmployees } from '@/data/mockEmployees';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
 import { useReportExport } from '@/hooks/useReportExport';
 
@@ -38,6 +38,7 @@ const getMonthLabel = (dateStr: string, lang: string) => {
 
 export const MobileBills = () => {
   const { isRTL, language } = useLanguage();
+  const { employees } = useEmployeeData();
   const { handlePrint, exportToPDF, exportToCSV } = useReportExport();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [deductionMonth, setDeductionMonth] = useState('');
@@ -100,7 +101,7 @@ export const MobileBills = () => {
           return;
         }
 
-        const employee = mockEmployees.find(emp => emp.employeeId === empId);
+        const employee = employees.find(emp => emp.employeeId === empId);
         
         newEntries.push({
           id: `${Date.now()}-${idx}`,

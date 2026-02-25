@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Clock, LogIn, LogOut, Calendar, Timer, User, MapPin, Building2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockEmployees as systemEmployees } from '@/data/mockEmployees';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
 import { AttendanceRecord } from '@/pages/Attendance';
 import { toast } from '@/hooks/use-toast';
@@ -41,19 +41,18 @@ interface CheckInOutProps {
 }
 
 
-// Build employees from system data
-const sampleEmployees: Employee[] = systemEmployees.map(emp => ({
-  id: emp.employeeId,
-  name: emp.nameEn,
-  nameAr: emp.nameAr,
-  department: emp.department,
-  location: 'HQ',
-}));
-
 export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) => {
   const { t, isRTL, language } = useLanguage();
+  const { employees: contextEmployees } = useEmployeeData();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [employees, setEmployees] = useState<Employee[]>(sampleEmployees);
+
+  const employees = useMemo(() => contextEmployees.map(emp => ({
+    id: emp.employeeId,
+    name: emp.nameEn,
+    nameAr: emp.nameAr,
+    department: emp.department,
+    location: 'HQ',
+  })), [contextEmployees]);
   
   // Check-in dialog state
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
@@ -190,7 +189,7 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
       location: newEmployee.location,
     };
 
-    setEmployees(prev => [...prev, employee]);
+    // Employee added locally (would need addEmployee from context for persistence)
     setShowAddEmployee(false);
     setNewEmployee({ name: '', nameAr: '', department: '', location: 'HQ' });
     

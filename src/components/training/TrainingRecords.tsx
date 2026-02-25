@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Search, Plus, X, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockEmployees as systemEmployees } from '@/data/mockEmployees';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
 
 interface Employee {
@@ -42,17 +42,7 @@ interface TrainingRecord {
 }
 
 
-const mockEmployees: Employee[] = systemEmployees.map((emp, i) => ({
-  id: emp.id,
-  nameEn: emp.nameEn,
-  nameAr: emp.nameAr,
-  department: emp.department,
-  station: 'HDQ',
-  linkId: emp.employeeId.replace('Emp', ''),
-  hireDate: '',
-  mobile: emp.phone || '',
-  jobFunctions: [],
-}));
+// Will be populated from context inside component
 
 const mockTrainingRecords: TrainingRecord[] = [
   { id: '1', employeeId: '1', courseName: 'Emergency Response - R', provider: 'Link Aero Training Agency', location: 'Operations Control Center - OCC', startDate: '20/05/2018', endDate: '30/05/2018', plannedDate: '', result: 'passed', percentage: 85 },
@@ -76,6 +66,7 @@ const jobFunctionLabels: Record<string, { en: string; ar: string }> = {
 
 export const TrainingRecords = () => {
   const { t, language, isRTL } = useLanguage();
+  const { employees: contextEmployees } = useEmployeeData();
   const [searchName, setSearchName] = useState('');
   const [searchDept, setSearchDept] = useState('');
   const [searchStation, setSearchStation] = useState('');
@@ -90,7 +81,19 @@ export const TrainingRecords = () => {
     plannedDate: '',
   });
 
-  const filteredEmployees = mockEmployees.filter(emp => {
+  const trainingEmployees: Employee[] = useMemo(() => contextEmployees.map((emp) => ({
+    id: emp.id,
+    nameEn: emp.nameEn,
+    nameAr: emp.nameAr,
+    department: emp.department,
+    station: emp.stationLocation || 'HDQ',
+    linkId: emp.employeeId.replace('Emp', ''),
+    hireDate: emp.hireDate || '',
+    mobile: emp.phone || '',
+    jobFunctions: [],
+  })), [contextEmployees]);
+
+  const filteredEmployees = trainingEmployees.filter(emp => {
     const nameMatch = emp.nameEn.toLowerCase().includes(searchName.toLowerCase()) ||
                       emp.nameAr.includes(searchName);
     const deptMatch = !searchDept || emp.department === searchDept;

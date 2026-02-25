@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { Star, Save, Send, Users, Target, Lightbulb, TrendingUp, MessageSquare, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { mockEmployees } from '@/data/mockEmployees';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 
 interface CriteriaScore {
   id: string;
@@ -66,10 +66,11 @@ export const PerformanceReviewForm = () => {
   const overallScore = parseFloat(calculateOverallScore());
   const scoreInfo = getScoreLabel(overallScore);
 
-  const activeEmployees = mockEmployees.filter(e => e.status === 'active');
+  const { employees } = useEmployeeData();
+  const activeEmployees = employees.filter(e => e.status === 'active');
 
   const buildReview = (status: 'draft' | 'submitted' | 'approved') => {
-    const emp = mockEmployees.find(e => e.id === selectedEmployee);
+    const emp = employees.find(e => e.id === selectedEmployee);
     if (!emp) return null;
     return {
       employeeId: emp.employeeId,
