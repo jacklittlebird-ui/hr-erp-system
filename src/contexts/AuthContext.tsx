@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { usePersistedState } from '@/hooks/usePersistedState';
-import { mockEmployees } from '@/data/mockEmployees';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { User, Session } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'employee' | 'station_manager';
 
@@ -12,80 +12,130 @@ export interface AuthUser {
   employeeId?: string;
   role: UserRole;
   station?: string;
+  stationId?: string;
+  supabaseUserId: string;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
-  login: (credentials: { type: UserRole; identifier: string; password: string }) => { success: boolean; error?: string };
-  logout: () => void;
+  session: Session | null;
+  loading: boolean;
+  login: (credentials: { email: string; password: string }) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
-// Default credentials for demo
-const defaultAdminCredentials = [
-  { email: 'admin@hr.com', password: 'admin123', name: 'System Admin', nameAr: 'مدير النظام', id: 'admin-1' },
-];
-
-const defaultStationManagers = [
-  { email: 'cairo@hr.com', password: 'manager123', name: 'Cairo Station Manager', nameAr: 'مدير محطة القاهرة', id: 'sm-1', station: 'cairo' },
-  { email: 'alex@hr.com', password: 'manager123', name: 'Alexandria Station Manager', nameAr: 'مدير محطة الإسكندرية', id: 'sm-2', station: 'alex' },
-  { email: 'luxor@hr.com', password: 'manager123', name: 'Luxor Station Manager', nameAr: 'مدير محطة الأقصر', id: 'sm-3', station: 'luxor' },
-  { email: 'sharm@hr.com', password: 'manager123', name: 'Sharm Station Manager', nameAr: 'مدير محطة شرم الشيخ', id: 'sm-4', station: 'sharm' },
-  { email: 'hurghada@hr.com', password: 'manager123', name: 'Hurghada Station Manager', nameAr: 'مدير محطة الغردقة', id: 'sm-5', station: 'hurghada' },
-  { email: 'aswan@hr.com', password: 'manager123', name: 'Aswan Station Manager', nameAr: 'مدير محطة أسوان', id: 'sm-6', station: 'aswan' },
-];
-
-// Default employee password
-const DEFAULT_EMPLOYEE_PASSWORD = '123456';
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
+  // Get roles
+  const { data: roles } = await supabase
+    .from('user_roles')
+    .select('role, station_id, employee_id')
+    .eq('user_id', supabaseUser.id);
+
+  if (!roles || roles.length === 0) return null;
+
+  const userRole = roles[0];
+  const role = userRole.role as UserRole;
+
+  // Get profile
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', supabaseUser.id)
+    .single();
+
+  let stationCode: string | undefined;
+  let employeeCode: string | undefined;
+  let nameAr = profile?.full_name || supabaseUser.email || '';
+
+  // Get station code if station_manager
+  if (role === 'station_manager' && userRole.station_id) {
+    const { data: station } = await supabase
+      .from('stations')
+      .select('code, name_ar')
+      .eq('id', userRole.station_id)
+      .single();
+    stationCode = station?.code;
+    nameAr = station?.name_ar ? `مدير محطة ${station.name_ar}` : nameAr;
+  }
+
+  // Get employee info if employee
+  if (role === 'employee' && userRole.employee_id) {
+    const { data: emp } = await supabase
+      .from('employees')
+      .select('employee_code, name_ar, name_en')
+      .eq('id', userRole.employee_id)
+      .single();
+    employeeCode = emp?.employee_code;
+    nameAr = emp?.name_ar || nameAr;
+  }
+
+  return {
+    id: supabaseUser.id,
+    name: profile?.full_name || supabaseUser.email || '',
+    nameAr,
+    email: supabaseUser.email,
+    employeeId: employeeCode,
+    role,
+    station: stationCode,
+    stationId: userRole.station_id || undefined,
+    supabaseUserId: supabaseUser.id,
+  };
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = usePersistedState<AuthUser | null>('hr_auth_user', null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = useCallback(({ type, identifier, password }: { type: UserRole; identifier: string; password: string }) => {
-    if (type === 'admin') {
-      const admin = defaultAdminCredentials.find(a => a.email === identifier && a.password === password);
-      if (admin) {
-        setUser({ id: admin.id, name: admin.name, nameAr: admin.nameAr, email: admin.email, role: 'admin' });
-        return { success: true };
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      setSession(newSession);
+      if (newSession?.user) {
+        // Use setTimeout to avoid potential deadlocks with Supabase client
+        setTimeout(async () => {
+          const profile = await fetchUserProfile(newSession.user);
+          setUser(profile);
+          setLoading(false);
+        }, 0);
+      } else {
+        setUser(null);
+        setLoading(false);
       }
-      return { success: false, error: 'invalid_credentials' };
-    }
+    });
 
-    if (type === 'employee') {
-      // Check employee ID from localStorage first, fallback to mockEmployees
-      let employees: any[] = mockEmployees;
-      const stored = localStorage.getItem('hr_employees');
-      if (stored) {
-        try { employees = JSON.parse(stored); } catch {}
+    // Then get initial session
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+      setSession(initialSession);
+      if (initialSession?.user) {
+        const profile = await fetchUserProfile(initialSession.user);
+        setUser(profile);
       }
-      const emp = employees.find((e: any) => e.employeeId === identifier);
-      if (emp && password === DEFAULT_EMPLOYEE_PASSWORD) {
-        setUser({ id: emp.id, name: emp.nameEn, nameAr: emp.nameAr, employeeId: emp.employeeId, role: 'employee' });
-        return { success: true };
-      }
-      return { success: false, error: 'invalid_credentials' };
-    }
+      setLoading(false);
+    });
 
-    if (type === 'station_manager') {
-      const manager = defaultStationManagers.find(m => m.email === identifier && m.password === password);
-      if (manager) {
-        setUser({ id: manager.id, name: manager.name, nameAr: manager.nameAr, email: manager.email, role: 'station_manager', station: manager.station });
-        return { success: true };
-      }
-      return { success: false, error: 'invalid_credentials' };
-    }
-
-    return { success: false, error: 'invalid_type' };
+    return () => subscription.unsubscribe();
   }, []);
 
-  const logout = useCallback(() => {
+  const login = useCallback(async ({ email, password }: { email: string; password: string }) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  }, []);
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setSession(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, session, loading, login, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
