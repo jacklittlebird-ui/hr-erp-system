@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { cn } from '@/lib/utils';
-import { CalendarDays, Clock, PlusCircle } from 'lucide-react';
-import { sampleLeaveRequests, samplePermissionRequests, sampleOvertimeRequests } from '@/data/leavesData';
+import { CalendarDays, Clock, PlusCircle, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LeaveRecordTabProps {
   employee: Employee;
@@ -11,6 +11,35 @@ interface LeaveRecordTabProps {
 
 type SubTab = 'leaves' | 'permissions' | 'extraDays';
 type RecordStatus = 'approved' | 'pending' | 'rejected';
+
+interface LeaveRecord {
+  id: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  reason: string;
+  status: RecordStatus;
+}
+
+interface PermissionRecord {
+  id: string;
+  permissionType: string;
+  date: string;
+  fromTime: string;
+  toTime: string;
+  durationHours: number;
+  reason: string;
+  status: RecordStatus;
+}
+
+interface OvertimeRecord {
+  id: string;
+  date: string;
+  hours: number;
+  reason: string;
+  status: RecordStatus;
+}
 
 const statusConfig: Record<RecordStatus, { label: string; labelAr: string; bg: string; text: string; border: string }> = {
   approved: { label: 'Approved', labelAr: 'موافق عليه', bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
@@ -78,25 +107,62 @@ const overtimeTypeLabels: Record<string, { en: string; ar: string }> = {
 export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
   const { t, isRTL, language } = useLanguage();
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('leaves');
+  const [loading, setLoading] = useState(true);
+  const [employeeLeaves, setEmployeeLeaves] = useState<LeaveRecord[]>([]);
+  const [employeePermissions, setEmployeePermissions] = useState<PermissionRecord[]>([]);
+  const [employeeOvertime, setEmployeeOvertime] = useState<OvertimeRecord[]>([]);
 
-  // Filter data by employee
-  const employeeLeaves = useMemo(() => {
-    return sampleLeaveRequests.filter(
-      r => r.employeeId.toLowerCase() === employee.employeeId.toLowerCase()
-    );
-  }, [employee.employeeId]);
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const employeeUuid = employee.id;
 
-  const employeePermissions = useMemo(() => {
-    return samplePermissionRequests.filter(
-      r => r.employeeId.toLowerCase() === employee.employeeId.toLowerCase()
-    );
-  }, [employee.employeeId]);
+      const [leavesRes, permsRes, overtimeRes] = await Promise.all([
+        supabase.from('leave_requests').select('*').eq('employee_id', employeeUuid).order('created_at', { ascending: false }),
+        supabase.from('permission_requests').select('*').eq('employee_id', employeeUuid).order('created_at', { ascending: false }),
+        supabase.from('overtime_requests').select('*').eq('employee_id', employeeUuid).order('created_at', { ascending: false }),
+      ]);
 
-  const employeeOvertime = useMemo(() => {
-    return sampleOvertimeRequests.filter(
-      r => r.employeeId.toLowerCase() === employee.employeeId.toLowerCase()
-    );
-  }, [employee.employeeId]);
+      if (leavesRes.data) {
+        setEmployeeLeaves(leavesRes.data.map(r => ({
+          id: r.id,
+          leaveType: r.leave_type,
+          startDate: r.start_date,
+          endDate: r.end_date,
+          days: r.days,
+          reason: r.reason || '',
+          status: r.status as RecordStatus,
+        })));
+      }
+
+      if (permsRes.data) {
+        setEmployeePermissions(permsRes.data.map(r => ({
+          id: r.id,
+          permissionType: r.permission_type,
+          date: r.date,
+          fromTime: r.start_time,
+          toTime: r.end_time,
+          durationHours: r.hours || 0,
+          reason: r.reason || '',
+          status: r.status as RecordStatus,
+        })));
+      }
+
+      if (overtimeRes.data) {
+        setEmployeeOvertime(overtimeRes.data.map(r => ({
+          id: r.id,
+          date: r.date,
+          hours: r.hours,
+          reason: r.reason || '',
+          status: r.status as RecordStatus,
+        })));
+      }
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [employee.id]);
 
   const leaveSummary = useMemo(() => {
     const approved = employeeLeaves.filter(r => r.status === 'approved');
@@ -135,6 +201,14 @@ export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
     { id: 'permissions' as SubTab, icon: Clock, label: t('leaveRecord.permissions'), count: employeePermissions.length },
     { id: 'extraDays' as SubTab, icon: PlusCircle, label: t('leaveRecord.extraDays'), count: employeeOvertime.length },
   ];
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[200px]">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -220,7 +294,7 @@ export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
 
 // ========== Leaves Sub-Tab ==========
 const LeavesContent = ({ leaves, summary }: { 
-  leaves: typeof sampleLeaveRequests;
+  leaves: LeaveRecord[];
   summary: { approvedCount: number; pendingCount: number; rejectedCount: number } 
 }) => {
   const { t, isRTL, language } = useLanguage();
@@ -278,7 +352,7 @@ const LeavesContent = ({ leaves, summary }: {
 
 // ========== Permissions Sub-Tab ==========
 const PermissionsContent = ({ permissions, summary }: { 
-  permissions: typeof samplePermissionRequests;
+  permissions: PermissionRecord[];
   summary: { approvedCount: number; pendingCount: number; rejectedCount: number } 
 }) => {
   const { t, isRTL, language } = useLanguage();
@@ -343,7 +417,7 @@ const PermissionsContent = ({ permissions, summary }: {
 
 // ========== Overtime/Additions Sub-Tab ==========
 const OvertimeContent = ({ overtime, summary }: { 
-  overtime: typeof sampleOvertimeRequests;
+  overtime: OvertimeRecord[];
   summary: { totalHours: number; approvedCount: number; pendingCount: number; rejectedCount: number } 
 }) => {
   const { t, isRTL, language } = useLanguage();
@@ -376,7 +450,6 @@ const OvertimeContent = ({ overtime, summary }: {
           <thead>
             <tr className="bg-muted/80">
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.date')}</th>
-              <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.additionType')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{language === 'ar' ? 'الساعات' : 'Hours'}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.reason')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.status')}</th>
@@ -385,23 +458,19 @@ const OvertimeContent = ({ overtime, summary }: {
           <tbody>
             {overtime.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                   {language === 'ar' ? 'لا توجد إضافات مسجلة' : 'No overtime recorded'}
                 </td>
               </tr>
             ) : (
-              overtime.map((record, idx) => {
-                const typeLabel = overtimeTypeLabels[record.overtimeType];
-                return (
-                  <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
-                    <td className="px-4 py-3 text-sm text-foreground">{record.date}</td>
-                    <td className="px-4 py-3 text-sm text-foreground">{language === 'ar' ? typeLabel?.ar : typeLabel?.en}</td>
-                    <td className="px-4 py-3 text-sm text-foreground font-medium">{record.hours}</td>
-                    <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
-                    <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
-                  </tr>
-                );
-              })
+              overtime.map((record, idx) => (
+                <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
+                  <td className="px-4 py-3 text-sm text-foreground">{record.date}</td>
+                  <td className="px-4 py-3 text-sm text-foreground font-medium">{record.hours}</td>
+                  <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
+                  <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
