@@ -21,6 +21,7 @@ export const PermitsTab = ({ employee, onUpdate }: PermitsTabProps) => {
     annualPermitNo: employee.annualPermitNo || '',
     hasAirportsTempPermit: employee.hasAirportsTempPermit || false,
     airportsTempPermitNo: employee.airportsTempPermitNo || '',
+    hasAirportsAnnualPermit: employee.hasAirportsAnnualPermit || false,
     airportsAnnualPermitNo: employee.airportsAnnualPermitNo || '',
     airportsPermitType: employee.airportsPermitType || '',
     permitNameEn: employee.permitNameEn || '',
@@ -70,7 +71,11 @@ export const PermitsTab = ({ employee, onUpdate }: PermitsTabProps) => {
 
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Checkbox id="airportsAnnualPermit" />
+            <Checkbox
+              id="airportsAnnualPermit"
+              checked={formData.hasAirportsAnnualPermit}
+              onCheckedChange={v => updateField('hasAirportsAnnualPermit', !!v)}
+            />
             <Label htmlFor="airportsAnnualPermit">{t('employees.fields.airportsAnnualPermit')}</Label>
           </div>
           <div className="space-y-2">

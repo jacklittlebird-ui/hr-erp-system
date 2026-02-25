@@ -110,13 +110,27 @@ export const LeaveBalanceTab = ({ employee, onUpdate }: LeaveBalanceTabProps) =>
   const { toast } = useToast();
   
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
-  const [savedBalances, setSavedBalances] = useState<YearlyBalance[]>(initialSavedBalances);
-  
+  const [savedBalances, setSavedBalances] = useState<YearlyBalance[]>(() => {
+    const currentYearBalance: YearlyBalance = {
+      year: currentYear,
+      annualTotal: Number(employee.annualLeaveBalance ?? 21),
+      annualUsed: 0,
+      sickTotal: Number(employee.sickLeaveBalance ?? 15),
+      sickUsed: 0,
+      casualTotal: 7,
+      casualUsed: 0,
+      permissionsTotal: 24,
+      permissionsUsed: 0,
+    };
+
+    return [currentYearBalance, ...initialSavedBalances.filter((b) => b.year !== currentYear)];
+  });
+
   // Form state for the selected year
   const existingBalance = savedBalances.find(b => b.year === Number(selectedYear));
-  
-  const [annualTotal, setAnnualTotal] = useState(existingBalance?.annualTotal ?? 21);
-  const [sickTotal, setSickTotal] = useState(existingBalance?.sickTotal ?? 15);
+
+  const [annualTotal, setAnnualTotal] = useState(existingBalance?.annualTotal ?? Number(employee.annualLeaveBalance ?? 21));
+  const [sickTotal, setSickTotal] = useState(existingBalance?.sickTotal ?? Number(employee.sickLeaveBalance ?? 15));
   const [casualTotal, setCasualTotal] = useState(existingBalance?.casualTotal ?? 7);
   const [permissionsTotal, setPermissionsTotal] = useState(existingBalance?.permissionsTotal ?? 24);
 
@@ -225,10 +239,28 @@ export const LeaveBalanceTab = ({ employee, onUpdate }: LeaveBalanceTabProps) =>
           let setTotal: (val: number) => void;
           
           switch (card.key) {
-            case 'annual': totalValue = annualTotal; setTotal = setAnnualTotal; break;
-            case 'sick': totalValue = sickTotal; setTotal = setSickTotal; break;
-            case 'casual': totalValue = casualTotal; setTotal = setCasualTotal; break;
-            case 'permissions': totalValue = permissionsTotal; setTotal = setPermissionsTotal; break;
+            case 'annual':
+              totalValue = annualTotal;
+              setTotal = (val) => {
+                setAnnualTotal(val);
+                onUpdate?.({ annualLeaveBalance: val });
+              };
+              break;
+            case 'sick':
+              totalValue = sickTotal;
+              setTotal = (val) => {
+                setSickTotal(val);
+                onUpdate?.({ sickLeaveBalance: val });
+              };
+              break;
+            case 'casual':
+              totalValue = casualTotal;
+              setTotal = setCasualTotal;
+              break;
+            case 'permissions':
+              totalValue = permissionsTotal;
+              setTotal = setPermissionsTotal;
+              break;
           }
 
           return (

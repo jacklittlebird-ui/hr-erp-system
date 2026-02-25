@@ -60,6 +60,7 @@ export interface Employee {
   tempPermitNo?: string;
   annualPermitNo?: string;
   hasAirportsTempPermit?: boolean;
+  hasAirportsAnnualPermit?: boolean;
   airportsTempPermitNo?: string;
   airportsAnnualPermitNo?: string;
   airportsPermitType?: string;
