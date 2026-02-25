@@ -5,10 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Shirt, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const PORTAL_EMPLOYEE_ID = 'Emp001';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalUniforms = () => {
+  const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language, isRTL } = useLanguage();
   const { getEmployeeUniforms } = useUniformData();
 

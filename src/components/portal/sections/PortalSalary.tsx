@@ -13,10 +13,10 @@ import { cn } from '@/lib/utils';
 import { Wallet, TrendingUp, TrendingDown, Building2, Printer, Eye } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { stationLocations } from '@/data/stationLocations';
-
-const PORTAL_EMPLOYEE_ID = 'Emp001';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalSalary = () => {
+  const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { getEmployeePayroll } = usePayrollData();

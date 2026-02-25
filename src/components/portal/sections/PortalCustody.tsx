@@ -16,6 +16,7 @@ import { usePersistedState } from '@/hooks/usePersistedState';
 import { toast } from '@/hooks/use-toast';
 import type { TrainingDebt } from '@/components/training/TrainingPlan';
 import type { Asset } from '@/components/assets/AssetRegistry';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 interface CustodyItem {
   id: number;
@@ -35,9 +36,8 @@ const initialItems: CustodyItem[] = [
   { id: 4, nameAr: 'جهاز لاسلكي', nameEn: 'Walkie-Talkie', code: 'AST-200', assignDate: '2024-01-10', status: 'returned', condition: 'fair', notes: '' },
 ];
 
-const PORTAL_EMPLOYEE_ID = 'Emp001';
-
 export const PortalCustody = () => {
+  const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const [items, setItems] = usePersistedState<CustodyItem[]>('hr_portal_custody', initialItems);

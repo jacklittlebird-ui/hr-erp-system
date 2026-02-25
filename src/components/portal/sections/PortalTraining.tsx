@@ -9,8 +9,7 @@ import { cn } from '@/lib/utils';
 import { GraduationCap, AlertTriangle, Info } from 'lucide-react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import type { TrainingDebt } from '@/components/training/TrainingPlan';
-
-const PORTAL_EMPLOYEE_ID = 'Emp001';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 interface TrainingRecord {
   id: string;
@@ -24,10 +23,11 @@ interface TrainingRecord {
 }
 
 export const PortalTraining = () => {
+  const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { getTraining } = usePortalData();
-  const portalCourses = useMemo(() => getTraining(PORTAL_EMPLOYEE_ID), [getTraining]);
+  const portalCourses = useMemo(() => getTraining(PORTAL_EMPLOYEE_ID), [getTraining, PORTAL_EMPLOYEE_ID]);
   const [trainingRecords] = usePersistedState<TrainingRecord[]>('hr_training_records', []);
   const [trainingDebts] = usePersistedState<TrainingDebt[]>('hr_training_debts', []);
 

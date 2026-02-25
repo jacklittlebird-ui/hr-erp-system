@@ -9,10 +9,10 @@ import { cn } from '@/lib/utils';
 import { Clock, Calendar, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar as arLocale, enUS } from 'date-fns/locale';
-
-const PORTAL_EMPLOYEE_ID = 'Emp001';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalAttendance = () => {
+  const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { getEmployeeMonthlyRecords, getMonthlyStats } = useAttendanceData();

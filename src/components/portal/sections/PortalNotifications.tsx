@@ -9,9 +9,10 @@ import { CheckCircle, AlertCircle, Info, AlertTriangle, Check, Trash2 } from 'lu
 const typeIcons = { success: CheckCircle, warning: AlertTriangle, info: Info, error: AlertCircle };
 const typeColors = { success: 'text-green-500', warning: 'text-yellow-500', info: 'text-blue-500', error: 'text-red-500' };
 
-const PORTAL_EMPLOYEE_ID = 'Emp001';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalNotifications = () => {
+  const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language, isRTL } = useLanguage();
   const { notifications: allNotifications, markAsRead, markAllAsRead, clearAll } = useNotifications();
 

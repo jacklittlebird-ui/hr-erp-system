@@ -5,8 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { User, Building2, Briefcase, Mail, Phone, MapPin, CreditCard, Calendar, FileText, Shield, GraduationCap, Landmark } from 'lucide-react';
 import { usePersistedState } from '@/hooks/usePersistedState';
-
-const PORTAL_EMPLOYEE_ID = 'Emp001';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) => (
   <div className="flex items-start gap-3">
@@ -21,8 +20,9 @@ const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType; label
 export const PortalProfile = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
+  const portalEmployeeId = usePortalEmployee();
   const { getEmployeeById } = useEmployeeData();
-  const employee = getEmployeeById(PORTAL_EMPLOYEE_ID);
+  const employee = getEmployeeById(portalEmployeeId);
   const [bankInfo] = usePersistedState<Record<string, { accountNumber: string; bankId: string; bankName: string; accountType: string }>>('hr_bank_info', {});
 
   if (!employee) {
@@ -83,7 +83,7 @@ export const PortalProfile = () => {
           <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><Landmark className="w-5 h-5" />{ar ? 'المعلومات البنكية' : 'Bank Information'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             {(() => {
-              const bank = bankInfo[PORTAL_EMPLOYEE_ID];
+              const bank = bankInfo[portalEmployeeId];
               return bank ? (
                 <>
                   <InfoItem icon={Landmark} label={ar ? 'اسم البنك' : 'Bank Name'} value={bank.bankName} />
