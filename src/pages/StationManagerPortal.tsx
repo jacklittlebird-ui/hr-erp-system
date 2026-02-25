@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Users, Star, AlertTriangle, LogOut, Globe, MapPin, Target, TrendingUp, Lightbulb, MessageSquare, Save, Send, Plus, Trash2, Search, Filter } from 'lucide-react';
+import { Users, Star, AlertTriangle, LogOut, Globe, MapPin, Target, TrendingUp, Lightbulb, MessageSquare, Save, Send, Plus, Trash2, Search, Filter, Pencil, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Shared violation interface (matches ViolationsTab)
@@ -30,7 +30,7 @@ interface Violation {
   type: string;
   description: string;
   penalty: string;
-  status: 'active' | 'resolved';
+  status: 'active' | 'resolved' | 'pending';
 }
 
 const violationTypes = [
@@ -67,7 +67,7 @@ const StationManagerPortal = () => {
   const { user, logout } = useAuth();
   const { language, setLanguage, isRTL } = useLanguage();
   const { employees } = useEmployeeData();
-  const { reviews, addReview } = usePerformanceData();
+  const { reviews, addReview, updateReview } = usePerformanceData();
   const { addNotification } = useNotifications();
   const navigate = useNavigate();
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
@@ -90,6 +90,20 @@ const StationManagerPortal = () => {
   // Violation dialog state
   const [violDialog, setViolDialog] = useState(false);
   const [violForm, setViolForm] = useState({ employeeId: '', type: 'absence', description: '', penalty: '', date: new Date().toISOString().split('T')[0] });
+
+  // Edit evaluation dialog state
+  const [editEvalDialog, setEditEvalDialog] = useState(false);
+  const [editEvalId, setEditEvalId] = useState('');
+  const [editEvalCriteria, setEditEvalCriteria] = useState<CriteriaScore[]>(initialCriteria.map(c => ({ ...c })));
+  const [editEvalStrengths, setEditEvalStrengths] = useState('');
+  const [editEvalImprovements, setEditEvalImprovements] = useState('');
+  const [editEvalGoals, setEditEvalGoals] = useState('');
+  const [editEvalComments, setEditEvalComments] = useState('');
+
+  // Edit violation dialog state
+  const [editViolDialog, setEditViolDialog] = useState(false);
+  const [editViolId, setEditViolId] = useState('');
+  const [editViolForm, setEditViolForm] = useState({ type: 'absence', description: '', penalty: '', date: '' });
 
   const stationName = useMemo(() => {
     const loc = stationLocations.find(s => s.value === user?.station);
@@ -181,10 +195,10 @@ const StationManagerPortal = () => {
       type: violForm.type,
       description: violForm.description,
       penalty: violForm.penalty,
-      status: 'active',
+      status: 'pending',
     };
     setViolations(prev => [...prev, newViol]);
-    addNotification({ titleAr: `مخالفة جديدة للموظف: ${emp.nameAr}`, titleEn: `New violation for: ${emp.nameEn}`, type: 'warning', module: 'employee' });
+    addNotification({ titleAr: `مخالفة جديدة بانتظار الموافقة للموظف: ${emp.nameAr}`, titleEn: `New violation pending approval for: ${emp.nameEn}`, type: 'warning', module: 'employee' });
     toast({ title: t('تم إضافة المخالفة بنجاح', 'Violation added successfully') });
     setViolDialog(false);
     setViolForm({ employeeId: '', type: 'absence', description: '', penalty: '', date: new Date().toISOString().split('T')[0] });
@@ -193,6 +207,56 @@ const StationManagerPortal = () => {
   const handleDeleteViolation = (id: string) => {
     setViolations(prev => prev.filter(v => v.id !== id));
     toast({ title: t('تم الحذف', 'Deleted') });
+  };
+
+  // Open edit evaluation dialog
+  const openEditEval = (review: any) => {
+    setEditEvalId(review.id);
+    setEditEvalCriteria(review.criteria ? review.criteria.map((c: any, i: number) => ({
+      id: initialCriteria[i]?.id || `c_${i}`,
+      name: c.nameEn || c.name,
+      nameAr: c.name || c.nameAr,
+      score: c.score,
+      weight: c.weight,
+    })) : initialCriteria.map(c => ({ ...c })));
+    setEditEvalStrengths(review.strengths || '');
+    setEditEvalImprovements(review.improvements || '');
+    setEditEvalGoals(review.goals || '');
+    setEditEvalComments(review.managerComments || '');
+    setEditEvalDialog(true);
+  };
+
+  const editEvalOverallScore = useMemo(() => {
+    const totalWeight = editEvalCriteria.reduce((s, c) => s + c.weight, 0);
+    const weightedSum = editEvalCriteria.reduce((s, c) => s + (c.score * c.weight), 0);
+    return parseFloat((weightedSum / totalWeight).toFixed(2));
+  }, [editEvalCriteria]);
+
+  const handleSaveEditEval = (status: 'draft' | 'submitted') => {
+    updateReview(editEvalId, {
+      score: editEvalOverallScore,
+      status,
+      strengths: editEvalStrengths,
+      improvements: editEvalImprovements,
+      goals: editEvalGoals,
+      managerComments: editEvalComments,
+      criteria: editEvalCriteria.map(c => ({ name: c.nameAr, nameEn: c.name, score: c.score, weight: c.weight })),
+    });
+    toast({ title: t('تم تحديث التقييم', 'Evaluation updated') });
+    setEditEvalDialog(false);
+  };
+
+  // Open edit violation dialog
+  const openEditViol = (v: Violation) => {
+    setEditViolId(v.id);
+    setEditViolForm({ type: v.type, description: v.description, penalty: v.penalty, date: v.date });
+    setEditViolDialog(true);
+  };
+
+  const handleSaveEditViol = () => {
+    setViolations(prev => prev.map(v => v.id === editViolId ? { ...v, ...editViolForm } : v));
+    toast({ title: t('تم تحديث المخالفة', 'Violation updated') });
+    setEditViolDialog(false);
   };
 
   // === Employees Tab Filters ===
@@ -472,10 +536,11 @@ const StationManagerPortal = () => {
                     <TableHead>{t('الحالة', 'Status')}</TableHead>
                     <TableHead>{t('المقيّم', 'Reviewer')}</TableHead>
                     <TableHead>{t('التاريخ', 'Date')}</TableHead>
+                    <TableHead>{t('إجراءات', 'Actions')}</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
                     {filteredReviews.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t('لا توجد تقييمات', 'No evaluations found')}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">{t('لا توجد تقييمات', 'No evaluations found')}</TableCell></TableRow>
                     ) : filteredReviews.map(r => (
                       <TableRow key={r.id}>
                         <TableCell className="font-medium">{r.employeeName}</TableCell>
@@ -497,6 +562,13 @@ const StationManagerPortal = () => {
                         </TableCell>
                         <TableCell>{r.reviewer}</TableCell>
                         <TableCell>{r.reviewDate}</TableCell>
+                        <TableCell>
+                          {r.status !== 'approved' && (
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditEval(r)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -546,6 +618,7 @@ const StationManagerPortal = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t('جميع الحالات', 'All Statuses')}</SelectItem>
+                      <SelectItem value="pending">{t('بانتظار الموافقة', 'Pending')}</SelectItem>
                       <SelectItem value="active">{t('نشطة', 'Active')}</SelectItem>
                       <SelectItem value="resolved">{t('محلولة', 'Resolved')}</SelectItem>
                     </SelectContent>
@@ -561,12 +634,13 @@ const StationManagerPortal = () => {
                       <TableHead>{t('النوع', 'Type')}</TableHead>
                       <TableHead>{t('الوصف', 'Description')}</TableHead>
                       <TableHead>{t('العقوبة', 'Penalty')}</TableHead>
+                      <TableHead>{t('الحالة', 'Status')}</TableHead>
                       <TableHead>{t('إجراءات', 'Actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredViolations.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t('لا توجد مخالفات', 'No violations found')}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t('لا توجد مخالفات', 'No violations found')}</TableCell></TableRow>
                     ) : filteredViolations.map(v => {
                       const emp = stationEmployees.find(e => e.employeeId === v.employeeId);
                       const typeLabel = violationTypes.find(vt => vt.value === v.type);
@@ -578,9 +652,23 @@ const StationManagerPortal = () => {
                           <TableCell className="max-w-[200px] truncate">{v.description}</TableCell>
                           <TableCell>{v.penalty || '-'}</TableCell>
                           <TableCell>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDeleteViolation(v.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            <Badge variant="outline" className={
+                              v.status === 'pending' ? 'bg-[hsl(var(--stat-yellow-bg))] text-[hsl(var(--stat-yellow))] border-[hsl(var(--stat-yellow))]' :
+                              v.status === 'active' ? 'bg-[hsl(var(--stat-coral-bg))] text-[hsl(var(--stat-coral))] border-[hsl(var(--stat-coral))]' :
+                              'bg-[hsl(var(--stat-green-bg))] text-[hsl(var(--stat-green))] border-[hsl(var(--stat-green))]'
+                            }>
+                              {v.status === 'pending' ? t('بانتظار الموافقة', 'Pending') : v.status === 'active' ? t('نشطة', 'Active') : t('محلولة', 'Resolved')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditViol(v)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDeleteViolation(v.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -746,6 +834,110 @@ const StationManagerPortal = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setViolDialog(false)}>{t('إلغاء', 'Cancel')}</Button>
             <Button variant="destructive" onClick={handleAddViolation}>{t('حفظ', 'Save')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Evaluation Dialog */}
+      <Dialog open={editEvalDialog} onOpenChange={setEditEvalDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+              <Pencil className="w-5 h-5 text-primary" />
+              {t('تعديل التقييم', 'Edit Evaluation')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className={cn("flex items-center gap-2 text-base", isRTL && "flex-row-reverse")}>
+                  <Target className="w-4 h-4 text-primary" />
+                  {t('معايير التقييم', 'Evaluation Criteria')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {editEvalCriteria.map((criterion) => (
+                  <div key={criterion.id} className="space-y-1.5">
+                    <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+                      <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                        <Label className="text-sm font-medium">{ar ? criterion.nameAr : criterion.name}</Label>
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{criterion.weight}%</span>
+                      </div>
+                      <div className={cn("flex items-center gap-1", isRTL && "flex-row-reverse")}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className={cn("w-5 h-5 cursor-pointer transition-colors hover:scale-110", star <= criterion.score ? "text-[hsl(var(--stat-yellow))] fill-[hsl(var(--stat-yellow))]" : "text-muted-foreground hover:text-[hsl(var(--stat-yellow))]/50")}
+                            onClick={() => setEditEvalCriteria(prev => prev.map(c => c.id === criterion.id ? { ...c, score: star } : c))} />
+                        ))}
+                        <span className="font-bold text-sm w-6 text-center">{criterion.score}</span>
+                      </div>
+                    </div>
+                    <Progress value={criterion.score * 20} className="h-1.5" />
+                  </div>
+                ))}
+                <div className={cn("flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20", isRTL && "flex-row-reverse")}>
+                  <span className="font-semibold">{t('الدرجة الإجمالية', 'Overall Score')}</span>
+                  <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                    <span className={cn("font-bold text-xl", getScoreLabel(editEvalOverallScore).color)}>{editEvalOverallScore}</span>
+                    <Badge variant="outline" className={cn(getScoreLabel(editEvalOverallScore).color, "border-current")}>{getScoreLabel(editEvalOverallScore).label}</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t('نقاط القوة', 'Strengths')}</Label>
+                <Textarea value={editEvalStrengths} onChange={e => setEditEvalStrengths(e.target.value)} className="min-h-[80px]" />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('مجالات التحسين', 'Improvements')}</Label>
+                <Textarea value={editEvalImprovements} onChange={e => setEditEvalImprovements(e.target.value)} className="min-h-[80px]" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{t('أهداف الربع القادم', 'Next Quarter Goals')}</Label>
+              <Textarea value={editEvalGoals} onChange={e => setEditEvalGoals(e.target.value)} className="min-h-[60px]" />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('ملاحظات المدير', 'Manager Comments')}</Label>
+              <Textarea value={editEvalComments} onChange={e => setEditEvalComments(e.target.value)} className="min-h-[60px]" />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditEvalDialog(false)}>{t('إلغاء', 'Cancel')}</Button>
+            <Button variant="outline" onClick={() => handleSaveEditEval('draft')} className="gap-1.5"><Save className="w-4 h-4" />{t('حفظ كمسودة', 'Save Draft')}</Button>
+            <Button onClick={() => handleSaveEditEval('submitted')} className="gap-1.5"><Send className="w-4 h-4" />{t('تقديم', 'Submit')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Violation Dialog */}
+      <Dialog open={editViolDialog} onOpenChange={setEditViolDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t('تعديل المخالفة', 'Edit Violation')}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t('التاريخ', 'Date')}</Label>
+              <Input type="date" value={editViolForm.date} onChange={e => setEditViolForm(p => ({ ...p, date: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('نوع المخالفة', 'Violation Type')}</Label>
+              <Select value={editViolForm.type} onValueChange={v => setEditViolForm(p => ({ ...p, type: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{violationTypes.map(vt => <SelectItem key={vt.value} value={vt.value}>{ar ? vt.ar : vt.en}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{t('الوصف', 'Description')}</Label>
+              <Textarea value={editViolForm.description} onChange={e => setEditViolForm(p => ({ ...p, description: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('العقوبة', 'Penalty')}</Label>
+              <Input value={editViolForm.penalty} onChange={e => setEditViolForm(p => ({ ...p, penalty: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditViolDialog(false)}>{t('إلغاء', 'Cancel')}</Button>
+            <Button onClick={handleSaveEditViol}>{t('حفظ', 'Save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
