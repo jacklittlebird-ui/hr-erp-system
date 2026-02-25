@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface LeaveBalanceTabProps {
   employee: Employee;
+  onUpdate?: (updates: Partial<Employee>) => void;
 }
 
 interface YearlyBalance {
@@ -25,7 +26,7 @@ interface YearlyBalance {
 }
 
 const currentYear = new Date().getFullYear();
-const availableYears = Array.from({ length: currentYear - 2025 + 1 }, (_, i) => 2025 + i);
+const availableYears = Array.from({ length: 11 }, (_, i) => 2025 + i); // 2025-2035
 
 // Initial mock saved balances
 const initialSavedBalances: YearlyBalance[] = [
@@ -104,7 +105,7 @@ const leaveCardConfig = [
   },
 ];
 
-export const LeaveBalanceTab = ({ employee }: LeaveBalanceTabProps) => {
+export const LeaveBalanceTab = ({ employee, onUpdate }: LeaveBalanceTabProps) => {
   const { t, isRTL } = useLanguage();
   const { toast } = useToast();
   
@@ -156,6 +157,12 @@ export const LeaveBalanceTab = ({ employee }: LeaveBalanceTabProps) => {
         return prev.map(b => b.year === yearNum ? newBalance : b);
       }
       return [...prev, newBalance].sort((a, b) => b.year - a.year);
+    });
+
+    // Push to parent for DB save
+    onUpdate?.({
+      annualLeaveBalance: annualTotal,
+      sickLeaveBalance: sickTotal,
     });
 
     toast({

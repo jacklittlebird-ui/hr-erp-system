@@ -75,7 +75,7 @@ function mapRow(row: any): Employee {
 }
 
 // Map frontend updates → DB columns
-function mapUpdates(updates: Partial<Employee>): Record<string, any> {
+async function mapUpdates(updates: Partial<Employee>): Promise<Record<string, any>> {
   const map: Record<string, string> = {
     nameAr: 'name_ar',
     nameEn: 'name_en',
@@ -125,18 +125,36 @@ function mapUpdates(updates: Partial<Employee>): Record<string, any> {
     bankName: 'bank_name',
     notes: 'notes',
     jobTitle: 'job_title_ar',
-    // Additional fields that were missing
     mobile: 'phone',
     homePhone: 'phone',
   };
 
   const dbUpdates: Record<string, any> = {};
   for (const [key, value] of Object.entries(updates)) {
+    if (key === 'stationLocation') continue;
     const dbCol = map[key];
     if (dbCol) {
       dbUpdates[dbCol] = value === '' ? null : value;
     }
   }
+
+  // Handle stationLocation specially - need to look up station_id by code
+  if ('stationLocation' in updates) {
+    const stationCode = updates.stationLocation;
+    if (stationCode) {
+      const { data: stationData } = await supabase
+        .from('stations')
+        .select('id')
+        .eq('code', stationCode)
+        .single();
+      if (stationData) {
+        dbUpdates['station_id'] = stationData.id;
+      }
+    } else {
+      dbUpdates['station_id'] = null;
+    }
+  }
+
   return dbUpdates;
 }
 
@@ -174,7 +192,7 @@ export const EmployeeDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [employees]);
 
   const updateEmployee = useCallback(async (id: string, updates: Partial<Employee>) => {
-    const dbUpdates = mapUpdates(updates);
+    const dbUpdates = await mapUpdates(updates);
     if (Object.keys(dbUpdates).length === 0) return;
 
     const { error } = await supabase.from('employees').update(dbUpdates).eq('id', id);

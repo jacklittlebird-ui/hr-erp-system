@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { Input } from '@/components/ui/input';
@@ -6,10 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { initialDepartments } from '@/data/departments';
+import { supabase } from '@/integrations/supabase/client';
 
 interface JobInfoTabProps {
   employee: Employee;
@@ -19,8 +17,15 @@ interface JobInfoTabProps {
 export const JobInfoTab = ({ employee, onUpdate }: JobInfoTabProps) => {
   const { t, isRTL } = useLanguage();
 
+  const [departments, setDepartments] = useState<{ id: string; name_ar: string; name_en: string }[]>([]);
+  useEffect(() => {
+    supabase.from('departments').select('id, name_ar, name_en').eq('is_active', true).then(({ data }) => {
+      if (data) setDepartments(data);
+    });
+  }, []);
+
   const [formData, setFormData] = useState({
-    department: employee.department || '',
+    departmentId: employee.departmentId || '',
     jobTitleAr: employee.jobTitleAr || employee.jobTitle || '',
     jobTitleEn: employee.jobTitleEn || '',
     jobDegree: employee.jobDegree || '',
@@ -43,17 +48,18 @@ export const JobInfoTab = ({ employee, onUpdate }: JobInfoTabProps) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         <div className="space-y-2">
           <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.department')}</Label>
-          <Select value={formData.department} onValueChange={v => {
-            const dept = initialDepartments.find(d => d.id === v);
-            updateField('department', dept ? (isRTL ? dept.nameAr : dept.nameEn) : v);
+          <Select value={formData.departmentId} onValueChange={v => {
+            updateField('departmentId', v);
+            const dept = departments.find(d => d.id === v);
+            if (dept) updateField('department', isRTL ? dept.name_ar : dept.name_en);
           }}>
             <SelectTrigger className={cn(isRTL && "text-right")}>
               <SelectValue placeholder={t('employees.selectDepartment')} />
             </SelectTrigger>
             <SelectContent>
-              {initialDepartments.map((dept) => (
+              {departments.map((dept) => (
                 <SelectItem key={dept.id} value={dept.id}>
-                  {isRTL ? dept.nameAr : dept.nameEn}
+                  {isRTL ? dept.name_ar : dept.name_en}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -131,11 +137,6 @@ export const JobInfoTab = ({ employee, onUpdate }: JobInfoTabProps) => {
           <Input type="date" value={formData.resignationDate} onChange={e => updateField('resignationDate', e.target.value)} className={cn(isRTL && "text-right")} />
         </div>
       </div>
-
-      <Button variant="outline" size="sm" className="gap-2">
-        <Plus className="w-4 h-4" />
-        {t('employees.addNewDepartment')}
-      </Button>
 
       <div className="space-y-2">
         <Label className={cn(isRTL && "text-right block")}>{t('employees.fields.resignationReason')}</Label>
