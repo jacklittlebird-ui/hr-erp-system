@@ -17,18 +17,7 @@ interface PipelineCandidate {
   daysInStage: number;
 }
 
-const initialPipeline: PipelineCandidate[] = [
-  { id: '1', name: 'أحمد محمد', position: 'مهندس برمجيات', department: 'تقنية المعلومات', stage: 'interview', daysInStage: 3 },
-  { id: '2', name: 'سارة أحمد', position: 'محاسب مالي', department: 'المالية', stage: 'screening', daysInStage: 2 },
-  { id: '3', name: 'محمود خالد', position: 'مهندس برمجيات', department: 'تقنية المعلومات', stage: 'offer', daysInStage: 1 },
-  { id: '4', name: 'نورا محمد', position: 'أخصائي HR', department: 'الموارد البشرية', stage: 'applied', daysInStage: 5 },
-  { id: '5', name: 'علي حسن', position: 'فني صيانة', department: 'العمليات', stage: 'applied', daysInStage: 3 },
-  { id: '6', name: 'ريم أحمد', position: 'مهندس برمجيات', department: 'تقنية المعلومات', stage: 'assessment', daysInStage: 2 },
-  { id: '7', name: 'كريم محمد', position: 'محاسب مالي', department: 'المالية', stage: 'interview', daysInStage: 4 },
-  { id: '8', name: 'عمر فاروق', position: 'فني صيانة', department: 'العمليات', stage: 'hired', daysInStage: 0 },
-  { id: '9', name: 'هدى علي', position: 'مدير تسويق', department: 'التسويق', stage: 'screening', daysInStage: 1 },
-  { id: '10', name: 'ياسر محمود', position: 'مهندس برمجيات', department: 'تقنية المعلومات', stage: 'applied', daysInStage: 1 },
-];
+const initialPipeline: PipelineCandidate[] = [];
 
 const stages = ['applied', 'screening', 'interview', 'assessment', 'offer', 'hired'] as const;
 
