@@ -204,6 +204,26 @@ const Leaves = () => {
     fetchData();
   };
 
+  const handleDeleteLeave = async (id: string) => {
+    await supabase.from('leave_requests').delete().eq('id', id);
+    fetchData();
+  };
+
+  const handleDeletePermission = async (id: string) => {
+    await supabase.from('permission_requests').delete().eq('id', id);
+    fetchData();
+  };
+
+  const handleDeleteMission = async (id: string) => {
+    await supabase.from('missions').delete().eq('id', id);
+    fetchData();
+  };
+
+  const handleDeleteOvertime = async (id: string) => {
+    await supabase.from('overtime_requests').delete().eq('id', id);
+    fetchData();
+  };
+
   // Helper: resolve employee_code to UUID
   const resolveEmployeeUUID = async (employeeCode: string): Promise<string | null> => {
     const { data } = await supabase.from('employees').select('id').eq('employee_code', employeeCode).single();
@@ -295,10 +315,10 @@ const Leaves = () => {
             <TabsTrigger value="calendar" className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.calendar')}</span></TabsTrigger>
           </TabsList>
 
-          <TabsContent value="leaves"><LeaveRequestsList requests={leaveRequests} /></TabsContent>
-          <TabsContent value="permissions"><PermissionRequestsList requests={permissionRequests} /></TabsContent>
-          <TabsContent value="missions"><MissionRequestsList requests={missionRequests} /></TabsContent>
-          <TabsContent value="overtime"><OvertimeRequestsList requests={overtimeRequests} /></TabsContent>
+          <TabsContent value="leaves"><LeaveRequestsList requests={leaveRequests} onDelete={handleDeleteLeave} /></TabsContent>
+          <TabsContent value="permissions"><PermissionRequestsList requests={permissionRequests} onDelete={handleDeletePermission} /></TabsContent>
+          <TabsContent value="missions"><MissionRequestsList requests={missionRequests} onDelete={handleDeleteMission} /></TabsContent>
+          <TabsContent value="overtime"><OvertimeRequestsList requests={overtimeRequests} onDelete={handleDeleteOvertime} /></TabsContent>
           <TabsContent value="new">
             <NewRequestForm onSubmitLeave={handleNewLeave} onSubmitPermission={handleNewPermission} onSubmitMission={handleNewMission} onSubmitOvertime={handleNewOvertime} />
           </TabsContent>
