@@ -70,6 +70,13 @@ export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   useEffect(() => {
     fetchRecords();
+    // Re-fetch when auth state changes (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        fetchRecords();
+      }
+    });
+    return () => subscription.unsubscribe();
   }, [fetchRecords]);
 
   const getSalaryRecord = useCallback((employeeId: string, year: string) => {
