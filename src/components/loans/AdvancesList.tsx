@@ -26,7 +26,7 @@ const getMonthName = (dateStr: string, lang: string) => {
 export const AdvancesList = () => {
   const { isRTL, language } = useLanguage();
   const { handlePrint, exportToPDF, exportToCSV } = useReportExport();
-  const { advances, setAdvances } = useLoanData();
+  const { advances, addAdvance, updateAdvance, deleteAdvance } = useLoanData();
   const { employees } = useEmployeeData();
   const activeEmployees = employees.filter(e => e.status === 'active');
 
@@ -41,10 +41,10 @@ export const AdvancesList = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ employeeId: '', amount: '', deductionMonth: '', reason: '' });
 
-  const selectedEmployee = useMemo(() => activeEmployees.find(e => e.employeeId === formData.employeeId), [formData.employeeId, activeEmployees]);
+  const selectedEmployee = useMemo(() => activeEmployees.find(e => e.id === formData.employeeId), [formData.employeeId, activeEmployees]);
 
   const getEmployeeStation = (employeeId: string) => {
-    const emp = employees.find(e => e.employeeId === employeeId);
+    const emp = employees.find(e => e.id === employeeId);
     return emp?.stationLocation || '';
   };
 
@@ -72,33 +72,61 @@ export const AdvancesList = () => {
 
   const resetForm = () => { setFormData({ employeeId: '', amount: '', deductionMonth: '', reason: '' }); setEditingAdvance(null); };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.employeeId || !formData.amount || !formData.deductionMonth) {
       toast({ title: isRTL ? 'خطأ' : 'Error', description: isRTL ? 'يرجى ملء جميع الحقول' : 'Please fill all fields', variant: 'destructive' });
       return;
     }
-    const emp = activeEmployees.find(e => e.employeeId === formData.employeeId);
+    const emp = activeEmployees.find(e => e.id === formData.employeeId);
     const amount = parseFloat(formData.amount);
-    const empStation = emp?.stationLocation || '';
 
-    if (editingAdvance) {
-      setAdvances(prev => prev.map(a => a.id === editingAdvance.id ? { ...a, employeeId: formData.employeeId, employeeName: emp?.nameAr || a.employeeName, station: empStation, amount, deductionMonth: formData.deductionMonth, reason: formData.reason } : a));
-      toast({ title: isRTL ? 'تم التحديث' : 'Updated' });
-    } else {
-      setAdvances(prev => [...prev, {
-        id: `ADV${String(Date.now()).slice(-6)}`,
-        employeeId: formData.employeeId, employeeName: emp?.nameAr || '', station: empStation,
-        amount, requestDate: new Date().toISOString().split('T')[0], deductionMonth: formData.deductionMonth,
-        status: 'pending', reason: formData.reason,
-      }]);
-      toast({ title: isRTL ? 'تم الإضافة' : 'Added' });
+    try {
+      if (editingAdvance) {
+        await updateAdvance(editingAdvance.id, {
+          employeeId: formData.employeeId,
+          amount,
+          deductionMonth: formData.deductionMonth,
+          reason: formData.reason,
+        });
+        toast({ title: isRTL ? 'تم التحديث' : 'Updated' });
+      } else {
+        await addAdvance({
+          employeeId: formData.employeeId,
+          employeeName: emp?.nameAr || '',
+          station: emp?.stationLocation || '',
+          amount,
+          requestDate: new Date().toISOString().split('T')[0],
+          deductionMonth: formData.deductionMonth,
+          status: 'pending',
+          reason: formData.reason,
+        });
+        toast({ title: isRTL ? 'تم الإضافة' : 'Added' });
+      }
+      setShowDialog(false);
+      resetForm();
+    } catch {
+      toast({ title: isRTL ? 'خطأ' : 'Error', variant: 'destructive' });
     }
-    setShowDialog(false); resetForm();
   };
 
-  const handleApprove = (id: string) => { setAdvances(prev => prev.map(a => a.id === id ? { ...a, status: 'approved' as const } : a)); toast({ title: isRTL ? 'تمت الموافقة' : 'Approved' }); };
-  const handleDeduct = (id: string) => { setAdvances(prev => prev.map(a => a.id === id ? { ...a, status: 'deducted' as const } : a)); toast({ title: isRTL ? 'تم الخصم' : 'Deducted' }); };
-  const confirmDelete = () => { if (deletingId) setAdvances(prev => prev.filter(a => a.id !== deletingId)); setShowDeleteDialog(false); setDeletingId(null); toast({ title: isRTL ? 'تم الحذف' : 'Deleted' }); };
+  const handleApprove = async (id: string) => {
+    await updateAdvance(id, { status: 'approved' });
+    toast({ title: isRTL ? 'تمت الموافقة' : 'Approved' });
+  };
+
+  const handleDeduct = async (id: string) => {
+    await updateAdvance(id, { status: 'deducted' });
+    toast({ title: isRTL ? 'تم الخصم' : 'Deducted' });
+  };
+
+  const confirmDelete = async () => {
+    if (deletingId) {
+      await deleteAdvance(deletingId);
+      toast({ title: isRTL ? 'تم الحذف' : 'Deleted' });
+    }
+    setShowDeleteDialog(false);
+    setDeletingId(null);
+  };
 
   const getStationLabel = (empId: string) => {
     const station = getEmployeeStation(empId);
@@ -175,8 +203,8 @@ export const AdvancesList = () => {
               <Card key={adv.id} className="relative overflow-hidden border">
                 <CardContent className="p-5 space-y-3">
                   <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <Badge variant="outline" className={statusLabels[adv.status].color}>
-                      {isRTL ? statusLabels[adv.status].ar : statusLabels[adv.status].en}
+                    <Badge variant="outline" className={statusLabels[adv.status]?.color}>
+                      {isRTL ? statusLabels[adv.status]?.ar : statusLabels[adv.status]?.en}
                     </Badge>
                     <h3 className="font-bold text-lg">{adv.employeeName}</h3>
                   </div>
@@ -247,10 +275,10 @@ export const AdvancesList = () => {
               <Select value={formData.employeeId} onValueChange={v => setFormData({ ...formData, employeeId: v })}>
                 <SelectTrigger><SelectValue placeholder={isRTL ? '-- اختر الموظف --' : '-- Select --'} /></SelectTrigger>
                 <SelectContent>
-                  {activeEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{isRTL ? emp.nameAr : emp.nameEn}</SelectItem>)}
+                  {activeEmployees.map(emp => <SelectItem key={emp.id} value={emp.id}>{isRTL ? emp.nameAr : emp.nameEn}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {selectedEmployee && <p className="text-sm text-muted-foreground">{isRTL ? 'المحطة/الموقع: ' : 'Station: '}{getStationLabel(selectedEmployee.employeeId)}</p>}
+              {selectedEmployee && <p className="text-sm text-muted-foreground">{isRTL ? 'المحطة/الموقع: ' : 'Station: '}{getStationLabel(selectedEmployee.id)}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -282,12 +310,28 @@ export const AdvancesList = () => {
           </DialogHeader>
           {viewingAdvance && (
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'الموظف' : 'Employee'}</span><span className="font-semibold">{viewingAdvance.employeeName}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'المحطة' : 'Station'}</span><span className="font-semibold">{getStationLabel(viewingAdvance.employeeId)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'المبلغ' : 'Amount'}</span><span className="font-semibold">{viewingAdvance.amount.toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'شهر الخصم' : 'Deduction'}</span><span className="font-semibold">{getMonthName(viewingAdvance.deductionMonth, language)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'السبب' : 'Reason'}</span><span className="font-semibold">{viewingAdvance.reason || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{isRTL ? 'الحالة' : 'Status'}</span><Badge variant="outline" className={statusLabels[viewingAdvance.status].color}>{isRTL ? statusLabels[viewingAdvance.status].ar : statusLabels[viewingAdvance.status].en}</Badge></div>
+              <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-muted-foreground">{isRTL ? 'الموظف' : 'Employee'}</span>
+                <span className="font-semibold">{viewingAdvance.employeeName}</span>
+              </div>
+              <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-muted-foreground">{isRTL ? 'المبلغ' : 'Amount'}</span>
+                <span className="font-semibold">{viewingAdvance.amount.toLocaleString()} {isRTL ? 'ج.م' : 'EGP'}</span>
+              </div>
+              <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-muted-foreground">{isRTL ? 'شهر الخصم' : 'Deduction Month'}</span>
+                <span className="font-semibold">{getMonthName(viewingAdvance.deductionMonth, language)}</span>
+              </div>
+              <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-muted-foreground">{isRTL ? 'السبب' : 'Reason'}</span>
+                <span className="font-semibold">{viewingAdvance.reason || '-'}</span>
+              </div>
+              <div className={`flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-muted-foreground">{isRTL ? 'الحالة' : 'Status'}</span>
+                <Badge variant="outline" className={statusLabels[viewingAdvance.status]?.color}>
+                  {isRTL ? statusLabels[viewingAdvance.status]?.ar : statusLabels[viewingAdvance.status]?.en}
+                </Badge>
+              </div>
             </div>
           )}
         </DialogContent>
@@ -298,7 +342,7 @@ export const AdvancesList = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{isRTL ? 'تأكيد الحذف' : 'Confirm Delete'}</AlertDialogTitle>
-            <AlertDialogDescription>{isRTL ? 'هل أنت متأكد من حذف هذه السلفة؟' : 'Are you sure you want to delete this advance?'}</AlertDialogDescription>
+            <AlertDialogDescription>{isRTL ? 'هل أنت متأكد من حذف هذه السلفة؟' : 'Delete this advance?'}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{isRTL ? 'إلغاء' : 'Cancel'}</AlertDialogCancel>
