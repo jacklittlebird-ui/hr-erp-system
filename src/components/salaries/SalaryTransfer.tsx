@@ -48,9 +48,9 @@ export const SalaryTransfer = () => {
 
   const transferData = useMemo(() => {
     return payrollData.map(entry => {
-      const emp = employees.find(e => e.employeeId === entry.employeeId);
+      const emp = employees.find(e => e.id === entry.employeeId || e.employeeId === entry.employeeId);
       return {
-        employeeId: entry.employeeId,
+        employeeId: emp?.employeeId || entry.employeeId,
         employeeName: ar ? entry.employeeName : entry.employeeNameEn,
         employeeNameAr: entry.employeeName,
         employeeNameEn: entry.employeeNameEn,
