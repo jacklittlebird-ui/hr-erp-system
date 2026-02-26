@@ -16,8 +16,8 @@ export const LoansAdvancesTab = ({ employee }: LoansAdvancesTabProps) => {
   const ar = language === 'ar';
   const { loans, advances } = useLoanData();
 
-  const empLoans = useMemo(() => loans.filter(l => l.employeeId === employee.employeeId), [loans, employee.employeeId]);
-  const empAdvances = useMemo(() => advances.filter(a => a.employeeId === employee.employeeId), [advances, employee.employeeId]);
+  const empLoans = useMemo(() => loans.filter(l => l.employeeId === employee.id), [loans, employee.id]);
+  const empAdvances = useMemo(() => advances.filter(a => a.employeeId === employee.id), [advances, employee.id]);
 
   const statusBadge = (status: string) => {
     const colors: Record<string, string> = {

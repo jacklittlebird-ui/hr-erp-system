@@ -30,7 +30,7 @@ const getMonthName = (dateStr: string, lang: string) => {
 export const LoansList = () => {
   const { t, isRTL, language } = useLanguage();
   const { handlePrint, exportToPDF, exportToCSV } = useReportExport();
-  const { loans, setLoans } = useLoanData();
+  const { loans, addLoan, updateLoan, deleteLoan, recordLoanPayment } = useLoanData();
   const { employees } = useEmployeeData();
   const activeEmployees = employees.filter(e => e.status === 'active');
 
@@ -44,7 +44,7 @@ export const LoansList = () => {
   const [showInstallmentSchedule, setShowInstallmentSchedule] = useState(false);
   const [viewingLoan, setViewingLoan] = useState<Loan | null>(null);
   const [formData, setFormData] = useState({
-    employeeId: '',
+    employeeId: '', // UUID
     amount: '',
     installments: '',
     startDate: '',
@@ -54,7 +54,7 @@ export const LoansList = () => {
   });
 
   const selectedEmployee = useMemo(() =>
-    activeEmployees.find(e => e.employeeId === formData.employeeId),
+    activeEmployees.find(e => e.id === formData.employeeId),
     [formData.employeeId, activeEmployees]
   );
 
@@ -79,9 +79,8 @@ export const LoansList = () => {
     pending: { en: 'Pending', ar: 'قيد الانتظار', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
   };
 
-  // Get station from employee data for filtering
   const getEmployeeStation = (employeeId: string) => {
-    const emp = employees.find(e => e.employeeId === employeeId);
+    const emp = employees.find(e => e.id === employeeId);
     return emp?.stationLocation || '';
   };
 
@@ -122,64 +121,66 @@ export const LoansList = () => {
     setShowDialog(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const amount = parseFloat(formData.amount);
     const isManual = formData.calculationMethod === 'manual';
     const monthlyPayment = isManual ? parseFloat(formData.monthlyPayment || '0') : 0;
     const installments = isManual ? (amount > 0 && monthlyPayment > 0 ? Math.ceil(amount / monthlyPayment) : 0) : parseInt(formData.installments);
-    const monthly = isManual ? monthlyPayment : (amount > 0 && installments > 0 ? amount / installments : 0);
 
     if (!formData.employeeId || !formData.amount || !formData.startDate || installments <= 0) {
       toast({ title: isRTL ? 'خطأ' : 'Error', description: isRTL ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields', variant: 'destructive' });
       return;
     }
-    const employee = activeEmployees.find(e => e.employeeId === formData.employeeId);
-    const empStation = employee?.stationLocation || '';
+    const employee = activeEmployees.find(e => e.id === formData.employeeId);
 
-    if (editingLoan) {
-      setLoans(prev => prev.map(l => l.id === editingLoan.id ? {
-        ...l, employeeId: formData.employeeId, employeeName: employee?.nameAr || l.employeeName,
-        amount, installments, monthlyPayment: monthly, startDate: formData.startDate,
-        notes: formData.notes, calculationMethod: formData.calculationMethod,
-        remainingAmount: amount - l.paidAmount, station: empStation,
-      } : l));
-      toast({ title: isRTL ? 'تم التحديث' : 'Updated', description: isRTL ? 'تم تعديل القرض بنجاح' : 'Loan updated successfully' });
-    } else {
-      const newLoan: Loan = {
-        id: `LN${String(Date.now()).slice(-6)}`,
-        employeeId: formData.employeeId, employeeName: employee?.nameAr || '',
-        station: empStation,
-        amount, installments, monthlyPayment: monthly, paidInstallments: 0,
-        paidAmount: 0, remainingAmount: amount, startDate: formData.startDate,
-        status: 'active', notes: formData.notes, calculationMethod: formData.calculationMethod,
-      };
-      setLoans(prev => [...prev, newLoan]);
-      toast({ title: isRTL ? 'تم الحفظ' : 'Saved', description: isRTL ? 'تم إضافة القرض بنجاح' : 'Loan added successfully' });
+    try {
+      if (editingLoan) {
+        await updateLoan(editingLoan.id, {
+          employeeId: formData.employeeId,
+          amount,
+          installments,
+          startDate: formData.startDate,
+          notes: formData.notes,
+        });
+        toast({ title: isRTL ? 'تم التحديث' : 'Updated', description: isRTL ? 'تم تعديل القرض بنجاح' : 'Loan updated successfully' });
+      } else {
+        await addLoan({
+          employeeId: formData.employeeId,
+          employeeName: employee?.nameAr || '',
+          station: employee?.stationLocation || '',
+          amount,
+          installments,
+          startDate: formData.startDate,
+          status: 'active',
+          notes: formData.notes,
+          calculationMethod: formData.calculationMethod,
+        });
+        toast({ title: isRTL ? 'تم الحفظ' : 'Saved', description: isRTL ? 'تم إضافة القرض بنجاح' : 'Loan added successfully' });
+      }
+      setShowDialog(false);
+      resetForm();
+    } catch (err) {
+      toast({ title: isRTL ? 'خطأ' : 'Error', description: isRTL ? 'حدث خطأ أثناء الحفظ' : 'Error saving', variant: 'destructive' });
     }
-    setShowDialog(false);
-    resetForm();
   };
 
-  const handleRecordPayment = (loanId: string) => {
-    setLoans(prev => prev.map(loan => {
-      if (loan.id !== loanId || loan.paidInstallments >= loan.installments) return loan;
-      const newPaid = loan.paidInstallments + 1;
-      const newPaidAmount = loan.paidAmount + loan.monthlyPayment;
-      return {
-        ...loan,
-        paidInstallments: newPaid,
-        paidAmount: newPaidAmount,
-        remainingAmount: loan.amount - newPaidAmount,
-        status: newPaid >= loan.installments ? 'completed' as const : loan.status,
-      };
-    }));
-    toast({ title: isRTL ? 'تم' : 'Done', description: isRTL ? 'تم تسجيل الدفعة' : 'Payment recorded' });
+  const handleRecordPayment = async (loanId: string) => {
+    try {
+      await recordLoanPayment(loanId);
+      toast({ title: isRTL ? 'تم' : 'Done', description: isRTL ? 'تم تسجيل الدفعة' : 'Payment recorded' });
+    } catch {
+      toast({ title: isRTL ? 'خطأ' : 'Error', variant: 'destructive' });
+    }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingLoanId) {
-      setLoans(prev => prev.filter(l => l.id !== deletingLoanId));
-      toast({ title: isRTL ? 'تم الحذف' : 'Deleted', description: isRTL ? 'تم حذف القرض' : 'Loan deleted' });
+      try {
+        await deleteLoan(deletingLoanId);
+        toast({ title: isRTL ? 'تم الحذف' : 'Deleted', description: isRTL ? 'تم حذف القرض' : 'Loan deleted' });
+      } catch {
+        toast({ title: isRTL ? 'خطأ' : 'Error', variant: 'destructive' });
+      }
     }
     setShowDeleteDialog(false);
     setDeletingLoanId(null);
@@ -264,8 +265,8 @@ export const LoansList = () => {
                 <Card key={loan.id} className="relative overflow-hidden border">
                   <CardContent className="p-5 space-y-3">
                     <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <Badge variant="outline" className={statusLabels[loan.status].color}>
-                        {isRTL ? statusLabels[loan.status].ar : statusLabels[loan.status].en}
+                      <Badge variant="outline" className={statusLabels[loan.status]?.color}>
+                        {isRTL ? statusLabels[loan.status]?.ar : statusLabels[loan.status]?.en}
                       </Badge>
                       <h3 className="font-bold text-lg">{loan.employeeName}</h3>
                     </div>
@@ -340,10 +341,10 @@ export const LoansList = () => {
               <Select value={formData.employeeId} onValueChange={v => setFormData({ ...formData, employeeId: v })}>
                 <SelectTrigger><SelectValue placeholder={isRTL ? '-- اختر الموظف --' : '-- Select --'} /></SelectTrigger>
                 <SelectContent>
-                  {activeEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{isRTL ? emp.nameAr : emp.nameEn}</SelectItem>)}
+                  {activeEmployees.map(emp => <SelectItem key={emp.id} value={emp.id}>{isRTL ? emp.nameAr : emp.nameEn}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {selectedEmployee && <p className="text-sm text-muted-foreground">{isRTL ? 'المحطة/الموقع: ' : 'Station: '}{getStationLabel(selectedEmployee.employeeId)}</p>}
+              {selectedEmployee && <p className="text-sm text-muted-foreground">{isRTL ? 'المحطة/الموقع: ' : 'Station: '}{getStationLabel(selectedEmployee.id)}</p>}
             </div>
             <div className="space-y-2">
               <Label>{isRTL ? 'طريقة الاحتساب' : 'Calculation Method'}</Label>
