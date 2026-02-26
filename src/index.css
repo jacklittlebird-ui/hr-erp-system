@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "@fontsource/baloo-bhaijaan-2/400.css";
+@import "@fontsource/baloo-bhaijaan-2/500.css";
+@import "@fontsource/baloo-bhaijaan-2/600.css";
+@import "@fontsource/baloo-bhaijaan-2/700.css";
+
+/* HR ERP Design System - Corporate Blue with Colorful Accents */
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 25% 94%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 25% 94%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 0 75% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 20% 88%;
+    --input: 220 20% 88%;
+    --ring: 217 91% 50%;
+
+    --radius: 0.75rem;
+
+    /* HR ERP Custom Colors - Vibrant Accents */
+    --stat-coral: 16 85% 58%;
+    --stat-coral-bg: 16 85% 95%;
+    --stat-blue: 210 80% 55%;
+    --stat-blue-bg: 210 80% 95%;
+    --stat-purple: 265 75% 55%;
+    --stat-purple-bg: 265 75% 95%;
+    --stat-teal: 172 70% 40%;
+    --stat-teal-bg: 172 70% 95%;
+    --stat-green: 145 65% 42%;
+    --stat-green-bg: 145 65% 95%;
+    --stat-yellow: 40 95% 50%;
+    --stat-yellow-bg: 40 95% 95%;
+    --stat-pink: 340 75% 55%;
+    --stat-pink-bg: 340 75% 95%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 215 16% 55%;
+    --sidebar-primary: 217 91% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 60% 96%;
+    --sidebar-accent-foreground: 210 80% 55%;
+    --sidebar-border: 220 20% 92%;
+    --sidebar-ring: 210 80% 55%;
+
+    /* Success/Warning Colors */
+    --success: 145 65% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 40 95% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    /* Chart Colors - Vibrant Mix */
+    --chart-1: 0 75% 55%;
+    --chart-2: 210 80% 55%;
+    --chart-3: 40 95% 50%;
+    --chart-4: 145 65% 42%;
+    --chart-5: 265 75% 55%;
+    --chart-6: 16 85% 58%;
+
+    /* Font */
+    --font-sans: 'Baloo Bhaijaan 2', sans-serif;
+    --font-arabic: 'Baloo Bhaijaan 2', sans-serif;
+  }
+
+  .dark {
+    --background: 220 50% 8%;
+    --foreground: 220 15% 95%;
+
+    --card: 220 50% 12%;
+    --card-foreground: 220 15% 95%;
+
+    --popover: 220 50% 12%;
+    --popover-foreground: 220 15% 95%;
+
+    --primary: 0 75% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 40% 18%;
+    --secondary-foreground: 220 15% 95%;
+
+    --muted: 220 40% 18%;
+    --muted-foreground: 220 15% 60%;
+
+    --accent: 0 75% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 220 15% 95%;
+
+    --border: 220 40% 18%;
+    --input: 220 40% 18%;
+    --ring: 0 75% 55%;
+    
+    --sidebar-background: 220 55% 8%;
+    --sidebar-foreground: 220 15% 65%;
+    --sidebar-primary: 0 75% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 40% 15%;
+    --sidebar-accent-foreground: 220 15% 95%;
+    --sidebar-border: 220 40% 15%;
+    --sidebar-ring: 0 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+
+  [dir="rtl"] body {
+    font-family: var(--font-arabic);
+  }
+}
+
+@layer utilities {
+  .font-arabic {
+    font-family: var(--font-arabic);
+  }
+
+  .font-english {
+    font-family: var(--font-sans);
+  }
+}

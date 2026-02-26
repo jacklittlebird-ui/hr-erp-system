@@ -1,0 +1,16 @@
+export const stationLocations = [
+  { value: 'aswan', labelAr: 'أسوان', labelEn: 'Aswan' },
+  { value: 'asyut', labelAr: 'أسيوط', labelEn: 'Asyut' },
+  { value: 'alex', labelAr: 'الإسكندرية', labelEn: 'Alexandria' },
+  { value: 'luxor', labelAr: 'الأقصر', labelEn: 'Luxor' },
+  { value: 'cairo', labelAr: 'القاهرة', labelEn: 'Cairo' },
+  { value: 'capital', labelAr: 'العاصمة', labelEn: 'Capital' },
+  { value: 'hurghada', labelAr: 'الغردقة', labelEn: 'Hurghada' },
+  { value: 'hq1', labelAr: 'المركز الرئيسي 1', labelEn: 'HQ 1' },
+  { value: 'hq2', labelAr: 'المركز الرئيسي 2', labelEn: 'HQ 2' },
+  { value: 'sphinx', labelAr: 'سفنكس', labelEn: 'Sphinx' },
+  { value: 'sharm', labelAr: 'شرم الشيخ', labelEn: 'Sharm El Sheikh' },
+  { value: 'sohag', labelAr: 'سوهاج', labelEn: 'Sohag' },
+  { value: 'taba', labelAr: 'طابا', labelEn: 'Taba' },
+  { value: 'marsa', labelAr: 'مرسى علم', labelEn: 'Marsa Alam' },
+];

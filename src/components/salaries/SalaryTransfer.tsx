@@ -1,0 +1,227 @@
+import { useState, useMemo } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { usePayrollData } from '@/contexts/PayrollDataContext';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
+import { useReportExport } from '@/hooks/useReportExport';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import { Download, FileSpreadsheet, Banknote, Users } from 'lucide-react';
+import { stationLocations } from '@/data/stationLocations';
+
+export const SalaryTransfer = () => {
+  const { language, isRTL } = useLanguage();
+  const ar = language === 'ar';
+  const { getMonthlyPayroll } = usePayrollData();
+  const { employees } = useEmployeeData();
+  const { exportToCSV } = useReportExport();
+
+  const [selectedMonth, setSelectedMonth] = useState('01');
+  const [selectedYear, setSelectedYear] = useState('2026');
+  const [selectedStation, setSelectedStation] = useState('all');
+
+  const months = [
+    { value: '01', label: ar ? 'يناير' : 'January' },
+    { value: '02', label: ar ? 'فبراير' : 'February' },
+    { value: '03', label: ar ? 'مارس' : 'March' },
+    { value: '04', label: ar ? 'أبريل' : 'April' },
+    { value: '05', label: ar ? 'مايو' : 'May' },
+    { value: '06', label: ar ? 'يونيو' : 'June' },
+    { value: '07', label: ar ? 'يوليو' : 'July' },
+    { value: '08', label: ar ? 'أغسطس' : 'August' },
+    { value: '09', label: ar ? 'سبتمبر' : 'September' },
+    { value: '10', label: ar ? 'أكتوبر' : 'October' },
+    { value: '11', label: ar ? 'نوفمبر' : 'November' },
+    { value: '12', label: ar ? 'ديسمبر' : 'December' },
+  ];
+
+  const payrollData = useMemo(() => {
+    let data = getMonthlyPayroll(selectedMonth, selectedYear);
+    if (selectedStation && selectedStation !== 'all') {
+      data = data.filter(e => e.stationLocation === selectedStation);
+    }
+    return data;
+  }, [selectedMonth, selectedYear, selectedStation, getMonthlyPayroll]);
+
+  const transferData = useMemo(() => {
+    return payrollData.map(entry => {
+      const emp = employees.find(e => e.id === entry.employeeId || e.employeeId === entry.employeeId);
+      return {
+        employeeId: emp?.employeeId || entry.employeeId,
+        employeeName: ar ? entry.employeeName : entry.employeeNameEn,
+        employeeNameAr: entry.employeeName,
+        employeeNameEn: entry.employeeNameEn,
+        department: entry.department,
+        station: stationLocations.find(s => s.value === entry.stationLocation)?.[ar ? 'labelAr' : 'labelEn'] || entry.stationLocation,
+        accountNumber: emp?.bankAccountNumber || '-',
+        bankId: emp?.bankIdNumber || '-',
+        bankName: emp?.bankName || '-',
+        accountType: emp?.bankAccountType || '-',
+        netSalary: entry.netSalary,
+      };
+    });
+  }, [payrollData, employees, ar]);
+
+  const totalNet = transferData.reduce((s, e) => s + e.netSalary, 0);
+
+  const handleExportExcel = () => {
+    if (!transferData.length) return;
+    const monthLabel = months.find(m => m.value === selectedMonth)?.label || selectedMonth;
+
+    exportToCSV({
+      title: ar ? `تحويل رواتب - ${monthLabel} ${selectedYear}` : `Salary Transfer - ${monthLabel} ${selectedYear}`,
+      fileName: `salary_transfer_${selectedYear}_${selectedMonth}`,
+      data: transferData.map(d => ({
+        ...d,
+        netSalary: d.netSalary.toLocaleString(),
+      })) as unknown as Record<string, unknown>[],
+      columns: [
+        { header: ar ? 'كود الموظف' : 'Employee ID', key: 'employeeId' },
+        { header: ar ? 'اسم الموظف' : 'Employee Name', key: ar ? 'employeeNameAr' : 'employeeNameEn' },
+        { header: ar ? 'القسم' : 'Department', key: 'department' },
+        { header: ar ? 'المحطة' : 'Station', key: 'station' },
+        { header: ar ? 'رقم الحساب البنكي' : 'Account Number', key: 'accountNumber' },
+        { header: ar ? 'رقم الـ ID البنكي' : 'Bank ID', key: 'bankId' },
+        { header: ar ? 'اسم البنك' : 'Bank Name', key: 'bankName' },
+        { header: ar ? 'نوع الحساب' : 'Account Type', key: 'accountType' },
+        { header: ar ? 'صافي الراتب' : 'Net Salary', key: 'netSalary' },
+      ],
+    });
+  };
+
+  const monthLabel = months.find(m => m.value === selectedMonth)?.label || selectedMonth;
+
+  return (
+    <div className="space-y-6">
+      {/* Header & Filters */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
+            <Banknote className="h-5 w-5 text-primary" />
+            {ar ? 'تحويل الرواتب' : 'Salary Transfer'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className={cn("flex flex-wrap gap-4 items-end justify-between", isRTL && "flex-row-reverse")}>
+            <div className={cn("flex gap-4 items-end flex-wrap", isRTL && "flex-row-reverse")}>
+              <div className="space-y-2">
+                <Label>{ar ? 'الشهر' : 'Month'}</Label>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                  <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? 'السنة' : 'Year'}</Label>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 11 }, (_, i) => String(2025 + i)).map(y => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? 'المحطة' : 'Station'}</Label>
+                <Select value={selectedStation} onValueChange={setSelectedStation}>
+                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{ar ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                    {stationLocations.map(s => <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button onClick={handleExportExcel} className="gap-2" disabled={!transferData.length}>
+              <FileSpreadsheet className="h-4 w-4" />
+              {ar ? 'تصدير Excel' : 'Export Excel'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className={cn("rounded-xl p-5 flex items-center gap-4 shadow-sm border border-border/30 bg-stat-blue-bg", isRTL && "flex-row-reverse")}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-stat-blue">
+            <Users className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{ar ? 'عدد الموظفين' : 'Employees'}</p>
+            <p className="text-2xl font-bold text-foreground">{transferData.length}</p>
+          </div>
+        </div>
+        <div className={cn("rounded-xl p-5 flex items-center gap-4 shadow-sm border border-border/30 bg-stat-green-bg", isRTL && "flex-row-reverse")}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-stat-green">
+            <Banknote className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{ar ? 'إجمالي التحويلات' : 'Total Transfer'}</p>
+            <p className="text-2xl font-bold text-foreground">{totalNet.toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className={cn("text-base", isRTL && "text-right")}>
+            {ar ? `تقرير تحويل الرواتب - ${monthLabel} ${selectedYear}` : `Salary Transfer Report - ${monthLabel} ${selectedYear}`}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {transferData.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Banknote className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>{ar ? 'لا توجد رواتب معالجة لهذا الشهر' : 'No processed payroll for this month'}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className={cn(isRTL && "text-right")}>#</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'كود الموظف' : 'ID'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'اسم الموظف' : 'Employee Name'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'القسم' : 'Department'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'رقم الحساب' : 'Account No.'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'ID البنكي' : 'Bank ID'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'اسم البنك' : 'Bank Name'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'نوع الحساب' : 'Account Type'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'صافي الراتب' : 'Net Salary'}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transferData.map((row, idx) => (
+                    <TableRow key={row.employeeId}>
+                      <TableCell>{idx + 1}</TableCell>
+                      <TableCell className="font-mono text-xs">{row.employeeId}</TableCell>
+                      <TableCell className="font-medium">{row.employeeName}</TableCell>
+                      <TableCell>{row.department}</TableCell>
+                      <TableCell className="font-mono text-xs">{row.accountNumber}</TableCell>
+                      <TableCell className="font-mono text-xs">{row.bankId}</TableCell>
+                      <TableCell>{row.bankName}</TableCell>
+                      <TableCell>{row.accountType}</TableCell>
+                      <TableCell className="font-bold text-primary">{row.netSalary.toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Total row */}
+                  <TableRow className="bg-muted/50 font-bold">
+                    <TableCell colSpan={8} className={cn(isRTL ? "text-left" : "text-right")}>
+                      {ar ? 'الإجمالي' : 'Total'}
+                    </TableCell>
+                    <TableCell className="font-bold text-primary text-lg">{totalNet.toLocaleString()}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
