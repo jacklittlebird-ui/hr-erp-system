@@ -63,8 +63,8 @@ export const SalaryTab = ({ employee, onUpdate }: SalaryTabProps) => {
   });
 
   const employeeRecords = useMemo(
-    () => salaryRecords.filter(r => r.employeeId === employee.employeeId).sort((a, b) => b.year.localeCompare(a.year)),
-    [salaryRecords, employee.employeeId]
+    () => salaryRecords.filter(r => r.employeeId === employee.id).sort((a, b) => b.year.localeCompare(a.year)),
+    [salaryRecords, employee.id]
   );
 
   const existingRecord = useMemo(
@@ -74,7 +74,7 @@ export const SalaryTab = ({ employee, onUpdate }: SalaryTabProps) => {
 
   const handleYearChange = useCallback((year: string) => {
     setSelectedYear(year);
-    const existing = salaryRecords.find(r => r.employeeId === employee.employeeId && r.year === year);
+    const existing = salaryRecords.find(r => r.employeeId === employee.id && r.year === year);
     if (existing) {
       const { year: _, employeeId: __, stationLocation: ___, ...rest } = existing;
       setFormData(rest);
@@ -85,7 +85,7 @@ export const SalaryTab = ({ employee, onUpdate }: SalaryTabProps) => {
         employerSocialInsurance: 0, healthInsurance: 0, incomeTax: 0,
       });
     }
-  }, [salaryRecords, employee.employeeId, employee.stationLocation]);
+  }, [salaryRecords, employee.id]);
 
   const updateField = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
@@ -100,7 +100,7 @@ export const SalaryTab = ({ employee, onUpdate }: SalaryTabProps) => {
       toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'اختر السنة أولاً' : 'Select a year first', variant: 'destructive' });
       return;
     }
-    saveSalaryRecord({ year: selectedYear, employeeId: employee.employeeId, stationLocation: employee.stationLocation || '', ...formData });
+    saveSalaryRecord({ year: selectedYear, employeeId: employee.id, stationLocation: employee.stationLocation || '', ...formData });
     toast({ title: ar ? 'تم الحفظ' : 'Saved', description: ar ? `تم حفظ راتب سنة ${selectedYear}` : `Salary for ${selectedYear} saved` });
   };
 
@@ -125,7 +125,7 @@ export const SalaryTab = ({ employee, onUpdate }: SalaryTabProps) => {
   };
 
   const handleDeleteRecord = (year: string) => {
-    deleteSalaryRecord(employee.employeeId, year);
+    deleteSalaryRecord(employee.id, year);
     toast({ title: ar ? 'تم الحذف' : 'Deleted' });
   };
 

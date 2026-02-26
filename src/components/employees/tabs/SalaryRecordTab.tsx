@@ -17,8 +17,8 @@ export const SalaryRecordTab = ({ employee }: SalaryRecordTabProps) => {
   const { salaryRecords } = useSalaryData();
 
   const records = useMemo(
-    () => salaryRecords.filter(r => r.employeeId === employee.employeeId).sort((a, b) => b.year.localeCompare(a.year)),
-    [salaryRecords, employee.employeeId]
+    () => salaryRecords.filter(r => r.employeeId === employee.id).sort((a, b) => b.year.localeCompare(a.year)),
+    [salaryRecords, employee.id]
   );
 
   return (
