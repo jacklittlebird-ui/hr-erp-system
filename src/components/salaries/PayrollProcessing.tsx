@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSalaryData, calcGross } from '@/contexts/SalaryDataContext';
 import { usePayrollData, ProcessedPayroll } from '@/contexts/PayrollDataContext';
-import { useLoanData } from '@/contexts/LoanDataContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,17 +17,13 @@ import { toast } from '@/hooks/use-toast';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
 
-const mockMobileBills = [
-  { employeeId: 'Emp001', billAmount: 350, deductionMonth: '2026-02' },
-  { employeeId: 'Emp002', billAmount: 280, deductionMonth: '2026-02' },
-];
+// Mobile bills now fetched from DB
 
 export const PayrollProcessing = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { getSalaryRecord, salaryRecords } = useSalaryData();
   const { savePayrollEntry, savePayrollEntries, getPayrollEntry, getMonthlyPayroll } = usePayrollData();
-  const { getEmployeeMonthlyLoanPayment, getEmployeeAdvanceForMonth } = useLoanData();
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('02');
   const [selectedYear, setSelectedYear] = useState('2026');
@@ -47,7 +43,44 @@ export const PayrollProcessing = () => {
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedBulk, setSelectedBulk] = useState<string[]>([]);
 
+  // DB-fetched loans & advances
+  const [dbLoans, setDbLoans] = useState<{ employee_id: string; monthly_installment: number }[]>([]);
+  const [dbAdvances, setDbAdvances] = useState<{ employee_id: string; amount: number; deduction_month: string }[]>([]);
+  const [dbMobileBills, setDbMobileBills] = useState<{ employee_id: string; amount: number; deduction_month: string }[]>([]);
+
   const period = `${selectedYear}-${selectedMonth}`;
+
+  // Fetch active loans, approved advances, and mobile bills from DB
+  const fetchLoansAndAdvances = useCallback(async () => {
+    const [loansRes, advancesRes, billsRes] = await Promise.all([
+      supabase.from('loans').select('employee_id, monthly_installment').eq('status', 'active'),
+      supabase.from('advances').select('employee_id, amount, deduction_month').eq('status', 'approved'),
+      supabase.from('mobile_bills').select('employee_id, amount, deduction_month').eq('status', 'pending'),
+    ]);
+    if (loansRes.data) setDbLoans(loansRes.data);
+    if (advancesRes.data) setDbAdvances(advancesRes.data);
+    if (billsRes.data) setDbMobileBills(billsRes.data);
+  }, []);
+
+  useEffect(() => {
+    fetchLoansAndAdvances();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') fetchLoansAndAdvances();
+    });
+    return () => subscription.unsubscribe();
+  }, [fetchLoansAndAdvances]);
+
+  const getEmployeeMonthlyLoanPayment = useCallback((empId: string) => {
+    return dbLoans.filter(l => l.employee_id === empId).reduce((s, l) => s + (l.monthly_installment || 0), 0);
+  }, [dbLoans]);
+
+  const getEmployeeAdvanceForMonth = useCallback((empId: string, month: string) => {
+    return dbAdvances.filter(a => a.employee_id === empId && a.deduction_month === month).reduce((s, a) => s + a.amount, 0);
+  }, [dbAdvances]);
+
+  const getEmployeeMobileBill = useCallback((empId: string, month: string) => {
+    return dbMobileBills.filter(b => b.employee_id === empId && b.deduction_month === month).reduce((s, b) => s + b.amount, 0);
+  }, [dbMobileBills]);
 
   const salaryRecord = useMemo(() => {
     if (!selectedEmployee) return null;
@@ -71,7 +104,7 @@ export const PayrollProcessing = () => {
   const employeeInsurance = salaryRecord?.employeeInsurance || 0;
   const loanPayment = useMemo(() => getEmployeeMonthlyLoanPayment(selectedEmployee), [selectedEmployee, getEmployeeMonthlyLoanPayment]);
   const advanceAmount = useMemo(() => getEmployeeAdvanceForMonth(selectedEmployee, period), [selectedEmployee, period, getEmployeeAdvanceForMonth]);
-  const mobileBill = useMemo(() => mockMobileBills.find(b => b.employeeId === selectedEmployee && b.deductionMonth === period)?.billAmount || 0, [selectedEmployee, period]);
+  const mobileBill = useMemo(() => getEmployeeMobileBill(selectedEmployee, period), [selectedEmployee, period, getEmployeeMobileBill]);
 
   // Daily rate based on baseGross (excluding livingAllowance and overtimePay)
   const baseDailyRate = baseGross / 30;
@@ -146,7 +179,7 @@ export const PayrollProcessing = () => {
     const ba = bt === 'amount' ? bv : Math.round((bv / 100) * bg);
     const lp = getEmployeeMonthlyLoanPayment(empId);
     const aa = getEmployeeAdvanceForMonth(empId, period);
-    const mb = mockMobileBills.find(b => b.employeeId === empId && b.deductionMonth === period)?.billAmount || 0;
+    const mb = getEmployeeMobileBill(empId, period);
     const ld = empId === selectedEmployee ? leaveDays : 0;
     // Use baseGross (bg) for daily rate calculations (excludes livingAllowance and overtimePay)
     const dr = bg / 30;
