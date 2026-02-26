@@ -134,7 +134,7 @@ export const PayrollProcessing = () => {
 
   const buildPayrollEntry = (empId: string): ProcessedPayroll | null => {
     const sr = getSalaryRecord(empId, selectedYear);
-    const emp = activeEmployees.find(e => e.employeeId === empId);
+    const emp = activeEmployees.find(e => e.id === empId);
     if (!sr || !emp) return null;
 
     const bg = calcGross(sr);
@@ -189,7 +189,7 @@ export const PayrollProcessing = () => {
 
   const handleBulkProcess = () => {
     const entries: ProcessedPayroll[] = [];
-    const targets = selectedBulk.length > 0 ? selectedBulk : filteredEmployees.map(e => e.employeeId);
+    const targets = selectedBulk.length > 0 ? selectedBulk : filteredEmployees.map(e => e.id);
     targets.forEach(empId => {
       const entry = buildPayrollEntry(empId);
       if (entry) entries.push(entry);
@@ -213,7 +213,7 @@ export const PayrollProcessing = () => {
   ];
 
   const totalSaved = processedThisMonth.length;
-  const selectedEmpData = activeEmployees.find(e => e.employeeId === selectedEmployee);
+  const selectedEmpData = activeEmployees.find(e => e.id === selectedEmployee);
 
   const stats = [
     { label: ar ? 'إجمالي الموظفين' : 'Total Employees', value: String(activeEmployees.length), icon: Users, bg: 'bg-stat-blue', cardBg: 'bg-stat-blue-bg' },
@@ -312,21 +312,21 @@ export const PayrollProcessing = () => {
 
           <div className="space-y-1 max-h-[500px] overflow-y-auto">
             {filteredEmployees.map(emp => {
-              const isSaved = processedThisMonth.some(e => e.employeeId === emp.employeeId);
+              const isSaved = processedThisMonth.some(e => e.employeeId === emp.id);
               return (
                 <div key={emp.id} className="flex items-center gap-1">
                   {bulkMode && (
                     <Checkbox
-                      checked={selectedBulk.includes(emp.employeeId)}
-                      onCheckedChange={() => toggleBulkSelect(emp.employeeId)}
+                      checked={selectedBulk.includes(emp.id)}
+                      onCheckedChange={() => toggleBulkSelect(emp.id)}
                       className="shrink-0"
                     />
                   )}
                   <button
-                    onClick={() => { if (!bulkMode) handleSelectEmployee(emp.employeeId); }}
+                    onClick={() => { if (!bulkMode) handleSelectEmployee(emp.id); }}
                     className={cn(
                       "w-full text-start px-3 py-2 rounded-lg transition-colors text-sm flex items-center justify-between",
-                      !bulkMode && selectedEmployee === emp.employeeId ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                      !bulkMode && selectedEmployee === emp.id ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
                     )}
                   >
                     <span>{ar ? emp.nameAr : emp.nameEn}</span>
