@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { CalendarDays, Stethoscope, AlertTriangle, Clock, Save, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LeaveBalanceTabProps {
   employee: Employee;
@@ -27,33 +28,7 @@ interface YearlyBalance {
 }
 
 const currentYear = new Date().getFullYear();
-const availableYears = Array.from({ length: 11 }, (_, i) => 2025 + i); // 2025-2035
-
-// Initial mock saved balances
-const initialSavedBalances: YearlyBalance[] = [
-  {
-    year: 2026,
-    annualTotal: 21,
-    annualUsed: 0,
-    sickTotal: 15,
-    sickUsed: 0,
-    casualTotal: 7,
-    casualUsed: 0,
-    permissionsTotal: 24,
-    permissionsUsed: 0,
-  },
-  {
-    year: 2025,
-    annualTotal: 21,
-    annualUsed: 5,
-    sickTotal: 15,
-    sickUsed: 2,
-    casualTotal: 7,
-    casualUsed: 1,
-    permissionsTotal: 24,
-    permissionsUsed: 4,
-  },
-];
+const availableYears = Array.from({ length: 11 }, (_, i) => 2025 + i);
 
 const leaveCardConfig = [
   {
@@ -111,105 +86,122 @@ export const LeaveBalanceTab = ({ employee, onUpdate, onDirectSave }: LeaveBalan
   const { toast } = useToast();
   
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
-  const [savedBalances, setSavedBalances] = useState<YearlyBalance[]>(() => {
-    const currentYearBalance: YearlyBalance = {
-      year: currentYear,
-      annualTotal: Number(employee.annualLeaveBalance ?? 21),
-      annualUsed: 0,
-      sickTotal: Number(employee.sickLeaveBalance ?? 15),
-      sickUsed: 0,
-      casualTotal: 7,
-      casualUsed: 0,
-      permissionsTotal: 24,
-      permissionsUsed: 0,
-    };
+  const [savedBalances, setSavedBalances] = useState<YearlyBalance[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    return [currentYearBalance, ...initialSavedBalances.filter((b) => b.year !== currentYear)];
-  });
+  // Fetch from DB
+  const fetchBalances = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('leave_balances')
+      .select('*')
+      .eq('employee_id', employee.id);
+    
+    if (!error && data) {
+      setSavedBalances(data.map((row: any) => ({
+        year: row.year,
+        annualTotal: Number(row.annual_total ?? 21),
+        annualUsed: Number(row.annual_used ?? 0),
+        sickTotal: Number(row.sick_total ?? 15),
+        sickUsed: Number(row.sick_used ?? 0),
+        casualTotal: Number(row.casual_total ?? 7),
+        casualUsed: Number(row.casual_used ?? 0),
+        permissionsTotal: Number(row.permissions_total ?? 24),
+        permissionsUsed: Number(row.permissions_used ?? 0),
+      })));
+    }
+    setLoading(false);
+  }, [employee.id]);
+
+  useEffect(() => {
+    fetchBalances();
+  }, [fetchBalances]);
 
   // Form state for the selected year
   const existingBalance = savedBalances.find(b => b.year === Number(selectedYear));
 
-  const [annualTotal, setAnnualTotal] = useState(existingBalance?.annualTotal ?? Number(employee.annualLeaveBalance ?? 21));
-  const [sickTotal, setSickTotal] = useState(existingBalance?.sickTotal ?? Number(employee.sickLeaveBalance ?? 15));
-  const [casualTotal, setCasualTotal] = useState(existingBalance?.casualTotal ?? 7);
-  const [permissionsTotal, setPermissionsTotal] = useState(existingBalance?.permissionsTotal ?? 24);
+  const [annualTotal, setAnnualTotal] = useState(Number(employee.annualLeaveBalance ?? 21));
+  const [sickTotal, setSickTotal] = useState(Number(employee.sickLeaveBalance ?? 15));
+  const [casualTotal, setCasualTotal] = useState(7);
+  const [permissionsTotal, setPermissionsTotal] = useState(24);
 
-  // When year changes, update form fields
-  const handleYearChange = (year: string) => {
-    setSelectedYear(year);
-    const balance = savedBalances.find(b => b.year === Number(year));
+  // Sync form when balances load or year changes
+  useEffect(() => {
+    const balance = savedBalances.find(b => b.year === Number(selectedYear));
     if (balance) {
       setAnnualTotal(balance.annualTotal);
       setSickTotal(balance.sickTotal);
       setCasualTotal(balance.casualTotal);
       setPermissionsTotal(balance.permissionsTotal);
     } else {
-      setAnnualTotal(21);
-      setSickTotal(15);
+      setAnnualTotal(Number(employee.annualLeaveBalance ?? 21));
+      setSickTotal(Number(employee.sickLeaveBalance ?? 15));
       setCasualTotal(7);
       setPermissionsTotal(24);
     }
+  }, [savedBalances, selectedYear, employee.annualLeaveBalance, employee.sickLeaveBalance]);
+
+  const handleYearChange = (year: string) => {
+    setSelectedYear(year);
   };
 
   const handleSave = async () => {
     const yearNum = Number(selectedYear);
-    const newBalance: YearlyBalance = {
+
+    const payload = {
+      employee_id: employee.id,
       year: yearNum,
-      annualTotal,
-      annualUsed: existingBalance?.annualUsed ?? 0,
-      sickTotal,
-      sickUsed: existingBalance?.sickUsed ?? 0,
-      casualTotal,
-      casualUsed: existingBalance?.casualUsed ?? 0,
-      permissionsTotal,
-      permissionsUsed: existingBalance?.permissionsUsed ?? 0,
+      annual_total: annualTotal,
+      annual_used: existingBalance?.annualUsed ?? 0,
+      sick_total: sickTotal,
+      sick_used: existingBalance?.sickUsed ?? 0,
+      casual_total: casualTotal,
+      casual_used: existingBalance?.casualUsed ?? 0,
+      permissions_total: permissionsTotal,
+      permissions_used: existingBalance?.permissionsUsed ?? 0,
     };
 
-    setSavedBalances(prev => {
-      const existing = prev.find(b => b.year === yearNum);
-      if (existing) {
-        return prev.map(b => b.year === yearNum ? newBalance : b);
-      }
-      return [...prev, newBalance].sort((a, b) => b.year - a.year);
-    });
+    const existing = savedBalances.find(b => b.year === yearNum);
 
+    let error;
+    if (existing) {
+      ({ error } = await supabase
+        .from('leave_balances')
+        .update(payload)
+        .eq('employee_id', employee.id)
+        .eq('year', yearNum));
+    } else {
+      ({ error } = await supabase
+        .from('leave_balances')
+        .insert(payload));
+    }
+
+    if (error) {
+      console.error('Error saving leave balance:', error);
+      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ الرصيد', variant: 'destructive' });
+      return;
+    }
+
+    await fetchBalances();
+
+    // Also update main employee record
     const updates: Partial<Employee> = {
       annualLeaveBalance: annualTotal,
       sickLeaveBalance: sickTotal,
     };
-
-    // Push to parent for accumulation
     onUpdate?.(updates);
-
-    // Also directly save to DB if handler provided
     if (onDirectSave) {
-      try {
-        await onDirectSave(updates);
-        toast({
-          title: t('leaveBalance.saved'),
-          description: t('leaveBalance.savedMessage'),
-        });
-      } catch {
-        toast({
-          title: 'خطأ',
-          description: 'حدث خطأ أثناء حفظ الرصيد',
-          variant: 'destructive',
-        });
-      }
-    } else {
-      toast({
-        title: t('leaveBalance.saved'),
-        description: t('leaveBalance.savedMessage'),
-      });
+      try { await onDirectSave(updates); } catch {}
     }
+
+    toast({
+      title: t('leaveBalance.saved'),
+      description: t('leaveBalance.savedMessage'),
+    });
   };
 
   // History: last 4 years from saved balances
   const historyBalances = useMemo(() => {
-    return savedBalances
-      .sort((a, b) => b.year - a.year)
-      .slice(0, 4);
+    return [...savedBalances].sort((a, b) => b.year - a.year).slice(0, 4);
   }, [savedBalances]);
 
   const getCardValues = (balance: YearlyBalance, key: string) => {
@@ -230,6 +222,10 @@ export const LeaveBalanceTab = ({ employee, onUpdate, onDirectSave }: LeaveBalan
   const getUnitLabel = (unit: string) => {
     return unit === 'hour' ? t('leaveBalance.hours') : t('leaveBalance.days');
   };
+
+  if (loading) {
+    return <div className="p-6 text-center text-muted-foreground">Loading...</div>;
+  }
 
   return (
     <div className="p-6 space-y-8">
@@ -252,7 +248,6 @@ export const LeaveBalanceTab = ({ employee, onUpdate, onDirectSave }: LeaveBalan
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {leaveCardConfig.map((card) => {
           const Icon = card.icon;
-          const isExisting = !!existingBalance;
           const values = existingBalance ? getCardValues(existingBalance, card.key) : null;
           
           let totalValue: number;
@@ -279,7 +274,6 @@ export const LeaveBalanceTab = ({ employee, onUpdate, onDirectSave }: LeaveBalan
 
           return (
             <div key={card.key} className="rounded-xl border border-border/40 bg-card shadow-sm overflow-hidden">
-              {/* Card Header */}
               <div className={cn("flex items-center gap-3 p-4 pb-2", isRTL && "flex-row-reverse")}>
                 <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white", card.iconBg)}>
                   <Icon className="w-5 h-5" />
@@ -287,7 +281,6 @@ export const LeaveBalanceTab = ({ employee, onUpdate, onDirectSave }: LeaveBalan
                 <h4 className="font-semibold text-foreground text-sm">{t(card.titleKey)}</h4>
               </div>
 
-              {/* Total Value */}
               <div className="px-4 py-2">
                 <p className="text-xs text-muted-foreground mb-1">{t('leaveBalance.total')}</p>
                 <Input
@@ -299,7 +292,6 @@ export const LeaveBalanceTab = ({ employee, onUpdate, onDirectSave }: LeaveBalan
                 />
               </div>
 
-              {/* Used & Remaining */}
               <div className={cn("grid grid-cols-2 gap-2 p-4 pt-2", card.cardBg)}>
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground">{t('leaveBalance.used')}</p>
@@ -334,14 +326,11 @@ export const LeaveBalanceTab = ({ employee, onUpdate, onDirectSave }: LeaveBalan
           {t('leaveBalance.balanceHistory')}
         </h3>
 
-        {/* History Header */}
         <div className="bg-destructive text-destructive-foreground rounded-xl p-4">
           <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
             <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
               <CalendarIcon className="w-5 h-5" />
-              <span className="font-semibold">
-                {t('leaveBalance.historyTitle')}
-              </span>
+              <span className="font-semibold">{t('leaveBalance.historyTitle')}</span>
             </div>
             <span className="text-sm opacity-80">
               {t('leaveBalance.showing')} {historyBalances.length} {t('leaveBalance.yearsLabel')}
@@ -349,10 +338,8 @@ export const LeaveBalanceTab = ({ employee, onUpdate, onDirectSave }: LeaveBalan
           </div>
         </div>
 
-        {/* Year Sections */}
         {historyBalances.map((balance) => (
           <div key={balance.year} className="border-2 border-green-300/50 rounded-xl p-5 bg-green-50/30">
-            {/* Year Header */}
             <div className={cn("flex items-center gap-3 mb-4", isRTL && "flex-row-reverse")}>
               <CalendarIcon className="w-5 h-5 text-foreground" />
               <span className="text-xl font-bold text-foreground">{balance.year}</span>
@@ -363,7 +350,6 @@ export const LeaveBalanceTab = ({ employee, onUpdate, onDirectSave }: LeaveBalan
               )}
             </div>
 
-            {/* Read-only Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {leaveCardConfig.map((card) => {
                 const Icon = card.icon;
