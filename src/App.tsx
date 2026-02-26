@@ -108,6 +108,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <NotificationProvider>
+      <AuthProvider>
       <EmployeeDataProvider>
       <SalaryDataProvider>
       <PayrollDataProvider>
@@ -116,7 +117,6 @@ const App = () => (
       <UniformDataProvider>
       <PortalDataProvider>
       <PerformanceDataProvider>
-      <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -124,7 +124,6 @@ const App = () => (
           <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
-      </AuthProvider>
       </PerformanceDataProvider>
       </PortalDataProvider>
       </UniformDataProvider>
@@ -133,6 +132,7 @@ const App = () => (
       </PayrollDataProvider>
       </SalaryDataProvider>
       </EmployeeDataProvider>
+      </AuthProvider>
       </NotificationProvider>
     </LanguageProvider>
   </QueryClientProvider>

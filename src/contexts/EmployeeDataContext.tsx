@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { Employee } from '@/types/employee';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface EmployeeDataContextType {
@@ -221,6 +222,7 @@ export const EmployeeDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const { addNotification } = useNotifications();
+  const { isAuthenticated } = useAuth();
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -238,9 +240,15 @@ export const EmployeeDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setLoading(false);
   }, []);
 
+  // Re-fetch when auth state changes (login/logout)
   useEffect(() => {
-    fetchEmployees();
-  }, [fetchEmployees]);
+    if (isAuthenticated) {
+      fetchEmployees();
+    } else {
+      setEmployees([]);
+      setLoading(false);
+    }
+  }, [isAuthenticated, fetchEmployees]);
 
   const getEmployee = useCallback((id: string) => {
     return employees.find(e => e.id === id);
