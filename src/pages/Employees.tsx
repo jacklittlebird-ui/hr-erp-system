@@ -16,7 +16,7 @@ type FilterStatus = 'all' | 'active' | 'inactive' | 'suspended';
 
 const Employees = () => {
   const { t, isRTL } = useLanguage();
-  const { employees } = useEmployeeData();
+  const { employees, refreshEmployees } = useEmployeeData();
   const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
@@ -86,7 +86,7 @@ const Employees = () => {
           <div className={cn("flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center", isRTL && "sm:flex-row-reverse")}>
             <h1 className="text-2xl font-bold text-primary-foreground">{t('employees.title')}</h1>
             <div className={cn("flex flex-wrap gap-2", isRTL && "flex-row-reverse")}>
-              <Button variant="secondary" size="sm" className="gap-2"><RefreshCw className="w-4 h-4" />{t('employees.refresh')}</Button>
+              <Button variant="secondary" size="sm" className="gap-2" onClick={() => refreshEmployees()}><RefreshCw className="w-4 h-4" />{t('employees.refresh')}</Button>
               <Button variant="secondary" size="sm" className="gap-2" onClick={() => handlePrint(reportTitle)}><Printer className="w-4 h-4" />{ar ? 'طباعة' : 'Print'}</Button>
               <Button variant="secondary" size="sm" className="gap-2" onClick={() => exportToPDF({ title: reportTitle, data: getExportData(), columns: exportColumns })}><Download className="w-4 h-4" />PDF</Button>
               <Button variant="secondary" size="sm" className="gap-2" onClick={() => exportToCSV({ title: reportTitle, data: getExportData(), columns: exportColumns })}><FileText className="w-4 h-4" />CSV</Button>
