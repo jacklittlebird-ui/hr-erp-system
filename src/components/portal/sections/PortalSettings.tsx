@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { Settings, Lock, Bell, Check } from 'lucide-react';
+import { Lock, Bell, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationSettings {
   email: boolean;
@@ -24,13 +24,14 @@ export const PortalSettings = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const [notifSettings, setNotifSettings] = usePersistedState<NotificationSettings>('hr_portal_notif_settings', {
+  const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     email: true, requests: true, attendance: true, salary: true, evaluations: true,
   });
 
-  const handlePasswordChange = () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
+  const handlePasswordChange = async () => {
+    if (!newPassword || !confirmPassword) {
       toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'يرجى ملء جميع الحقول' : 'Please fill all fields', variant: 'destructive' });
       return;
     }
@@ -42,10 +43,17 @@ export const PortalSettings = () => {
       toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'كلمة المرور غير متطابقة' : 'Passwords do not match', variant: 'destructive' });
       return;
     }
-    toast({ title: ar ? 'تم التحديث' : 'Updated', description: ar ? 'تم تغيير كلمة المرور بنجاح' : 'Password changed successfully' });
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setLoading(false);
+    if (error) {
+      toast({ title: ar ? 'خطأ' : 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: ar ? 'تم التحديث' : 'Updated', description: ar ? 'تم تغيير كلمة المرور بنجاح' : 'Password changed successfully' });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    }
   };
 
   const toggleNotif = (key: keyof NotificationSettings) => {
@@ -68,10 +76,6 @@ export const PortalSettings = () => {
         <CardHeader><CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}><Lock className="w-5 h-5" />{ar ? 'تغيير كلمة المرور' : 'Change Password'}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label className={cn(isRTL && "text-right block")}>{ar ? 'كلمة المرور الحالية' : 'Current Password'}</Label>
-            <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className={cn(isRTL && "text-right")} />
-          </div>
-          <div className="space-y-2">
             <Label className={cn(isRTL && "text-right block")}>{ar ? 'كلمة المرور الجديدة' : 'New Password'}</Label>
             <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className={cn(isRTL && "text-right")} />
           </div>
@@ -79,9 +83,9 @@ export const PortalSettings = () => {
             <Label className={cn(isRTL && "text-right block")}>{ar ? 'تأكيد كلمة المرور' : 'Confirm Password'}</Label>
             <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={cn(isRTL && "text-right")} />
           </div>
-          <Button onClick={handlePasswordChange} className="gap-2">
+          <Button onClick={handlePasswordChange} className="gap-2" disabled={loading}>
             <Check className="w-4 h-4" />
-            {ar ? 'حفظ' : 'Save'}
+            {loading ? (ar ? 'جاري التحديث...' : 'Updating...') : (ar ? 'حفظ' : 'Save')}
           </Button>
         </CardContent>
       </Card>
