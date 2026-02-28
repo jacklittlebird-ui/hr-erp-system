@@ -16,6 +16,17 @@ const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType; label
   </div>
 );
 
+const contractTypeMap: Record<string, string> = { permanent: 'دائم', temporary: 'مؤقت', contract: 'عقد', probation: 'فترة اختبار', part_time: 'دوام جزئي', full_time: 'دوام كامل' };
+const maritalStatusMap: Record<string, string> = { single: 'أعزب', married: 'متزوج', divorced: 'مطلق', widowed: 'أرمل' };
+const genderMap: Record<string, string> = { male: 'ذكر', female: 'أنثى' };
+const accountTypeMap: Record<string, string> = { savings: 'توفير', current: 'جاري', salary: 'راتب' };
+
+const tr = (value: string | undefined, map: Record<string, string>, isAr: boolean): string => {
+  if (!value) return '';
+  if (!isAr) return value;
+  return map[value.toLowerCase()] || value;
+};
+
 export const PortalProfile = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
@@ -83,14 +94,14 @@ export const PortalProfile = () => {
             <InfoItem icon={Landmark} label={ar ? 'اسم البنك' : 'Bank Name'} value={employee.bankName || ''} />
             <InfoItem icon={CreditCard} label={ar ? 'رقم الحساب' : 'Account Number'} value={employee.bankAccountNumber || ''} />
             <InfoItem icon={CreditCard} label={ar ? 'رقم التعريف البنكي' : 'Bank ID'} value={employee.bankIdNumber || ''} />
-            <InfoItem icon={FileText} label={ar ? 'نوع الحساب' : 'Account Type'} value={employee.bankAccountType || ''} />
+            <InfoItem icon={FileText} label={ar ? 'نوع الحساب' : 'Account Type'} value={tr(employee.bankAccountType, accountTypeMap, ar)} />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><FileText className="w-5 h-5" />{ar ? 'معلومات العقد' : 'Contract'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <InfoItem icon={FileText} label={ar ? 'نوع العقد' : 'Contract Type'} value={employee.contractType || ''} />
+            <InfoItem icon={FileText} label={ar ? 'نوع العقد' : 'Contract Type'} value={tr(employee.contractType, contractTypeMap, ar)} />
             <InfoItem icon={Calendar} label={ar ? 'تاريخ الالتحاق' : 'Hire Date'} value={employee.hireDate || ''} />
             <InfoItem icon={Calendar} label={ar ? 'تاريخ انتهاء العقد' : 'Contract End Date'} value={employee.resignationDate || ''} />
           </CardContent>
@@ -107,8 +118,8 @@ export const PortalProfile = () => {
         <Card>
           <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><User className="w-5 h-5" />{ar ? 'معلومات إضافية' : 'Additional Info'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <InfoItem icon={User} label={ar ? 'الحالة الاجتماعية' : 'Marital Status'} value={employee.maritalStatus || ''} />
-            <InfoItem icon={User} label={ar ? 'النوع' : 'Gender'} value={employee.gender || ''} />
+            <InfoItem icon={User} label={ar ? 'الحالة الاجتماعية' : 'Marital Status'} value={tr(employee.maritalStatus, maritalStatusMap, ar)} />
+            <InfoItem icon={User} label={ar ? 'النوع' : 'Gender'} value={tr(employee.gender, genderMap, ar)} />
             <InfoItem icon={GraduationCap} label={ar ? 'المؤهل الدراسي' : 'Education'} value={employee.educationAr || ''} />
           </CardContent>
         </Card>
