@@ -167,8 +167,7 @@ export const PortalAttendance = () => {
           { l: { ar: 'حضور', en: 'Present' }, v: stats.present, c: 'text-success' },
           { l: { ar: 'تأخير', en: 'Late' }, v: stats.late, c: 'text-warning' },
           { l: { ar: 'غياب', en: 'Absent' }, v: stats.absent, c: 'text-destructive' },
-          { l: { ar: 'إجمالي الساعات', en: 'Total Hours' }, v: `${stats.totalHours}h ${stats.totalMinutes}m`, c: '' },
-          { l: { ar: 'ساعات إضافية', en: 'Overtime' }, v: stats.overtime, c: 'text-purple-500' },
+          { l: { ar: 'إجمالي الساعات', en: 'Total Hours' }, v: `${String(stats.totalHours).padStart(2, '0')}:${String(stats.totalMinutes).padStart(2, '0')}`, c: '' },
         ].map((s, i) => (
           <Card key={i}><CardContent className="p-4 text-center">
             <p className="text-sm text-muted-foreground">{ar ? s.l.ar : s.l.en}</p>
@@ -220,7 +219,7 @@ export const PortalAttendance = () => {
                     <TableCell>{format(new Date(r.date), 'EEEE', { locale: ar ? arLocale : enUS })}</TableCell>
                     <TableCell className="font-mono">{r.checkIn || '--:--'}</TableCell>
                     <TableCell className="font-mono">{r.checkOut || '--:--'}</TableCell>
-                    <TableCell>{r.workHours > 0 || r.workMinutes > 0 ? `${r.workHours}h ${r.workMinutes}m` : '-'}</TableCell>
+                    <TableCell>{r.workHours > 0 || r.workMinutes > 0 ? `${String(r.workHours).padStart(2, '0')}:${String(r.workMinutes).padStart(2, '0')}` : '-'}</TableCell>
                     <TableCell>{statusBadge(r.status)}</TableCell>
                   </TableRow>
                 ))}
