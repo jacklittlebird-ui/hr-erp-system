@@ -120,15 +120,18 @@ export const PortalMissions = () => {
         </CardContent>
       </Card>
 
+      {/* Mission Dialog - matching admin style */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader><DialogTitle>{ar ? 'طلب مأمورية جديدة' : 'New Mission Request'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{ar ? 'نوع المأمورية' : 'Mission Type'} <span className="text-destructive">*</span></Label>
+                <Label className={cn("flex items-center gap-1", isRTL && "flex-row-reverse")}>
+                  {ar ? 'نوع المأمورية' : 'Mission Type'} <span className="text-destructive">*</span>
+                </Label>
                 <Select value={missionType} onValueChange={setMissionType}>
-                  <SelectTrigger><SelectValue placeholder={ar ? 'اختر النوع' : 'Select type'} /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={ar ? 'اختر نوع المأمورية' : 'Select mission type'} /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(missionTypeLabels).map(([key, val]) => (
                       <SelectItem key={key} value={key}>
@@ -144,23 +147,28 @@ export const PortalMissions = () => {
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date ? format(date, 'yyyy-MM-dd') : (ar ? 'اختر التاريخ' : 'Pick a date')}
+                      {date ? format(date, 'yyyy/MM/dd') : (ar ? 'اختر التاريخ' : 'Pick a date')}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={date} onSelect={setDate} /></PopoverContent>
+                  <PopoverContent className="w-auto p-0 z-50" align="start">
+                    <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
+                  </PopoverContent>
                 </Popover>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>{ar ? 'الوجهة' : 'Destination'}</Label>
-              <Input value={dest} onChange={e => setDest(e.target.value)} placeholder={ar ? 'أدخل الوجهة' : 'Enter destination'} />
+              <div className="space-y-2 md:col-span-2">
+                <Label>{ar ? 'الوجهة' : 'Destination'}</Label>
+                <Input value={dest} onChange={e => setDest(e.target.value)} placeholder={ar ? 'أدخل الوجهة' : 'Enter destination'} />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>{ar ? 'السبب' : 'Reason'} <span className="text-destructive">*</span></Label>
               <Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder={ar ? 'أدخل سبب المأمورية' : 'Enter mission reason'} rows={4} />
             </div>
           </div>
-          <DialogFooter><Button onClick={handleSubmit}>{ar ? 'تقديم الطلب' : 'Submit'}</Button></DialogFooter>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>{ar ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleSubmit}>{ar ? 'تقديم الطلب' : 'Submit'}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

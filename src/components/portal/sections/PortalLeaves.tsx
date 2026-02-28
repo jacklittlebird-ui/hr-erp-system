@@ -8,10 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { Calendar, Plus, Clock } from 'lucide-react';
+import { Calendar, Plus, Clock, CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { format, differenceInDays } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
@@ -22,11 +26,16 @@ export const PortalLeaves = () => {
   const { getLeaveBalances, getLeaveRequests, addLeaveRequest, getPermissions, addPermission } = usePortalData();
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [showPermDialog, setShowPermDialog] = useState(false);
+
+  // Leave form state
   const [leaveType, setLeaveType] = useState('');
-  const [leaveFrom, setLeaveFrom] = useState('');
-  const [leaveTo, setLeaveTo] = useState('');
+  const [leaveStartDate, setLeaveStartDate] = useState<Date>();
+  const [leaveEndDate, setLeaveEndDate] = useState<Date>();
+  const [leaveReason, setLeaveReason] = useState('');
+
+  // Permission form state
   const [permType, setPermType] = useState('');
-  const [permDate, setPermDate] = useState('');
+  const [permDate, setPermDate] = useState<Date>();
   const [permFrom, setPermFrom] = useState('');
   const [permTo, setPermTo] = useState('');
   const [permReason, setPermReason] = useState('');
@@ -51,6 +60,8 @@ export const PortalLeaves = () => {
     { value: 'sick', ar: 'مرضية', en: 'Sick' },
     { value: 'casual', ar: 'عارضة', en: 'Casual' },
     { value: 'unpaid', ar: 'بدون راتب', en: 'Unpaid' },
+    { value: 'maternity', ar: 'أمومة', en: 'Maternity' },
+    { value: 'paternity', ar: 'أبوة', en: 'Paternity' },
   ];
 
   const permTypes = [
@@ -60,22 +71,58 @@ export const PortalLeaves = () => {
     { value: 'medical', ar: 'طبي', en: 'Medical' },
   ];
 
+  const calculateDays = () => (leaveStartDate && leaveEndDate ? differenceInDays(leaveEndDate, leaveStartDate) + 1 : 0);
+
   const handleSubmitLeave = () => {
-    if (!leaveType || !leaveFrom || !leaveTo) { toast.error(ar ? 'يرجى ملء جميع الحقول' : 'Please fill all fields'); return; }
+    if (!leaveType || !leaveStartDate || !leaveEndDate || !leaveReason) {
+      toast.error(ar ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
+      return;
+    }
     const t = leaveTypes.find(l => l.value === leaveType);
-    const d1 = new Date(leaveFrom); const d2 = new Date(leaveTo);
-    const days = Math.max(1, Math.ceil((d2.getTime() - d1.getTime()) / 86400000) + 1);
-    addLeaveRequest({ employeeId: PORTAL_EMPLOYEE_ID, typeAr: t?.ar || '', typeEn: t?.en || '', from: leaveFrom, to: leaveTo, days });
+    const days = calculateDays();
+    addLeaveRequest({
+      employeeId: PORTAL_EMPLOYEE_ID,
+      typeAr: t?.ar || '',
+      typeEn: t?.en || '',
+      from: format(leaveStartDate, 'yyyy-MM-dd'),
+      to: format(leaveEndDate, 'yyyy-MM-dd'),
+      days,
+    });
     toast.success(ar ? 'تم تقديم طلب الإجازة بنجاح' : 'Leave request submitted');
-    setShowLeaveDialog(false); setLeaveType(''); setLeaveFrom(''); setLeaveTo('');
+    setShowLeaveDialog(false);
+    setLeaveType(''); setLeaveStartDate(undefined); setLeaveEndDate(undefined); setLeaveReason('');
   };
 
   const handleSubmitPerm = () => {
-    if (!permType || !permDate || !permFrom || !permTo) { toast.error(ar ? 'يرجى ملء جميع الحقول' : 'Please fill all fields'); return; }
+    if (!permType || !permDate || !permFrom || !permTo || !permReason) {
+      toast.error(ar ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
+      return;
+    }
+    // Validate duration (30min - 2h)
+    const [fH, fM] = permFrom.split(':').map(Number);
+    const [tH, tM] = permTo.split(':').map(Number);
+    const durationHours = Math.max(0, (tH * 60 + tM - fH * 60 - fM) / 60);
+    if (durationHours > 2) {
+      toast.error(ar ? 'الحد الأقصى للإذن ساعتان' : 'Maximum permission duration is 2 hours');
+      return;
+    }
+    if (durationHours < 0.5) {
+      toast.error(ar ? 'الحد الأدنى للإذن نصف ساعة' : 'Minimum permission duration is 30 minutes');
+      return;
+    }
     const t = permTypes.find(p => p.value === permType);
-    addPermission({ employeeId: PORTAL_EMPLOYEE_ID, typeAr: t?.ar || '', typeEn: t?.en || '', date: permDate, fromTime: permFrom, toTime: permTo, reason: permReason });
+    addPermission({
+      employeeId: PORTAL_EMPLOYEE_ID,
+      typeAr: t?.ar || '',
+      typeEn: t?.en || '',
+      date: format(permDate, 'yyyy-MM-dd'),
+      fromTime: permFrom,
+      toTime: permTo,
+      reason: permReason,
+    });
     toast.success(ar ? 'تم تقديم طلب الإذن بنجاح' : 'Permission request submitted');
-    setShowPermDialog(false); setPermType(''); setPermDate(''); setPermFrom(''); setPermTo(''); setPermReason('');
+    setShowPermDialog(false);
+    setPermType(''); setPermDate(undefined); setPermFrom(''); setPermTo(''); setPermReason('');
   };
 
   return (
@@ -88,6 +135,7 @@ export const PortalLeaves = () => {
         </div>
       </div>
 
+      {/* Balances */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {balances.map((b, i) => (
           <Card key={i}>
@@ -106,6 +154,7 @@ export const PortalLeaves = () => {
         ))}
       </div>
 
+      {/* Tables */}
       <Tabs defaultValue="leaves" dir={isRTL ? 'rtl' : 'ltr'}>
         <TabsList>
           <TabsTrigger value="leaves">{ar ? 'الإجازات' : 'Leaves'}</TabsTrigger>
@@ -175,43 +224,113 @@ export const PortalLeaves = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Leave Dialog */}
+      {/* Leave Dialog - matching admin style */}
       <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
-        <DialogContent><DialogHeader><DialogTitle>{ar ? 'طلب إجازة جديدة' : 'New Leave Request'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><Label>{ar ? 'نوع الإجازة' : 'Leave Type'}</Label>
-              <Select value={leaveType} onValueChange={setLeaveType}>
-                <SelectTrigger><SelectValue placeholder={ar ? 'اختر' : 'Select'} /></SelectTrigger>
-                <SelectContent>{leaveTypes.map(t => <SelectItem key={t.value} value={t.value}>{ar ? t.ar : t.en}</SelectItem>)}</SelectContent>
-              </Select>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader><DialogTitle>{ar ? 'طلب إجازة جديدة' : 'New Leave Request'}</DialogTitle></DialogHeader>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{ar ? 'نوع الإجازة' : 'Leave Type'} <span className="text-destructive">*</span></Label>
+                <Select value={leaveType} onValueChange={setLeaveType}>
+                  <SelectTrigger><SelectValue placeholder={ar ? 'اختر النوع' : 'Select type'} /></SelectTrigger>
+                  <SelectContent>
+                    {leaveTypes.map(t => <SelectItem key={t.value} value={t.value}>{ar ? t.ar : t.en}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? 'إجمالي الأيام' : 'Total Days'}</Label>
+                <Input value={calculateDays()} readOnly className="bg-muted" />
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? 'تاريخ البداية' : 'Start Date'} <span className="text-destructive">*</span></Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !leaveStartDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {leaveStartDate ? format(leaveStartDate, 'yyyy/MM/dd') : (ar ? 'اختر التاريخ' : 'Pick a date')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-50" align="start">
+                    <CalendarComponent mode="single" selected={leaveStartDate} onSelect={setLeaveStartDate} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? 'تاريخ النهاية' : 'End Date'} <span className="text-destructive">*</span></Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !leaveEndDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {leaveEndDate ? format(leaveEndDate, 'yyyy/MM/dd') : (ar ? 'اختر التاريخ' : 'Pick a date')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-50" align="start">
+                    <CalendarComponent mode="single" selected={leaveEndDate} onSelect={setLeaveEndDate} disabled={leaveStartDate ? (d) => d < leaveStartDate : undefined} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>{ar ? 'من' : 'From'}</Label><Input type="date" value={leaveFrom} onChange={e => setLeaveFrom(e.target.value)} /></div>
-              <div><Label>{ar ? 'إلى' : 'To'}</Label><Input type="date" value={leaveTo} onChange={e => setLeaveTo(e.target.value)} /></div>
+            <div className="space-y-2">
+              <Label>{ar ? 'السبب' : 'Reason'} <span className="text-destructive">*</span></Label>
+              <Textarea value={leaveReason} onChange={e => setLeaveReason(e.target.value)} placeholder={ar ? 'أدخل سبب الإجازة' : 'Enter leave reason'} rows={4} />
             </div>
           </div>
-          <DialogFooter><Button onClick={handleSubmitLeave}>{ar ? 'تقديم الطلب' : 'Submit'}</Button></DialogFooter>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLeaveDialog(false)}>{ar ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleSubmitLeave}>{ar ? 'تقديم الطلب' : 'Submit'}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Permission Dialog */}
+      {/* Permission Dialog - matching admin style */}
       <Dialog open={showPermDialog} onOpenChange={setShowPermDialog}>
-        <DialogContent><DialogHeader><DialogTitle>{ar ? 'طلب إذن جديد' : 'New Permission Request'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><Label>{ar ? 'نوع الإذن' : 'Permission Type'}</Label>
-              <Select value={permType} onValueChange={setPermType}>
-                <SelectTrigger><SelectValue placeholder={ar ? 'اختر' : 'Select'} /></SelectTrigger>
-                <SelectContent>{permTypes.map(t => <SelectItem key={t.value} value={t.value}>{ar ? t.ar : t.en}</SelectItem>)}</SelectContent>
-              </Select>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader><DialogTitle>{ar ? 'طلب إذن جديد' : 'New Permission Request'}</DialogTitle></DialogHeader>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{ar ? 'نوع الإذن' : 'Permission Type'} <span className="text-destructive">*</span></Label>
+                <Select value={permType} onValueChange={setPermType}>
+                  <SelectTrigger><SelectValue placeholder={ar ? 'اختر النوع' : 'Select type'} /></SelectTrigger>
+                  <SelectContent>
+                    {permTypes.map(t => <SelectItem key={t.value} value={t.value}>{ar ? t.ar : t.en}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? 'التاريخ' : 'Date'} <span className="text-destructive">*</span></Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !permDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {permDate ? format(permDate, 'yyyy/MM/dd') : (ar ? 'اختر التاريخ' : 'Pick a date')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-50" align="start">
+                    <CalendarComponent mode="single" selected={permDate} onSelect={setPermDate} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? 'من الساعة' : 'From Time'} <span className="text-destructive">*</span></Label>
+                <Input type="time" value={permFrom} onChange={e => setPermFrom(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? 'إلى الساعة' : 'To Time'} <span className="text-destructive">*</span></Label>
+                <Input type="time" value={permTo} onChange={e => setPermTo(e.target.value)} />
+              </div>
             </div>
-            <div><Label>{ar ? 'التاريخ' : 'Date'}</Label><Input type="date" value={permDate} onChange={e => setPermDate(e.target.value)} /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>{ar ? 'من' : 'From'}</Label><Input type="time" value={permFrom} onChange={e => setPermFrom(e.target.value)} /></div>
-              <div><Label>{ar ? 'إلى' : 'To'}</Label><Input type="time" value={permTo} onChange={e => setPermTo(e.target.value)} /></div>
+            <div className="space-y-2">
+              <Label>{ar ? 'السبب' : 'Reason'} <span className="text-destructive">*</span></Label>
+              <Textarea value={permReason} onChange={e => setPermReason(e.target.value)} placeholder={ar ? 'أدخل سبب الإذن' : 'Enter permission reason'} rows={4} />
             </div>
-            <div><Label>{ar ? 'السبب' : 'Reason'}</Label><Input value={permReason} onChange={e => setPermReason(e.target.value)} /></div>
           </div>
-          <DialogFooter><Button onClick={handleSubmitPerm}>{ar ? 'تقديم الطلب' : 'Submit'}</Button></DialogFooter>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPermDialog(false)}>{ar ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleSubmitPerm}>{ar ? 'تقديم الطلب' : 'Submit'}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
