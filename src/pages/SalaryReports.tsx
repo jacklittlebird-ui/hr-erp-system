@@ -217,10 +217,48 @@ const SalaryReports = () => {
         <td style="background:#dbeafe">${totals.net.toLocaleString()}</td>
         <td>${totals.employerInsurance.toLocaleString()}</td><td>${totals.healthInsurance.toLocaleString()}</td><td>${totals.incomeTax.toLocaleString()}</td>
         <td style="font-weight:bold;color:#1e40af">${(totals.employerInsurance + totals.healthInsurance + totals.incomeTax).toLocaleString()}</td>
-      </tr>`;
+       </tr>`;
       pages += `<div class="station-page"><h2>${stName}</h2>
         <table><thead><tr>${headerLabels.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}${totalRow}</tbody></table></div>`;
     });
+
+    // Grand total table at the end
+    const grandTotals = { count: 0, basic: 0, transport: 0, incentives: 0, stationAllowance: 0, mobileAllowance: 0, livingAllowance: 0, overtimePay: 0, bonuses: 0, gross: 0, insurance: 0, loans: 0, advances: 0, mobileBill: 0, leaveDeduction: 0, penalty: 0, totalDeductions: 0, net: 0, employerInsurance: 0, healthInsurance: 0, incomeTax: 0 };
+    monthlyByStation.forEach(r => { Object.keys(grandTotals).forEach(k => { (grandTotals as any)[k] += (r as any)[k]; }); });
+    const grandTotalPage = `<div class="station-page"><h2 style="background:#059669">${ar ? 'الإجمالي العام لجميع المحطات' : 'Grand Total - All Stations'}</h2>
+      <table><thead><tr>${headerLabels.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>
+      ${Array.from(stationGroups.entries()).map(([stKey, rows]) => {
+        const st = getStationLabel(stKey);
+        const t = { count: 0, basic: 0, transport: 0, incentives: 0, stationAllowance: 0, mobileAllowance: 0, livingAllowance: 0, overtimePay: 0, bonuses: 0, gross: 0, insurance: 0, loans: 0, advances: 0, mobileBill: 0, leaveDeduction: 0, penalty: 0, totalDeductions: 0, net: 0, employerInsurance: 0, healthInsurance: 0, incomeTax: 0 };
+        rows.forEach(r => { Object.keys(t).forEach(k => { (t as any)[k] += (r as any)[k]; }); });
+        return `<tr>
+          <td style="font-weight:600">${st}</td><td>${t.count}</td>
+          <td>${t.basic.toLocaleString()}</td><td>${t.transport.toLocaleString()}</td><td>${t.incentives.toLocaleString()}</td>
+          <td>${t.stationAllowance.toLocaleString()}</td><td>${t.mobileAllowance.toLocaleString()}</td><td>${t.livingAllowance.toLocaleString()}</td>
+          <td>${t.overtimePay.toLocaleString()}</td><td>${t.bonuses.toLocaleString()}</td>
+          <td style="font-weight:bold;background:#f0fdf4">${t.gross.toLocaleString()}</td>
+          <td>${t.insurance.toLocaleString()}</td><td>${t.loans.toLocaleString()}</td><td>${t.advances.toLocaleString()}</td>
+          <td>${t.mobileBill.toLocaleString()}</td><td>${t.leaveDeduction.toLocaleString()}</td><td>${t.penalty.toLocaleString()}</td>
+          <td style="color:#dc2626">${t.totalDeductions.toLocaleString()}</td>
+          <td style="font-weight:bold;background:#eff6ff">${t.net.toLocaleString()}</td>
+          <td>${t.employerInsurance.toLocaleString()}</td><td>${t.healthInsurance.toLocaleString()}</td><td>${t.incomeTax.toLocaleString()}</td>
+          <td style="font-weight:bold;color:#1e40af">${(t.employerInsurance + t.healthInsurance + t.incomeTax).toLocaleString()}</td>
+        </tr>`;
+      }).join('')}
+      <tr style="font-weight:bold;background:#d1fae5;font-size:11px">
+        <td>${ar ? 'الإجمالي العام' : 'Grand Total'}</td><td>${grandTotals.count}</td>
+        <td>${grandTotals.basic.toLocaleString()}</td><td>${grandTotals.transport.toLocaleString()}</td><td>${grandTotals.incentives.toLocaleString()}</td>
+        <td>${grandTotals.stationAllowance.toLocaleString()}</td><td>${grandTotals.mobileAllowance.toLocaleString()}</td><td>${grandTotals.livingAllowance.toLocaleString()}</td>
+        <td>${grandTotals.overtimePay.toLocaleString()}</td><td>${grandTotals.bonuses.toLocaleString()}</td>
+        <td style="background:#bbf7d0">${grandTotals.gross.toLocaleString()}</td>
+        <td>${grandTotals.insurance.toLocaleString()}</td><td>${grandTotals.loans.toLocaleString()}</td><td>${grandTotals.advances.toLocaleString()}</td>
+        <td>${grandTotals.mobileBill.toLocaleString()}</td><td>${grandTotals.leaveDeduction.toLocaleString()}</td><td>${grandTotals.penalty.toLocaleString()}</td>
+        <td style="color:#dc2626">${grandTotals.totalDeductions.toLocaleString()}</td>
+        <td style="background:#93c5fd">${grandTotals.net.toLocaleString()}</td>
+        <td>${grandTotals.employerInsurance.toLocaleString()}</td><td>${grandTotals.healthInsurance.toLocaleString()}</td><td>${grandTotals.incomeTax.toLocaleString()}</td>
+        <td style="font-weight:bold;color:#1e40af">${(grandTotals.employerInsurance + grandTotals.healthInsurance + grandTotals.incomeTax).toLocaleString()}</td>
+      </tr>
+      </tbody></table></div>`;
 
     // Compute overall totals for summary cards
     const overallTotals = { count: 0, basic: 0, gross: 0, totalDeductions: 0, net: 0, empIns: 0, health: 0, tax: 0 };
@@ -268,6 +306,7 @@ const SalaryReports = () => {
         <div class="summary-card"><div class="val">${stationCount}</div><div class="lbl">${ar ? 'عدد المحطات' : 'Stations'}</div></div>
       </div>
       ${pages}
+      ${grandTotalPage}
       </body></html>`);
     w.document.close();
     w.focus();
@@ -598,10 +637,28 @@ const SalaryReports = () => {
     { header: ar ? 'إجمالي مساهمات ص.ع' : 'Total Employer', key: 'totalEmployer' },
   ];
 
-  const getStationExportData = () => monthlyByStation.map(r => ({
-    ...r,
-    totalEmployer: r.employerInsurance + r.healthInsurance + r.incomeTax,
-  }));
+  const getStationExportData = () => {
+    const stationGroups = new Map<string, typeof monthlyByStation>();
+    monthlyByStation.forEach(row => {
+      if (!stationGroups.has(row.stationKey)) stationGroups.set(row.stationKey, []);
+      stationGroups.get(row.stationKey)!.push(row);
+    });
+    const result: any[] = [];
+    const grandTotals: any = { stationName: ar ? 'الإجمالي العام' : 'Grand Total', month: '', count: 0, basic: 0, transport: 0, incentives: 0, stationAllowance: 0, mobileAllowance: 0, livingAllowance: 0, overtimePay: 0, bonuses: 0, gross: 0, insurance: 0, loans: 0, totalDeductions: 0, net: 0, employerInsurance: 0, healthInsurance: 0, incomeTax: 0, totalEmployer: 0 };
+    stationGroups.forEach((rows, stKey) => {
+      const stTotals: any = { stationName: ar ? `إجمالي ${rows[0].stationName}` : `${rows[0].stationName} Total`, month: '', count: 0, basic: 0, transport: 0, incentives: 0, stationAllowance: 0, mobileAllowance: 0, livingAllowance: 0, overtimePay: 0, bonuses: 0, gross: 0, insurance: 0, loans: 0, totalDeductions: 0, net: 0, employerInsurance: 0, healthInsurance: 0, incomeTax: 0, totalEmployer: 0 };
+      rows.forEach(r => {
+        result.push({ ...r, totalEmployer: r.employerInsurance + r.healthInsurance + r.incomeTax });
+        ['count','basic','transport','incentives','stationAllowance','mobileAllowance','livingAllowance','overtimePay','bonuses','gross','insurance','loans','totalDeductions','net','employerInsurance','healthInsurance','incomeTax'].forEach(k => { stTotals[k] += (r as any)[k]; });
+      });
+      stTotals.totalEmployer = stTotals.employerInsurance + stTotals.healthInsurance + stTotals.incomeTax;
+      result.push(stTotals);
+      ['count','basic','transport','incentives','stationAllowance','mobileAllowance','livingAllowance','overtimePay','bonuses','gross','insurance','loans','totalDeductions','net','employerInsurance','healthInsurance','incomeTax'].forEach(k => { grandTotals[k] += stTotals[k]; });
+    });
+    grandTotals.totalEmployer = grandTotals.employerInsurance + grandTotals.healthInsurance + grandTotals.incomeTax;
+    result.push(grandTotals);
+    return result;
+  };
 
   const tabs = [
     { id: 'overview', label: ar ? 'نظرة عامة' : 'Overview' },
@@ -891,9 +948,10 @@ const SalaryReports = () => {
             <CardHeader>
               <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
                 <CardTitle>{ar ? 'تفصيل شهري بالمحطة' : 'Monthly Detail by Station'}</CardTitle>
-                <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
-                  <Button variant="outline" size="sm" onClick={handlePrintMonthlyByStation}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة' : 'Print'}</Button>
-                  <Button variant="outline" size="sm" onClick={handlePrintMonthlySummary}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة ملخص' : 'Print Summary'}</Button>
+                <div className={cn("flex gap-2 flex-wrap", isRTL && "flex-row-reverse")}>
+                  <Button variant="outline" size="sm" onClick={handlePrintMonthlyByStation}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة بالمحطة' : 'Print by Station'}</Button>
+                  <Button variant="outline" size="sm" onClick={handlePrintMonthlySummary}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة ملخص شهري' : 'Print Monthly Summary'}</Button>
+                  <Button variant="outline" size="sm" onClick={() => exportToPDF({ title: ar ? 'تفصيل شهري بالمحطة' : 'Monthly by Station', data: getStationExportData(), columns: getStationExportColumns(), fileName: 'monthly_by_station' })}><Download className="w-4 h-4 mr-1" />PDF</Button>
                   <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: ar ? 'تفصيل شهري بالمحطة' : 'Monthly by Station', data: getStationExportData(), columns: getStationExportColumns(), fileName: 'monthly_by_station' })}><FileText className="w-4 h-4 mr-1" />Excel</Button>
                 </div>
               </div>
