@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Users, Star, AlertTriangle, LogOut, Globe, MapPin, Target, TrendingUp, Lightbulb, MessageSquare, Save, Send, Plus, Trash2, Search, Filter, Pencil, Clock } from 'lucide-react';
+import { Users, Star, AlertTriangle, LogOut, Globe, MapPin, Target, TrendingUp, Lightbulb, MessageSquare, Save, Send, Plus, Trash2, Search, Filter, Pencil, Clock, UserCheck, UserX, FileText, ShieldCheck, Building2, BarChart3, CheckCircle, Circle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Shared violation interface (matches ViolationsTab)
@@ -131,10 +131,10 @@ const StationManagerPortal = () => {
     return employees.filter(e => e.stationLocation === user?.station);
   }, [employees, user?.station]);
 
-  // Filter reviews for this station's employees
+  // Filter reviews for this station's employees (use UUID)
   const stationReviews = useMemo(() => {
-    const empIds = stationEmployees.map(e => e.employeeId);
-    return reviews.filter(r => empIds.includes(r.employeeId) || r.station === user?.station);
+    const empIds = new Set(stationEmployees.map(e => e.id));
+    return reviews.filter(r => empIds.has(r.employeeId) || r.station === user?.station);
   }, [reviews, stationEmployees, user?.station]);
 
   // Filter violations for this station's employees (violations now use UUID)
@@ -304,6 +304,9 @@ const StationManagerPortal = () => {
     return list;
   }, [stationEmployees, deptFilter, statusFilter, empSearch]);
 
+  // === Evaluations Inner Tab ===
+  const [evalInnerTab, setEvalInnerTab] = useState('dashboard');
+
   // === Evaluations Tab Filters ===
   const [evalSearch, setEvalSearch] = useState('');
   const [evalFilterEmployee, setEvalFilterEmployee] = useState('all');
@@ -325,6 +328,130 @@ const StationManagerPortal = () => {
     return list;
   }, [stationReviews, evalFilterEmployee, evalFilterDept, evalFilterQuarter, evalFilterYear, evalFilterStatus, evalSearch]);
 
+  // === New Eval Form State (inline, not dialog) ===
+  const [newEvalYear, setNewEvalYear] = useState(String(new Date().getFullYear()));
+  const [newEvalQuarter, setNewEvalQuarter] = useState('');
+  const [newEvalDeptFilter, setNewEvalDeptFilter] = useState('all');
+  const [newEvalSelectedEmp, setNewEvalSelectedEmp] = useState('');
+  const [newEvalPage, setNewEvalPage] = useState(0);
+  const NEW_EVAL_PAGE_SIZE = 5;
+
+  const newEvalFilteredEmps = useMemo(() => {
+    let list = stationEmployees.filter(e => e.status === 'active');
+    if (newEvalDeptFilter !== 'all') list = list.filter(e => e.department === newEvalDeptFilter);
+    return list;
+  }, [stationEmployees, newEvalDeptFilter]);
+
+  const newEvalTotalPages = Math.max(1, Math.ceil(newEvalFilteredEmps.length / NEW_EVAL_PAGE_SIZE));
+  const newEvalPaginatedEmps = newEvalFilteredEmps.slice(newEvalPage * NEW_EVAL_PAGE_SIZE, (newEvalPage + 1) * NEW_EVAL_PAGE_SIZE);
+
+  // Evaluated IDs for the selected quarter/year
+  const newEvalEvaluatedIds = useMemo(() => {
+    if (!newEvalQuarter || !newEvalYear) return new Set<string>();
+    return new Set(stationReviews.filter(r => r.quarter === newEvalQuarter && r.year === newEvalYear).map(r => r.employeeId));
+  }, [stationReviews, newEvalQuarter, newEvalYear]);
+
+  // Existing review for selected emp+quarter+year
+  const newEvalExisting = useMemo(() => {
+    if (!newEvalSelectedEmp || !newEvalQuarter || !newEvalYear) return null;
+    return stationReviews.find(r => r.employeeId === newEvalSelectedEmp && r.quarter === newEvalQuarter && r.year === newEvalYear) || null;
+  }, [stationReviews, newEvalSelectedEmp, newEvalQuarter, newEvalYear]);
+
+  // Load existing into eval form
+  useEffect(() => {
+    if (newEvalExisting) {
+      if (newEvalExisting.criteria && newEvalExisting.criteria.length > 0) {
+        setEvalCriteria(newEvalExisting.criteria.map((c, i) => ({
+          id: initialCriteria[i]?.id || `c${i}`,
+          name: c.nameEn,
+          nameAr: c.name,
+          score: c.score,
+          weight: c.weight,
+        })));
+      }
+      setEvalStrengths(newEvalExisting.strengths || '');
+      setEvalImprovements(newEvalExisting.improvements || '');
+      setEvalGoals(newEvalExisting.goals || '');
+      setEvalComments(newEvalExisting.managerComments || '');
+    } else {
+      setEvalCriteria(initialCriteria.map(c => ({ ...c })));
+      setEvalStrengths('');
+      setEvalImprovements('');
+      setEvalGoals('');
+      setEvalComments('');
+    }
+  }, [newEvalExisting]);
+
+  useEffect(() => { setNewEvalPage(0); }, [newEvalDeptFilter]);
+
+  const handleNewEvalSave = async (status: 'draft' | 'submitted') => {
+    if (!newEvalSelectedEmp || !newEvalYear || !newEvalQuarter) {
+      toast({ title: t('أكمل البيانات المطلوبة', 'Complete required fields'), variant: 'destructive' });
+      return;
+    }
+    const emp = stationEmployees.find(e => e.id === newEvalSelectedEmp);
+    if (!emp) return;
+    const reviewData = {
+      employeeId: emp.id,
+      employeeName: ar ? emp.nameAr : emp.nameEn,
+      department: emp.department,
+      station: user?.station || '',
+      quarter: newEvalQuarter,
+      year: newEvalYear,
+      score: evalOverallScore,
+      status,
+      reviewer: '',
+      reviewDate: new Date().toISOString().split('T')[0],
+      strengths: evalStrengths,
+      improvements: evalImprovements,
+      goals: evalGoals,
+      managerComments: evalComments,
+      criteria: evalCriteria.map(c => ({ name: c.nameAr, nameEn: c.name, score: c.score, weight: c.weight })),
+    };
+    try {
+      if (newEvalExisting) {
+        await updateReview(newEvalExisting.id, reviewData);
+      } else {
+        await addReview(reviewData);
+      }
+      toast({ title: status === 'draft' ? t('تم الحفظ كمسودة', 'Saved as draft') : t('تم إرسال التقييم', 'Evaluation submitted') });
+    } catch {
+      toast({ title: t('حدث خطأ', 'Error occurred'), variant: 'destructive' });
+    }
+  };
+
+  // Dashboard stats for station
+  const dashboardYear = newEvalYear;
+  const dashboardQuarter = newEvalQuarter;
+  const dashboardReviews = useMemo(() => {
+    let list = stationReviews;
+    if (dashboardYear) list = list.filter(r => r.year === dashboardYear);
+    if (dashboardQuarter) list = list.filter(r => r.quarter === dashboardQuarter);
+    return list;
+  }, [stationReviews, dashboardYear, dashboardQuarter]);
+
+  const dashboardEvaluatedIds = useMemo(() => new Set(dashboardReviews.map(r => r.employeeId)), [dashboardReviews]);
+  const activeStationEmps = stationEmployees.filter(e => e.status === 'active');
+  const dashboardEvaluated = activeStationEmps.filter(e => dashboardEvaluatedIds.has(e.id)).length;
+  const dashboardNotEvaluated = activeStationEmps.length - dashboardEvaluated;
+  const dashboardDraft = dashboardReviews.filter(r => r.status === 'draft').length;
+  const dashboardSubmitted = dashboardReviews.filter(r => r.status === 'submitted').length;
+  const dashboardApproved = dashboardReviews.filter(r => r.status === 'approved').length;
+
+  // Dept breakdown for dashboard
+  const dashboardDeptBreakdown = useMemo(() => {
+    const deptMap: Record<string, { total: number; evaluated: number }> = {};
+    activeStationEmps.forEach(emp => {
+      const key = emp.department || (ar ? 'غير محدد' : 'Unassigned');
+      if (!deptMap[key]) deptMap[key] = { total: 0, evaluated: 0 };
+      deptMap[key].total++;
+      if (dashboardEvaluatedIds.has(emp.id)) deptMap[key].evaluated++;
+    });
+    return Object.entries(deptMap)
+      .map(([dept, v]) => ({ dept, ...v, notEvaluated: v.total - v.evaluated }))
+      .sort((a, b) => b.total - a.total);
+  }, [activeStationEmps, dashboardEvaluatedIds, ar]);
+
   // === Violations Tab Filters ===
   const [violSearch, setViolSearch] = useState('');
   const [violFilterEmployee, setViolFilterEmployee] = useState('all');
@@ -338,7 +465,7 @@ const StationManagerPortal = () => {
     if (violSearch.trim()) {
       const q = violSearch.trim().toLowerCase();
       list = list.filter(v => {
-        const emp = stationEmployees.find(e => e.employeeId === v.employeeId);
+        const emp = stationEmployees.find(e => e.id === v.employeeId);
         return v.employeeId.toLowerCase().includes(q) || v.description.toLowerCase().includes(q) || (emp && (emp.nameAr.toLowerCase().includes(q) || emp.nameEn.toLowerCase().includes(q)));
       });
     }
@@ -486,121 +613,394 @@ const StationManagerPortal = () => {
             </Card>
           </TabsContent>
 
-          {/* Evaluations Tab */}
+          {/* Evaluations Tab - with inner tabs */}
           <TabsContent value="evaluations">
-            <Card>
-              <CardHeader className="space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <CardTitle>{t('تقييمات الموظفين', 'Employee Evaluations')}</CardTitle>
-                  <Button onClick={() => setEvalDialog(true)} size="sm"><Star className="h-4 w-4 me-1.5" />{t('إضافة تقييم', 'Add Evaluation')}</Button>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder={t('بحث بالاسم أو الرقم...', 'Search by name or ID...')} value={evalSearch} onChange={e => setEvalSearch(e.target.value)} className="ps-9" />
+            <Tabs value={evalInnerTab} onValueChange={setEvalInnerTab} className="space-y-4">
+              <TabsList className="grid grid-cols-3 w-full max-w-md">
+                <TabsTrigger value="dashboard" className="text-xs md:text-sm gap-1"><BarChart3 className="h-3.5 w-3.5" /><span className="hidden sm:inline">{t('لوحة التحكم', 'Dashboard')}</span></TabsTrigger>
+                <TabsTrigger value="newReview" className="text-xs md:text-sm gap-1"><Star className="h-3.5 w-3.5" /><span className="hidden sm:inline">{t('تقييم جديد', 'New Review')}</span></TabsTrigger>
+                <TabsTrigger value="reviews" className="text-xs md:text-sm gap-1"><FileText className="h-3.5 w-3.5" /><span className="hidden sm:inline">{t('السجل', 'Records')}</span></TabsTrigger>
+              </TabsList>
+
+              {/* Dashboard */}
+              <TabsContent value="dashboard">
+                <div className="space-y-4">
+                  {/* Year/Quarter filter */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className={cn("flex items-end gap-4 flex-wrap", isRTL && "flex-row-reverse")}>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t('السنة', 'Year')}</Label>
+                          <Select value={newEvalYear} onValueChange={setNewEvalYear}>
+                            <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t('الربع السنوي', 'Quarter')}</Label>
+                          <Select value={newEvalQuarter} onValueChange={setNewEvalQuarter}>
+                            <SelectTrigger className="w-[140px]"><SelectValue placeholder={t('اختر الربع', 'Select quarter')} /></SelectTrigger>
+                            <SelectContent>
+                              {quarters.map(q => <SelectItem key={q} value={q}>{getQuarterLabel(q)}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <Card className="border-[hsl(var(--stat-green))]/30">
+                      <CardContent className="p-3 text-center space-y-1">
+                        <UserCheck className="w-5 h-5 mx-auto text-[hsl(var(--stat-green))]" />
+                        <p className="text-xl font-bold text-[hsl(var(--stat-green))]">{dashboardEvaluated}</p>
+                        <p className="text-[10px] text-muted-foreground">{t('تم تقييمهم', 'Evaluated')}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-destructive/30">
+                      <CardContent className="p-3 text-center space-y-1">
+                        <UserX className="w-5 h-5 mx-auto text-destructive" />
+                        <p className="text-xl font-bold text-destructive">{dashboardNotEvaluated}</p>
+                        <p className="text-[10px] text-muted-foreground">{t('لم يتم تقييمهم', 'Not Evaluated')}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-3 text-center space-y-1">
+                        <Users className="w-5 h-5 mx-auto text-primary" />
+                        <p className="text-xl font-bold">{activeStationEmps.length}</p>
+                        <p className="text-[10px] text-muted-foreground">{t('الإجمالي', 'Total')}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-muted-foreground/20">
+                      <CardContent className="p-3 text-center space-y-1">
+                        <FileText className="w-5 h-5 mx-auto text-muted-foreground" />
+                        <p className="text-xl font-bold text-muted-foreground">{dashboardDraft}</p>
+                        <p className="text-[10px] text-muted-foreground">{t('مسودة', 'Draft')}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-[hsl(var(--stat-yellow))]/30">
+                      <CardContent className="p-3 text-center space-y-1">
+                        <Send className="w-5 h-5 mx-auto text-[hsl(var(--stat-yellow))]" />
+                        <p className="text-xl font-bold text-[hsl(var(--stat-yellow))]">{dashboardSubmitted}</p>
+                        <p className="text-[10px] text-muted-foreground">{t('مرسلة', 'Submitted')}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-[hsl(var(--stat-green))]/30">
+                      <CardContent className="p-3 text-center space-y-1">
+                        <ShieldCheck className="w-5 h-5 mx-auto text-[hsl(var(--stat-green))]" />
+                        <p className="text-xl font-bold text-[hsl(var(--stat-green))]">{dashboardApproved}</p>
+                        <p className="text-[10px] text-muted-foreground">{t('معتمدة', 'Approved')}</p>
+                      </CardContent>
+                    </Card>
                   </div>
-                  <Select value={evalFilterEmployee} onValueChange={setEvalFilterEmployee}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder={t('جميع الموظفين', 'All Employees')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('جميع الموظفين', 'All Employees')}</SelectItem>
-                      {stationEmployees.map(emp => (
-                        <SelectItem key={emp.employeeId} value={emp.employeeId}>{ar ? emp.nameAr : emp.nameEn}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={evalFilterDept} onValueChange={setEvalFilterDept}>
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue placeholder={t('جميع الأقسام', 'All Departments')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('جميع الأقسام', 'All Departments')}</SelectItem>
-                      {stationDepartments.map(dept => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={evalFilterQuarter} onValueChange={setEvalFilterQuarter}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder={t('جميع الأرباع', 'All Quarters')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('جميع الأرباع', 'All Quarters')}</SelectItem>
-                      {quarters.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={evalFilterYear} onValueChange={setEvalFilterYear}>
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder={t('جميع السنوات', 'All Years')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('جميع السنوات', 'All Years')}</SelectItem>
-                      {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={evalFilterStatus} onValueChange={setEvalFilterStatus}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder={t('جميع الحالات', 'All Statuses')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('جميع الحالات', 'All Statuses')}</SelectItem>
-                      <SelectItem value="draft">{t('مسودة', 'Draft')}</SelectItem>
-                      <SelectItem value="submitted">{t('مقدّم', 'Submitted')}</SelectItem>
-                      <SelectItem value="approved">{t('معتمد', 'Approved')}</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                  {/* Department Breakdown */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className={cn("flex items-center gap-2 text-base", isRTL && "flex-row-reverse")}>
+                        <Building2 className="w-5 h-5 text-primary" />
+                        {t('حالة التقييم حسب القسم', 'Evaluation Status by Department')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {dashboardDeptBreakdown.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">{t('لا توجد بيانات', 'No data')}</p>
+                      ) : dashboardDeptBreakdown.map(d => {
+                        const pct = d.total > 0 ? Math.round((d.evaluated / d.total) * 100) : 0;
+                        return (
+                          <div key={d.dept} className="space-y-1.5">
+                            <div className={cn("flex items-center justify-between text-sm", isRTL && "flex-row-reverse")}>
+                              <span className="font-medium">{d.dept}</span>
+                              <div className={cn("flex items-center gap-2 text-xs", isRTL && "flex-row-reverse")}>
+                                <Badge variant="outline" className="bg-[hsl(var(--stat-green))]/10 text-[hsl(var(--stat-green))] border-[hsl(var(--stat-green))]/30 gap-1">
+                                  <UserCheck className="w-3 h-3" /> {d.evaluated}
+                                </Badge>
+                                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 gap-1">
+                                  <UserX className="w-3 h-3" /> {d.notEvaluated}
+                                </Badge>
+                                <span className="text-muted-foreground">/ {d.total}</span>
+                              </div>
+                            </div>
+                            <Progress value={pct} className="h-2" />
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader><TableRow>
-                    <TableHead>{t('الموظف', 'Employee')}</TableHead>
-                    <TableHead>{t('الربع', 'Quarter')}</TableHead>
-                    <TableHead>{t('السنة', 'Year')}</TableHead>
-                    <TableHead>{t('الدرجة', 'Score')}</TableHead>
-                    <TableHead>{t('الحالة', 'Status')}</TableHead>
-                    <TableHead>{t('المقيّم', 'Reviewer')}</TableHead>
-                    <TableHead>{t('التاريخ', 'Date')}</TableHead>
-                    <TableHead>{t('إجراءات', 'Actions')}</TableHead>
-                  </TableRow></TableHeader>
-                  <TableBody>
-                    {filteredReviews.length === 0 ? (
-                      <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">{t('لا توجد تقييمات', 'No evaluations found')}</TableCell></TableRow>
-                    ) : filteredReviews.map(r => (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-medium">{r.employeeName}</TableCell>
-                        <TableCell>{r.quarter}</TableCell>
-                        <TableCell>{r.year}</TableCell>
-                        <TableCell>
-                          <Badge className={severityFromScore(r.score)}>
-                            {r.score}/5 - {getScoreLabel(r.score).label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={
-                            r.status === 'approved' ? 'bg-[hsl(var(--stat-green-bg))] text-[hsl(var(--stat-green))] border-[hsl(var(--stat-green))]' :
-                            r.status === 'submitted' ? 'bg-[hsl(var(--stat-yellow-bg))] text-[hsl(var(--stat-yellow))] border-[hsl(var(--stat-yellow))]' :
-                            'bg-muted text-muted-foreground'
-                          }>
-                            {r.status === 'approved' ? t('معتمد', 'Approved') : r.status === 'submitted' ? t('مقدّم', 'Submitted') : t('مسودة', 'Draft')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{r.reviewer}</TableCell>
-                        <TableCell>{r.reviewDate}</TableCell>
-                        <TableCell>
-                          {r.status !== 'approved' && (
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditEval(r)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
+              </TabsContent>
+
+              {/* New Review */}
+              <TabsContent value="newReview">
+                <div className="space-y-4">
+                  {/* Employee selection with green/gray indicators */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className={cn("flex items-center gap-2 text-base", isRTL && "flex-row-reverse")}>
+                        <Users className="w-5 h-5 text-primary" />
+                        {t('اختيار الموظف', 'Select Employee')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t('القسم', 'Department')}</Label>
+                          <Select value={newEvalDeptFilter} onValueChange={setNewEvalDeptFilter}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">{t('جميع الأقسام', 'All Departments')}</SelectItem>
+                              {stationDepartments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t('السنة', 'Year')}</Label>
+                          <Select value={newEvalYear} onValueChange={setNewEvalYear}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{t('الربع', 'Quarter')}</Label>
+                          <Select value={newEvalQuarter} onValueChange={setNewEvalQuarter}>
+                            <SelectTrigger><SelectValue placeholder={t('اختر الربع', 'Select quarter')} /></SelectTrigger>
+                            <SelectContent>{quarters.map(q => <SelectItem key={q} value={q}>{getQuarterLabel(q)}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Employee list with pagination */}
+                      <div className="border rounded-lg">
+                        <div className="p-3 border-b bg-muted/50 flex items-center justify-between">
+                          <span className="text-sm font-medium">{t('الموظفون', 'Employees')} ({newEvalFilteredEmps.length})</span>
+                          {newEvalQuarter && newEvalYear && (
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[hsl(var(--stat-green))] inline-block" /> {t('تم التقييم', 'Evaluated')}</span>
+                              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30 inline-block" /> {t('لم يتم التقييم', 'Not evaluated')}</span>
+                            </div>
                           )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                        </div>
+                        {newEvalFilteredEmps.length === 0 ? (
+                          <div className="p-6 text-center text-muted-foreground text-sm">{t('لا يوجد موظفون', 'No employees')}</div>
+                        ) : (
+                          <>
+                            <div className="divide-y">
+                              {newEvalPaginatedEmps.map(emp => {
+                                const isEvaluated = newEvalEvaluatedIds.has(emp.id);
+                                const isSelected = newEvalSelectedEmp === emp.id;
+                                return (
+                                  <button key={emp.id} type="button" onClick={() => setNewEvalSelectedEmp(emp.id)}
+                                    className={cn("w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/50", isSelected && "bg-primary/10", isRTL && "flex-row-reverse text-right")}>
+                                    {newEvalQuarter && newEvalYear ? (
+                                      <span className={cn("w-3 h-3 rounded-full shrink-0 ring-2 ring-offset-1", isEvaluated ? "bg-[hsl(var(--stat-green))] ring-[hsl(var(--stat-green))]/30" : "bg-muted-foreground/30 ring-muted-foreground/10")} />
+                                    ) : (
+                                      <Circle className="w-3 h-3 text-muted-foreground/30 shrink-0" />
+                                    )}
+                                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                                      {(ar ? emp.nameAr : emp.nameEn).split(' ').map(w => w[0]).join('').slice(0, 2)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium truncate">{ar ? emp.nameAr : emp.nameEn}</p>
+                                      <p className="text-xs text-muted-foreground truncate">{emp.employeeId} • {emp.department}</p>
+                                    </div>
+                                    {isSelected && <CheckCircle className="w-5 h-5 text-primary shrink-0" />}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {newEvalTotalPages > 1 && (
+                              <div className={cn("flex items-center justify-between px-4 py-2 border-t bg-muted/30", isRTL && "flex-row-reverse")}>
+                                <Button variant="ghost" size="sm" disabled={newEvalPage === 0} onClick={() => setNewEvalPage(p => p - 1)} className="gap-1">
+                                  <ChevronRight className={cn("w-4 h-4", !isRTL && "hidden")} />
+                                  <ChevronLeft className={cn("w-4 h-4", isRTL && "hidden")} />
+                                  {t('السابق', 'Previous')}
+                                </Button>
+                                <span className="text-xs text-muted-foreground">{t(`صفحة ${newEvalPage + 1} من ${newEvalTotalPages}`, `Page ${newEvalPage + 1} of ${newEvalTotalPages}`)}</span>
+                                <Button variant="ghost" size="sm" disabled={newEvalPage >= newEvalTotalPages - 1} onClick={() => setNewEvalPage(p => p + 1)} className="gap-1">
+                                  {t('التالي', 'Next')}
+                                  <ChevronLeft className={cn("w-4 h-4", !isRTL && "hidden")} />
+                                  <ChevronRight className={cn("w-4 h-4", isRTL && "hidden")} />
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      {newEvalSelectedEmp && (() => {
+                        const selEmp = stationEmployees.find(e => e.id === newEvalSelectedEmp);
+                        return selEmp ? (
+                          <div className={cn("p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm", isRTL && "text-right")}>
+                            <span className="font-medium">{t('الموظف المحدد:', 'Selected:')}</span>{' '}
+                            <span className="text-primary font-semibold">{ar ? selEmp.nameAr : selEmp.nameEn}</span> - {selEmp.department}
+                            {newEvalExisting && (
+                              <Badge variant="outline" className="ms-2 bg-[hsl(var(--stat-yellow))]/10 text-[hsl(var(--stat-yellow))] border-[hsl(var(--stat-yellow))]">
+                                {t(`تقييم موجود (${newEvalExisting.status === 'draft' ? 'مسودة' : newEvalExisting.status === 'submitted' ? 'مرسل' : 'معتمد'})`, `Existing (${newEvalExisting.status})`)}
+                              </Badge>
+                            )}
+                          </div>
+                        ) : null;
+                      })()}
+                    </CardContent>
+                  </Card>
+
+                  {/* Criteria */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className={cn("flex items-center gap-2 text-base", isRTL && "flex-row-reverse")}>
+                        <Target className="w-4 h-4 text-primary" />
+                        {t('معايير التقييم', 'Evaluation Criteria')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {evalCriteria.map((criterion) => (
+                        <div key={criterion.id} className="space-y-1.5">
+                          <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+                            <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                              <Label className="text-sm font-medium">{ar ? criterion.nameAr : criterion.name}</Label>
+                              <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{criterion.weight}%</span>
+                            </div>
+                            <div className={cn("flex items-center gap-1", isRTL && "flex-row-reverse")}>
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star key={star} className={cn("w-5 h-5 cursor-pointer transition-colors hover:scale-110", star <= criterion.score ? "text-[hsl(var(--stat-yellow))] fill-[hsl(var(--stat-yellow))]" : "text-muted-foreground hover:text-[hsl(var(--stat-yellow))]/50")}
+                                  onClick={() => setEvalCriteria(prev => prev.map(c => c.id === criterion.id ? { ...c, score: star } : c))} />
+                              ))}
+                              <span className="font-bold text-sm w-6 text-center">{criterion.score}</span>
+                            </div>
+                          </div>
+                          <Progress value={criterion.score * 20} className="h-1.5" />
+                        </div>
+                      ))}
+                      <div className={cn("flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20", isRTL && "flex-row-reverse")}>
+                        <span className="font-semibold">{t('الدرجة الإجمالية', 'Overall Score')}</span>
+                        <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                          <span className={cn("font-bold text-xl", scoreInfo.color)}>{evalOverallScore}</span>
+                          <Badge variant="outline" className={cn(scoreInfo.color, "border-current")}>{scoreInfo.label}</Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Comments */}
+                  <Card>
+                    <CardContent className="p-4 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}><TrendingUp className="w-4 h-4 text-[hsl(var(--stat-green))]" />{t('نقاط القوة', 'Strengths')}</Label>
+                          <Textarea value={evalStrengths} onChange={e => setEvalStrengths(e.target.value)} className="min-h-[80px]" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}><Lightbulb className="w-4 h-4 text-[hsl(var(--stat-coral))]" />{t('مجالات التحسين', 'Improvements')}</Label>
+                          <Textarea value={evalImprovements} onChange={e => setEvalImprovements(e.target.value)} className="min-h-[80px]" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}><Target className="w-4 h-4 text-primary" />{t('أهداف الربع القادم', 'Next Quarter Goals')}</Label>
+                        <Textarea value={evalGoals} onChange={e => setEvalGoals(e.target.value)} className="min-h-[60px]" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}><MessageSquare className="w-4 h-4 text-primary" />{t('ملاحظات المدير', 'Manager Comments')}</Label>
+                        <Textarea value={evalComments} onChange={e => setEvalComments(e.target.value)} className="min-h-[60px]" />
+                      </div>
+                      <div className={cn("flex gap-2 pt-2", isRTL && "flex-row-reverse")}>
+                        <Button variant="outline" onClick={() => handleNewEvalSave('draft')} className="gap-1.5"><Save className="w-4 h-4" />{t('حفظ كمسودة', 'Save Draft')}</Button>
+                        <Button onClick={() => handleNewEvalSave('submitted')} className="gap-1.5"><Send className="w-4 h-4" />{t('إرسال التقييم', 'Submit')}</Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Reviews List */}
+              <TabsContent value="reviews">
+                <Card>
+                  <CardHeader className="space-y-3">
+                    <CardTitle>{t('سجل التقييمات', 'Evaluation Records')}</CardTitle>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="relative flex-1 min-w-[200px]">
+                        <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder={t('بحث...', 'Search...')} value={evalSearch} onChange={e => setEvalSearch(e.target.value)} className="ps-9" />
+                      </div>
+                      <Select value={evalFilterDept} onValueChange={setEvalFilterDept}>
+                        <SelectTrigger className="w-[160px]"><SelectValue placeholder={t('الأقسام', 'Departments')} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t('جميع الأقسام', 'All')}</SelectItem>
+                          {stationDepartments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={evalFilterQuarter} onValueChange={setEvalFilterQuarter}>
+                        <SelectTrigger className="w-[120px]"><SelectValue placeholder={t('الربع', 'Quarter')} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t('الكل', 'All')}</SelectItem>
+                          {quarters.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={evalFilterYear} onValueChange={setEvalFilterYear}>
+                        <SelectTrigger className="w-[100px]"><SelectValue placeholder={t('السنة', 'Year')} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t('الكل', 'All')}</SelectItem>
+                          {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={evalFilterStatus} onValueChange={setEvalFilterStatus}>
+                        <SelectTrigger className="w-[130px]"><SelectValue placeholder={t('الحالة', 'Status')} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t('الكل', 'All')}</SelectItem>
+                          <SelectItem value="draft">{t('مسودة', 'Draft')}</SelectItem>
+                          <SelectItem value="submitted">{t('مقدّم', 'Submitted')}</SelectItem>
+                          <SelectItem value="approved">{t('معتمد', 'Approved')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead>{t('الموظف', 'Employee')}</TableHead>
+                        <TableHead>{t('الربع', 'Quarter')}</TableHead>
+                        <TableHead>{t('السنة', 'Year')}</TableHead>
+                        <TableHead>{t('الدرجة', 'Score')}</TableHead>
+                        <TableHead>{t('الحالة', 'Status')}</TableHead>
+                        <TableHead>{t('التاريخ', 'Date')}</TableHead>
+                        <TableHead>{t('إجراءات', 'Actions')}</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {filteredReviews.length === 0 ? (
+                          <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t('لا توجد تقييمات', 'No evaluations')}</TableCell></TableRow>
+                        ) : filteredReviews.map(r => (
+                          <TableRow key={r.id}>
+                            <TableCell className="font-medium">{r.employeeName}</TableCell>
+                            <TableCell>{r.quarter}</TableCell>
+                            <TableCell>{r.year}</TableCell>
+                            <TableCell>
+                              <Badge className={severityFromScore(r.score)}>{r.score}/5 - {getScoreLabel(r.score).label}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={
+                                r.status === 'approved' ? 'bg-[hsl(var(--stat-green-bg))] text-[hsl(var(--stat-green))] border-[hsl(var(--stat-green))]' :
+                                r.status === 'submitted' ? 'bg-[hsl(var(--stat-yellow-bg))] text-[hsl(var(--stat-yellow))] border-[hsl(var(--stat-yellow))]' :
+                                'bg-muted text-muted-foreground'
+                              }>
+                                {r.status === 'approved' ? t('معتمد', 'Approved') : r.status === 'submitted' ? t('مقدّم', 'Submitted') : t('مسودة', 'Draft')}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{r.reviewDate}</TableCell>
+                            <TableCell>
+                              {r.status !== 'approved' && (
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditEval(r)}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           {/* Violations Tab */}
