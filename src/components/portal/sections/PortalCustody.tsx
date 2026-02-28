@@ -98,14 +98,14 @@ export const PortalCustody = () => {
         <Card><CardContent className="p-4 text-center">
           <GraduationCap className="w-6 h-6 mx-auto mb-1 text-warning" />
           <p className="text-2xl font-bold">{trainingDebts.length}</p>
-          <p className="text-xs text-muted-foreground">{ar ? 'ديون تدريب' : 'Training Debts'}</p>
+          <p className="text-xs text-muted-foreground">{ar ? 'مستحقات تدريب' : 'Training Dues'}</p>
         </CardContent></Card>
       </div>
 
       <Tabs defaultValue="assets" dir={isRTL ? 'rtl' : 'ltr'}>
         <TabsList>
           <TabsTrigger value="assets">{ar ? 'العهد المسلمة' : 'Assigned Assets'}</TabsTrigger>
-          <TabsTrigger value="training">{ar ? 'ديون التدريب' : 'Training Debts'}</TabsTrigger>
+          <TabsTrigger value="training">{ar ? 'مستحقات التدريب' : 'Training Dues'}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="assets">
@@ -148,12 +148,12 @@ export const PortalCustody = () => {
           <Card>
             <CardHeader>
               <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                <GraduationCap className="w-5 h-5 text-warning" />{ar ? 'ديون التدريب' : 'Training Debts'}
+                <GraduationCap className="w-5 h-5 text-warning" />{ar ? 'مستحقات التدريب' : 'Training Dues'}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {trainingDebts.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">{ar ? 'لا توجد ديون تدريب' : 'No training debts'}</p>
+                <p className="text-center text-muted-foreground py-8">{ar ? 'لا توجد مستحقات تدريب' : 'No training dues'}</p>
               ) : (
                 <Table>
                   <TableHeader><TableRow>
