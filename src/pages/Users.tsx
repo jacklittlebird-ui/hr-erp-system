@@ -408,10 +408,19 @@ const Users = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" onClick={() => openPermDialog(user)} className="gap-1">
-                            <Shield className="w-4 h-4" />
-                            {isAr ? 'صلاحيات' : 'Permissions'}
-                          </Button>
+                          {user.role !== 'admin' && (user.permission_profile_id || (user.custom_modules && user.custom_modules.length > 0)) ? (
+                            <div className={cn("flex items-center gap-1", isRTL && "flex-row-reverse")}>
+                              <Button variant="ghost" size="sm" onClick={() => openPermDialog(user)} className="gap-1">
+                                <Edit className="w-4 h-4" />
+                                {isAr ? 'تعديل الصلاحيات' : 'Edit Permissions'}
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button variant="ghost" size="sm" onClick={() => openPermDialog(user)} className="gap-1" disabled={user.role === 'admin'}>
+                              <Shield className="w-4 h-4" />
+                              {user.role === 'admin' ? (isAr ? 'وصول كامل' : 'Full Access') : (isAr ? 'تعيين صلاحيات' : 'Assign Permissions')}
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
