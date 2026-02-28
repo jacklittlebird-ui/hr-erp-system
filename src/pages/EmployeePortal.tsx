@@ -50,7 +50,8 @@ const EmployeePortal = () => {
   const { isRTL } = useLanguage();
   const isMobile = useIsMobile();
   const [activeSection, setActiveSection] = useState<PortalSection>('dashboard');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(isMobile);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const ActiveComponent = sectionComponents[activeSection];
 
@@ -59,11 +60,25 @@ const EmployeePortal = () => {
       <PortalSidebar
         activeSection={activeSection}
         onSectionChange={setActiveSection}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        collapsed={isMobile ? false : sidebarCollapsed}
+        onToggleCollapse={() => {
+          if (isMobile) {
+            setMobileOpen(!mobileOpen);
+          } else {
+            setSidebarCollapsed(!sidebarCollapsed);
+          }
+        }}
+        mobileOpen={mobileOpen}
+        onMobileOpenChange={setMobileOpen}
       />
       <div className="flex-1 flex flex-col min-h-screen">
-        <PortalHeader onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)} />
+        <PortalHeader onToggleSidebar={() => {
+          if (isMobile) {
+            setMobileOpen(!mobileOpen);
+          } else {
+            setSidebarCollapsed(!sidebarCollapsed);
+          }
+        }} />
         <main className="flex-1 p-4 md:p-6 overflow-auto">
           <ActiveComponent />
         </main>
