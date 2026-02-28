@@ -9,6 +9,8 @@ export interface Employee {
   status: 'active' | 'inactive' | 'suspended';
   avatar?: string;
   stationLocation?: string;
+  stationId?: string;
+  stationName?: string;
   firstName?: string;
   fatherName?: string;
   familyName?: string;
