@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, useState, useEffect, useMemo } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -118,23 +118,68 @@ const entryToPayload = (entry: ProcessedPayroll) => ({
 });
 
 export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [payrollEntries, setPayrollEntries] = useState<ProcessedPayroll[]>([]);
+  const [rawEntries, setRawEntries] = useState<ProcessedPayroll[]>([]);
+  const [employeeMap, setEmployeeMap] = useState<Record<string, { nameAr: string; nameEn: string; department: string; station: string }>>({});
   const { addNotification } = useNotifications();
+
+  const fetchEmployeeMap = useCallback(async () => {
+    const { data: emps } = await supabase.from('employees').select('id, name_ar, name_en, department_id, station_id');
+    const { data: depts } = await supabase.from('departments').select('id, name_ar, name_en');
+    const { data: stations } = await supabase.from('stations').select('id, code');
+    
+    const deptMap: Record<string, string> = {};
+    (depts || []).forEach(d => { deptMap[d.id] = d.name_ar; });
+    
+    const stationMap: Record<string, string> = {};
+    (stations || []).forEach(s => { stationMap[s.id] = s.code; });
+
+    const map: Record<string, { nameAr: string; nameEn: string; department: string; station: string }> = {};
+    (emps || []).forEach(e => {
+      map[e.id] = {
+        nameAr: e.name_ar || '',
+        nameEn: e.name_en || '',
+        department: e.department_id ? (deptMap[e.department_id] || '') : '',
+        station: e.station_id ? (stationMap[e.station_id] || '') : '',
+      };
+    });
+    setEmployeeMap(map);
+  }, []);
 
   const fetchEntries = useCallback(async () => {
     const { data, error } = await supabase.from('payroll_entries').select('*');
     if (!error && data) {
-      setPayrollEntries(data.map(mapRowToEntry));
+      setRawEntries(data.map(mapRowToEntry));
     }
   }, []);
 
+  // Enrich entries with employee data
+  const payrollEntries = useMemo(() => {
+    return rawEntries.map(entry => {
+      const emp = employeeMap[entry.employeeId];
+      if (emp) {
+        return {
+          ...entry,
+          employeeName: emp.nameAr || entry.employeeName,
+          employeeNameEn: emp.nameEn || entry.employeeNameEn,
+          department: emp.department || entry.department,
+          stationLocation: emp.station || entry.stationLocation,
+        };
+      }
+      return entry;
+    });
+  }, [rawEntries, employeeMap]);
+
   useEffect(() => {
+    fetchEmployeeMap();
     fetchEntries();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') fetchEntries();
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        fetchEmployeeMap();
+        fetchEntries();
+      }
     });
     return () => subscription.unsubscribe();
-  }, [fetchEntries]);
+  }, [fetchEntries, fetchEmployeeMap]);
 
   const upsertEntry = async (entry: ProcessedPayroll) => {
     const payload = entryToPayload(entry);
