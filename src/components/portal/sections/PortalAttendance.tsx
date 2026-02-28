@@ -73,8 +73,8 @@ export const PortalAttendance = () => {
     ? ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
     : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  const working = monthlyRecords.filter(r => r.status !== 'weekend').length;
-  const pastWorking = monthlyRecords.filter(r => r.status !== 'weekend' && new Date(r.date) < new Date()).length;
+  const working = monthlyRecords.filter(r => !['weekend', 'on-leave'].includes(r.status)).length;
+  const pastWorking = monthlyRecords.filter(r => !['weekend', 'on-leave'].includes(r.status) && new Date(r.date) <= new Date()).length;
   const rate = pastWorking > 0 ? ((stats.present / pastWorking) * 100).toFixed(1) : '0';
 
   const statusBadge = (s: string) => {
