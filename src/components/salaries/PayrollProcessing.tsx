@@ -191,6 +191,7 @@ export const PayrollProcessing = () => {
 
     return {
       employeeId: empId,
+      employeeCode: emp.employeeId || '',
       employeeName: emp.nameAr,
       employeeNameEn: emp.nameEn,
       department: emp.department,

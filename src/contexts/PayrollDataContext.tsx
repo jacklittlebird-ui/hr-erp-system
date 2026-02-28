@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface ProcessedPayroll {
   employeeId: string;
+  employeeCode: string;
   employeeName: string;
   employeeNameEn: string;
   department: string;
@@ -51,6 +52,7 @@ const PayrollDataContext = createContext<PayrollDataContextType | undefined>(und
 
 const mapRowToEntry = (r: any): ProcessedPayroll => ({
   employeeId: r.employee_id,
+  employeeCode: '',
   employeeName: '',
   employeeNameEn: '',
   department: '',
@@ -119,11 +121,11 @@ const entryToPayload = (entry: ProcessedPayroll) => ({
 
 export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [rawEntries, setRawEntries] = useState<ProcessedPayroll[]>([]);
-  const [employeeMap, setEmployeeMap] = useState<Record<string, { nameAr: string; nameEn: string; department: string; station: string }>>({});
+  const [employeeMap, setEmployeeMap] = useState<Record<string, { code: string; nameAr: string; nameEn: string; department: string; station: string }>>({});
   const { addNotification } = useNotifications();
 
   const fetchEmployeeMap = useCallback(async () => {
-    const { data: emps } = await supabase.from('employees').select('id, name_ar, name_en, department_id, station_id');
+    const { data: emps } = await supabase.from('employees').select('id, employee_code, name_ar, name_en, department_id, station_id');
     const { data: depts } = await supabase.from('departments').select('id, name_ar, name_en');
     const { data: stations } = await supabase.from('stations').select('id, code');
     
@@ -133,9 +135,10 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const stationMap: Record<string, string> = {};
     (stations || []).forEach(s => { stationMap[s.id] = s.code; });
 
-    const map: Record<string, { nameAr: string; nameEn: string; department: string; station: string }> = {};
+    const map: Record<string, { code: string; nameAr: string; nameEn: string; department: string; station: string }> = {};
     (emps || []).forEach(e => {
       map[e.id] = {
+        code: e.employee_code || '',
         nameAr: e.name_ar || '',
         nameEn: e.name_en || '',
         department: e.department_id ? (deptMap[e.department_id] || '') : '',
@@ -159,6 +162,7 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (emp) {
         return {
           ...entry,
+          employeeCode: emp.code || entry.employeeCode,
           employeeName: emp.nameAr || entry.employeeName,
           employeeNameEn: emp.nameEn || entry.employeeNameEn,
           department: emp.department || entry.department,
