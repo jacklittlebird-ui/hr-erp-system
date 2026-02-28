@@ -1,0 +1,1 @@
+UPDATE public.user_roles SET employee_id = 'd9dc3ff6-55db-4487-9e5a-79e84b08a7ec' WHERE user_id = '829b29ca-cba1-45c4-88b1-2eb2c1c0fc9f' AND role = 'employee'
