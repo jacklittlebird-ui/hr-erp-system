@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useNotifications } from '@/contexts/NotificationContext';
 
 export interface AttendanceEntry {
@@ -19,17 +19,13 @@ export interface AttendanceEntry {
   notes?: string;
 }
 
-/** Calculate work hours correctly including overnight shifts */
 export const calculateWorkTime = (checkIn: string | null, checkOut: string | null): { hours: number; minutes: number; totalMinutes: number } => {
   if (!checkIn || !checkOut) return { hours: 0, minutes: 0, totalMinutes: 0 };
   const [inH, inM] = checkIn.split(':').map(Number);
   const [outH, outM] = checkOut.split(':').map(Number);
   let totalInMinutes = inH * 60 + inM;
   let totalOutMinutes = outH * 60 + outM;
-  // Handle overnight shift: if checkout is before checkin, add 24 hours
-  if (totalOutMinutes < totalInMinutes) {
-    totalOutMinutes += 24 * 60;
-  }
+  if (totalOutMinutes < totalInMinutes) totalOutMinutes += 24 * 60;
   const diffMinutes = totalOutMinutes - totalInMinutes;
   return { hours: Math.floor(diffMinutes / 60), minutes: diffMinutes % 60, totalMinutes: diffMinutes };
 };
@@ -48,150 +44,122 @@ interface AttendanceDataContextType {
 
 const AttendanceDataContext = createContext<AttendanceDataContextType | undefined>(undefined);
 
-// Generate realistic initial data for Emp001 and Emp002
-const generateInitialRecords = (): AttendanceEntry[] => {
-  const records: AttendanceEntry[] = [];
-  const employees = [
-    { id: 'Emp001', name: 'Galal AbdelRazek AbdelHaliem', nameAr: 'جلال عبد الرازق عبد العليم', dept: 'الإدارة' },
-    { id: 'Emp002', name: 'Ahmed Mohamed Ali', nameAr: 'أحمد محمد علي', dept: 'تقنية المعلومات' },
-  ];
-  const now = new Date();
-  let idCounter = 1;
-
-  employees.forEach(emp => {
-    // Generate records for current month up to today
-    for (let d = 1; d <= now.getDate(); d++) {
-      const date = new Date(now.getFullYear(), now.getMonth(), d);
-      const day = date.getDay();
-      const dateStr = date.toISOString().split('T')[0];
-
-      if (day === 5 || day === 6) {
-        records.push({
-          id: String(idCounter++), employeeId: emp.id, employeeName: emp.name, employeeNameAr: emp.nameAr,
-          department: emp.dept, date: dateStr, checkIn: null, checkOut: null,
-          status: 'weekend', workHours: 0, workMinutes: 0, overtime: 0,
-        });
-        continue;
-      }
-
-      if (date.toDateString() === now.toDateString()) continue; // Skip today
-
-      const r = Math.random();
-      if (r > 0.92) {
-        records.push({
-          id: String(idCounter++), employeeId: emp.id, employeeName: emp.name, employeeNameAr: emp.nameAr,
-          department: emp.dept, date: dateStr, checkIn: null, checkOut: null,
-          status: 'absent', workHours: 0, workMinutes: 0, overtime: 0,
-        });
-      } else if (r > 0.82) {
-        const wt = calculateWorkTime('09:15', '17:00');
-        records.push({
-          id: String(idCounter++), employeeId: emp.id, employeeName: emp.name, employeeNameAr: emp.nameAr,
-          department: emp.dept, date: dateStr, checkIn: '09:15', checkOut: '17:00',
-          status: 'late', workHours: wt.hours, workMinutes: wt.minutes, overtime: 0,
-        });
-      } else {
-        const ot = Math.random() > 0.7 ? Math.floor(Math.random() * 3) : 0;
-        const outTime = `${String(17 + ot).padStart(2, '0')}:00`;
-        const wt = calculateWorkTime('08:00', outTime);
-        records.push({
-          id: String(idCounter++), employeeId: emp.id, employeeName: emp.name, employeeNameAr: emp.nameAr,
-          department: emp.dept, date: dateStr, checkIn: '08:00', checkOut: outTime,
-          status: 'present', workHours: wt.hours, workMinutes: wt.minutes, overtime: Math.max(0, wt.hours - 8),
-        });
-      }
-    }
-  });
-
-  // Add a night shift example for Emp002 
-  const yesterdayDate = new Date(now);
-  yesterdayDate.setDate(yesterdayDate.getDate() - 2);
-  if (yesterdayDate.getDay() !== 5 && yesterdayDate.getDay() !== 6) {
-    const dateStr = yesterdayDate.toISOString().split('T')[0];
-    // Override the record for that day with a night shift
-    const existingIdx = records.findIndex(r => r.employeeId === 'Emp002' && r.date === dateStr);
-    if (existingIdx >= 0) {
-      const wt = calculateWorkTime('22:00', '06:30');
-      records[existingIdx] = {
-        ...records[existingIdx],
-        checkIn: '22:00', checkOut: '06:30',
-        status: 'present', workHours: wt.hours, workMinutes: wt.minutes, overtime: Math.max(0, wt.hours - 8),
-      };
-    }
-  }
-
-  return records;
+const formatTime = (ts: string | null): string | null => {
+  if (!ts) return null;
+  try {
+    const d = new Date(ts);
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  } catch { return null; }
 };
 
 export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [records, setRecords] = usePersistedState<AttendanceEntry[]>('hr_attendance', generateInitialRecords);
+  const [records, setRecords] = useState<AttendanceEntry[]>([]);
   const { addNotification } = useNotifications();
 
-  const checkInFn = useCallback((employeeId: string, employeeName: string, employeeNameAr: string, department: string) => {
+  const fetchRecords = useCallback(async () => {
+    const { data } = await supabase
+      .from('attendance_records')
+      .select('*, employees(name_en, name_ar, department_id, departments(name_ar))')
+      .order('date', { ascending: false })
+      .limit(1000);
+    if (data) {
+      setRecords(data.map(r => {
+        const ci = formatTime(r.check_in);
+        const co = formatTime(r.check_out);
+        const wt = calculateWorkTime(ci, co);
+        return {
+          id: r.id,
+          employeeId: r.employee_id,
+          employeeName: (r.employees as any)?.name_en || '',
+          employeeNameAr: (r.employees as any)?.name_ar || '',
+          department: (r.employees as any)?.departments?.name_ar || '',
+          date: r.date,
+          checkIn: ci,
+          checkOut: co,
+          status: r.status as AttendanceEntry['status'],
+          isMission: r.status === 'mission',
+          workHours: r.work_hours ?? wt.hours,
+          workMinutes: r.work_minutes ?? wt.minutes,
+          overtime: Math.max(0, (r.work_hours ?? wt.hours) - 8),
+          notes: r.notes || undefined,
+        };
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRecords();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') fetchRecords();
+    });
+    return () => subscription.unsubscribe();
+  }, [fetchRecords]);
+
+  const checkInFn = useCallback(async (employeeId: string, employeeName: string, employeeNameAr: string, department: string) => {
     const now = new Date();
-    const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     const dateString = now.toISOString().split('T')[0];
     const isLate = now.getHours() >= 9;
+    const checkInTs = now.toISOString();
 
-    const entry: AttendanceEntry = {
-      id: String(Date.now()),
-      employeeId, employeeName, employeeNameAr, department,
-      date: dateString, checkIn: timeString, checkOut: null,
+    await supabase.from('attendance_records').insert({
+      employee_id: employeeId,
+      date: dateString,
+      check_in: checkInTs,
       status: isLate ? 'late' : 'present',
-      workHours: 0, workMinutes: 0, overtime: 0,
-    };
-    setRecords(prev => [...prev, entry]);
+      is_late: isLate,
+    });
+
     addNotification({
-      titleAr: `تسجيل حضور: ${employeeNameAr} - ${timeString}`,
-      titleEn: `Check-in: ${employeeName} - ${timeString}`,
+      titleAr: `تسجيل حضور: ${employeeNameAr}`,
+      titleEn: `Check-in: ${employeeName}`,
       type: isLate ? 'warning' : 'success',
       module: 'attendance',
     });
-  }, [addNotification]);
+    await fetchRecords();
+  }, [addNotification, fetchRecords]);
 
-  const checkOutFn = useCallback((recordId: string) => {
+  const checkOutFn = useCallback(async (recordId: string) => {
     const now = new Date();
-    const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const checkOutTs = now.toISOString();
+    const isEarlyLeave = now.getHours() < 17;
 
-    setRecords(prev => prev.map(record => {
-      if (record.id === recordId) {
-        const wt = calculateWorkTime(record.checkIn, timeString);
-        const isEarlyLeave = now.getHours() < 17;
-        addNotification({
-          titleAr: `تسجيل انصراف: ${record.employeeNameAr} - ${timeString}`,
-          titleEn: `Check-out: ${record.employeeName} - ${timeString}`,
-          type: isEarlyLeave ? 'warning' : 'success',
-          module: 'attendance',
-        });
-        return {
-          ...record,
-          checkOut: timeString,
-          status: isEarlyLeave ? 'early-leave' : record.status,
-          workHours: wt.hours,
-          workMinutes: wt.minutes,
-          overtime: Math.max(0, wt.hours - 8),
-        };
-      }
-      return record;
-    }));
-  }, [addNotification]);
+    const record = records.find(r => r.id === recordId);
 
-  const addMissionAttendance = useCallback((employeeId: string, employeeName: string, employeeNameAr: string, department: string, date: string, checkInTime: string, checkOutTime: string, hours: number) => {
-    // Remove any existing record for same employee+date
-    setRecords(prev => {
-      const filtered = prev.filter(r => !(r.employeeId === employeeId && r.date === date));
-      const entry: AttendanceEntry = {
-        id: String(Date.now()),
-        employeeId, employeeName, employeeNameAr, department,
-        date, checkIn: checkInTime, checkOut: checkOutTime,
-        status: 'mission',
-        workHours: hours, workMinutes: 0, overtime: 0,
-        isMission: true,
-        notes: 'مأمورية / Mission',
-      };
-      return [...filtered, entry];
+    await supabase.from('attendance_records').update({
+      check_out: checkOutTs,
+      status: isEarlyLeave ? 'early-leave' : undefined,
+    }).eq('id', recordId);
+
+    if (record) {
+      addNotification({
+        titleAr: `تسجيل انصراف: ${record.employeeNameAr}`,
+        titleEn: `Check-out: ${record.employeeName}`,
+        type: isEarlyLeave ? 'warning' : 'success',
+        module: 'attendance',
+      });
+    }
+    await fetchRecords();
+  }, [records, addNotification, fetchRecords]);
+
+  const addMissionAttendance = useCallback(async (employeeId: string, employeeName: string, employeeNameAr: string, department: string, date: string, checkInTime: string, checkOutTime: string, hours: number) => {
+    // Build full timestamps
+    const ciTs = `${date}T${checkInTime}:00`;
+    const coTs = `${date}T${checkOutTime}:00`;
+
+    // Delete existing record for same employee+date
+    await supabase.from('attendance_records').delete().eq('employee_id', employeeId).eq('date', date);
+
+    await supabase.from('attendance_records').insert({
+      employee_id: employeeId,
+      date,
+      check_in: ciTs,
+      check_out: coTs,
+      status: 'mission',
+      notes: 'مأمورية / Mission',
     });
-  }, []);
+
+    await fetchRecords();
+  }, [fetchRecords]);
 
   const getEmployeeRecords = useCallback((employeeId: string) => {
     return records.filter(r => r.employeeId === employeeId).sort((a, b) => b.date.localeCompare(a.date));
