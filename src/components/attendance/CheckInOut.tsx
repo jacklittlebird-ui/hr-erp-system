@@ -3,7 +3,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -12,27 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Clock, LogIn, LogOut, Calendar, Timer, User, MapPin, Building2, Plus } from 'lucide-react';
+import { Clock, LogIn, LogOut, Calendar, Timer, User, MapPin, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
-import { stationLocations } from '@/data/stationLocations';
 import { AttendanceRecord } from '@/pages/Attendance';
 import { toast } from '@/hooks/use-toast';
 
-interface Employee {
-  id: string;
-  name: string;
-  nameAr: string;
-  department: string;
-  location: string;
-}
 
 interface CheckInOutProps {
   records: AttendanceRecord[];
@@ -56,18 +40,6 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
     location: 'HQ',
   })), [contextEmployees]);
 
-  // Check-in dialog state
-  const [showCheckInDialog, setShowCheckInDialog] = useState(false);
-  const [selectedCheckInEmployee, setSelectedCheckInEmployee] = useState<string>('');
-  const [checkInStation, setCheckInStation] = useState<string>('all');
-  const [checkInDept, setCheckInDept] = useState<string>('all');
-  
-  // Check-out dialog state
-  const [showCheckOutDialog, setShowCheckOutDialog] = useState(false);
-  const [selectedCheckOutEmployee, setSelectedCheckOutEmployee] = useState<string>('');
-  const [checkOutStation, setCheckOutStation] = useState<string>('all');
-  const [checkOutDept, setCheckOutDept] = useState<string>('all');
-
   // Derive unique stations from employees
   const stations = useMemo(() => {
     const stationMap = new Map<string, { id: string; nameAr: string; nameEn: string }>();
@@ -90,18 +62,6 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
     });
     return Array.from(deptMap.values());
   };
-
-  const checkInDepartments = useMemo(() => getDepartmentsForStation(checkInStation), [contextEmployees, checkInStation]);
-  const checkOutDepartments = useMemo(() => getDepartmentsForStation(checkOutStation), [contextEmployees, checkOutStation]);
-  
-  // Add employee dialog state
-  const [showAddEmployee, setShowAddEmployee] = useState(false);
-  const [newEmployee, setNewEmployee] = useState({
-    name: '',
-    nameAr: '',
-    department: '',
-    location: 'HQ',
-  });
   
   const today = new Date().toISOString().split('T')[0];
 
@@ -109,141 +69,6 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Get employees who haven't checked in today (filtered by station/dept)
-  const employeesNotCheckedIn = employees.filter(emp => {
-    const todayRecord = records.find(r => r.date === today && r.employeeId === emp.id);
-    if (todayRecord && todayRecord.checkIn) return false;
-    if (checkInStation !== 'all' && emp.stationId !== checkInStation) return false;
-    if (checkInDept !== 'all' && emp.departmentId !== checkInDept) return false;
-    return true;
-  });
-
-  // Get records of employees who have checked in but not checked out today (filtered)
-  const filteredRecordsCheckedInNotOut = useMemo(() => {
-    return records.filter(r => {
-      if (r.date !== today || !r.checkIn || r.checkOut) return false;
-      const emp = employees.find(e => e.id === r.employeeId);
-      if (checkOutStation !== 'all' && emp?.stationId !== checkOutStation) return false;
-      if (checkOutDept !== 'all' && emp?.departmentId !== checkOutDept) return false;
-      return true;
-    });
-  }, [records, today, employees, checkOutStation, checkOutDept]);
-  
-  // Keep original unfiltered for stats
-  const recordsCheckedInNotOut = records.filter(r => r.date === today && r.checkIn && !r.checkOut);
-  
-  // Map to employee info for display
-  const employeesCheckedInNotOut = recordsCheckedInNotOut.map(record => {
-    const emp = employees.find(e => e.id === record.employeeId);
-    return {
-      id: record.employeeId,
-      name: emp?.name || record.employeeName,
-      nameAr: emp?.nameAr || record.employeeNameAr,
-      department: emp?.department || record.department,
-      location: emp?.location || 'HQ',
-      checkIn: record.checkIn,
-      recordId: record.id
-    };
-  });
-
-  const handleCheckIn = () => {
-    if (!selectedCheckInEmployee) {
-      toast({
-        title: t('attendance.selectEmployeeFirst'),
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    const employee = employees.find(e => e.id === selectedCheckInEmployee);
-    if (!employee) return;
-
-    onCheckIn(
-      employee.id, 
-      employee.name, 
-      employee.nameAr, 
-      employee.department
-    );
-    
-    toast({
-      title: t('attendance.checkin.success'),
-      description: `${language === 'ar' ? employee.nameAr : employee.name} - ${currentTime.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}`,
-    });
-    
-    setShowCheckInDialog(false);
-    setSelectedCheckInEmployee('');
-  };
-
-  const handleCheckOut = () => {
-    if (!selectedCheckOutEmployee) {
-      toast({
-        title: t('attendance.selectEmployeeFirst'),
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const employee = employees.find(e => e.id === selectedCheckOutEmployee);
-    const todayRecord = records.find(r => r.date === today && r.employeeId === selectedCheckOutEmployee);
-    
-    if (!todayRecord || !employee) return;
-
-    // Calculate work hours
-    const checkInTime = todayRecord.checkIn;
-    const checkOutTime = `${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`;
-    
-    let workHours = 0;
-    let workMinutes = 0;
-    
-    if (checkInTime) {
-      const [inH, inM] = checkInTime.split(':').map(Number);
-      const [outH, outM] = [currentTime.getHours(), currentTime.getMinutes()];
-      const totalInMinutes = inH * 60 + inM;
-      const totalOutMinutes = outH * 60 + outM;
-      const diffMinutes = totalOutMinutes - totalInMinutes;
-      workHours = Math.floor(diffMinutes / 60);
-      workMinutes = diffMinutes % 60;
-    }
-
-    onCheckOut(todayRecord.id);
-    
-    toast({
-      title: t('attendance.checkout.success'),
-      description: `${language === 'ar' ? employee.nameAr : employee.name} - ${t('attendance.workDuration')}: ${workHours}h ${workMinutes}m`,
-    });
-    
-    setShowCheckOutDialog(false);
-    setSelectedCheckOutEmployee('');
-  };
-
-  const handleAddEmployee = () => {
-    if (!newEmployee.name || !newEmployee.nameAr || !newEmployee.department) {
-      toast({
-        title: t('attendance.fillAllFields'),
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const newId = `EMP${String(employees.length + 1).padStart(3, '0')}`;
-    const employee: Employee = {
-      id: newId,
-      name: newEmployee.name,
-      nameAr: newEmployee.nameAr,
-      department: newEmployee.department,
-      location: newEmployee.location,
-    };
-
-    // Employee added locally (would need addEmployee from context for persistence)
-    setShowAddEmployee(false);
-    setNewEmployee({ name: '', nameAr: '', department: '', location: 'HQ' });
-    
-    toast({
-      title: t('attendance.employeeAdded'),
-      description: `${employee.name} - ${employee.nameAr}`,
-    });
-  };
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { 
@@ -280,6 +105,45 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
     })
     .slice(0, 5);
 
+  // Selected employee for direct check-in/out
+  const [selectedStation, setSelectedStation] = useState<string>('all');
+  const [selectedDept, setSelectedDept] = useState<string>('all');
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
+
+  const mainDepartments = useMemo(() => getDepartmentsForStation(selectedStation), [contextEmployees, selectedStation]);
+  
+  const filteredEmployeesList = useMemo(() => {
+    return employees.filter(emp => {
+      if (selectedStation !== 'all' && emp.stationId !== selectedStation) return false;
+      if (selectedDept !== 'all' && emp.departmentId !== selectedDept) return false;
+      return true;
+    });
+  }, [employees, selectedStation, selectedDept]);
+
+  const selectedEmpData = employees.find(e => e.id === selectedEmployee);
+  const selectedEmpTodayRecord = records.find(r => r.date === today && r.employeeId === selectedEmployee);
+  const isCheckedIn = selectedEmpTodayRecord?.checkIn && !selectedEmpTodayRecord?.checkOut;
+  const isFullyDone = selectedEmpTodayRecord?.checkIn && selectedEmpTodayRecord?.checkOut;
+
+  const handleDirectCheckIn = () => {
+    if (!selectedEmployee || !selectedEmpData) return;
+    onCheckIn(selectedEmpData.id, selectedEmpData.name, selectedEmpData.nameAr, selectedEmpData.department);
+    toast({
+      title: t('attendance.checkin.success'),
+      description: `${language === 'ar' ? selectedEmpData.nameAr : selectedEmpData.name} - ${currentTime.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}`,
+    });
+  };
+
+  const handleDirectCheckOut = () => {
+    if (!selectedEmployee || !selectedEmpTodayRecord) return;
+    onCheckOut(selectedEmpTodayRecord.id);
+    const emp = selectedEmpData;
+    toast({
+      title: t('attendance.checkout.success'),
+      description: `${language === 'ar' ? emp?.nameAr : emp?.name}`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Current Time Card */}
@@ -290,42 +154,110 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
               <Calendar className="w-5 h-5 text-primary" />
               <span className="text-muted-foreground">{formatDate(currentTime)}</span>
             </div>
-            <div className="text-6xl font-bold text-primary mb-8 font-mono">
+            <div className="text-6xl font-bold text-primary mb-6 font-mono">
               {formatTime(currentTime)}
             </div>
-            
-            {/* Main Action Buttons */}
-            <div className={cn("flex justify-center gap-6 flex-wrap", isRTL && "flex-row-reverse")}>
-              <Button 
-                size="lg" 
-                className="bg-success hover:bg-success/90 min-w-[200px] h-16 text-xl gap-3 shadow-lg"
-                onClick={() => setShowCheckInDialog(true)}
-              >
-                <LogIn className="w-6 h-6" />
-                {t('attendance.checkin.button')}
-              </Button>
-              
-              <Button 
-                size="lg" 
-                variant="destructive"
-                className="min-w-[200px] h-16 text-xl gap-3 shadow-lg"
-                onClick={() => setShowCheckOutDialog(true)}
-              >
-                <LogOut className="w-6 h-6" />
-                {t('attendance.checkout.button')}
-              </Button>
-              
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="min-w-[200px] h-16 text-xl gap-3"
-                onClick={() => setShowAddEmployee(true)}
-              >
-                <Plus className="w-6 h-6" />
-                {t('attendance.addEmployee')}
-              </Button>
+          </div>
+
+          {/* Cascading Filters */}
+          <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-4 mb-6", isRTL && "direction-rtl")}>
+            {/* Station */}
+            <div>
+              <Label className="mb-2 block text-sm font-medium">
+                <MapPin className="w-4 h-4 inline-block mr-1" />
+                {language === 'ar' ? 'المحطة' : 'Station'}
+              </Label>
+              <Select value={selectedStation} onValueChange={(v) => { setSelectedStation(v); setSelectedDept('all'); setSelectedEmployee(''); }}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'ar' ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  {stations.map(s => <SelectItem key={s.id} value={s.id}>{s.nameAr}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Department */}
+            <div>
+              <Label className="mb-2 block text-sm font-medium">
+                <Building2 className="w-4 h-4 inline-block mr-1" />
+                {language === 'ar' ? 'القسم' : 'Department'}
+              </Label>
+              <Select value={selectedDept} onValueChange={(v) => { setSelectedDept(v); setSelectedEmployee(''); }}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'ar' ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
+                  {mainDepartments.map(d => <SelectItem key={d.id} value={d.id}>{d.nameAr}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Employee */}
+            <div>
+              <Label className="mb-2 block text-sm font-medium">
+                <User className="w-4 h-4 inline-block mr-1" />
+                {language === 'ar' ? 'الموظف' : 'Employee'}
+              </Label>
+              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={language === 'ar' ? 'اختر الموظف' : 'Select Employee'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredEmployeesList.length === 0 ? (
+                    <div className="p-4 text-center text-muted-foreground">
+                      {language === 'ar' ? 'لا يوجد موظفين' : 'No employees'}
+                    </div>
+                  ) : (
+                    filteredEmployeesList.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {language === 'ar' ? emp.nameAr : emp.name} ({emp.id})
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+
+          {/* Employee Status & Action Buttons */}
+          {selectedEmployee && selectedEmpData && (
+            <div className="p-4 rounded-xl border border-border/30 bg-background/50 mb-4">
+              <div className={cn("flex items-center justify-between flex-wrap gap-4", isRTL && "flex-row-reverse")}>
+                <div>
+                  <p className="text-lg font-bold">{language === 'ar' ? selectedEmpData.nameAr : selectedEmpData.name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedEmpData.department} • {selectedEmpData.id}</p>
+                  {selectedEmpTodayRecord?.checkIn && (
+                    <Badge variant="outline" className="mt-1 bg-success/10 text-success border-success">
+                      <LogIn className="w-3 h-3 mr-1" />
+                      {language === 'ar' ? 'تسجيل حضور' : 'Checked in'}: {selectedEmpTodayRecord.checkIn}
+                    </Badge>
+                  )}
+                </div>
+                <div className={cn("flex gap-3", isRTL && "flex-row-reverse")}>
+                  {!selectedEmpTodayRecord?.checkIn && (
+                    <Button size="lg" className="bg-success hover:bg-success/90 h-14 text-lg gap-2 shadow-lg" onClick={handleDirectCheckIn}>
+                      <LogIn className="w-5 h-5" />
+                      {t('attendance.checkin.button')}
+                    </Button>
+                  )}
+                  {isCheckedIn && (
+                    <Button size="lg" variant="destructive" className="h-14 text-lg gap-2 shadow-lg" onClick={handleDirectCheckOut}>
+                      <LogOut className="w-5 h-5" />
+                      {t('attendance.checkout.button')}
+                    </Button>
+                  )}
+                  {isFullyDone && (
+                    <Badge className="bg-muted text-muted-foreground text-sm px-4 py-2">
+                      {language === 'ar' ? 'تم تسجيل الحضور والانصراف' : 'Fully checked in/out'}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!selectedEmployee && (
+            <div className="text-center text-muted-foreground py-4">
+              {language === 'ar' ? 'اختر المحطة والقسم ثم الموظف لتسجيل الحضور أو الانصراف' : 'Select station, department, then employee to check in/out'}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -429,298 +361,6 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
         </Card>
       )}
 
-      {/* Check-In Dialog */}
-      <Dialog open={showCheckInDialog} onOpenChange={setShowCheckInDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-              <LogIn className="w-5 h-5 text-success" />
-              {t('attendance.checkin.button')}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* Station Filter */}
-            <div>
-              <Label className="mb-2 block">{language === 'ar' ? 'المحطة' : 'Station'}</Label>
-              <Select value={checkInStation} onValueChange={(v) => { setCheckInStation(v); setCheckInDept('all'); setSelectedCheckInEmployee(''); }}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{language === 'ar' ? 'جميع المحطات' : 'All Stations'}</SelectItem>
-                  {stations.map(s => <SelectItem key={s.id} value={s.id}>{s.nameAr}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Department Filter */}
-            <div>
-              <Label className="mb-2 block">{language === 'ar' ? 'القسم' : 'Department'}</Label>
-              <Select value={checkInDept} onValueChange={(v) => { setCheckInDept(v); setSelectedCheckInEmployee(''); }}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{language === 'ar' ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
-                  {checkInDepartments.map(d => <SelectItem key={d.id} value={d.id}>{d.nameAr}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Employee Select */}
-            <div>
-              <Label className="mb-2 block">{t('attendance.selectEmployee')}</Label>
-              <Select value={selectedCheckInEmployee} onValueChange={setSelectedCheckInEmployee}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t('attendance.selectEmployeePlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {employeesNotCheckedIn.length === 0 ? (
-                    <div className="p-4 text-center text-muted-foreground">
-                      {t('attendance.allEmployeesCheckedIn')}
-                    </div>
-                  ) : (
-                    employeesNotCheckedIn.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                          <span className="font-mono text-xs text-muted-foreground">{emp.id}</span>
-                          <span>{language === 'ar' ? emp.nameAr : emp.name}</span>
-                          <Badge variant="outline" className="text-xs ml-2">{emp.department}</Badge>
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {selectedCheckInEmployee && (
-              <div className="p-4 bg-success/10 rounded-lg border border-success/20">
-                <p className="text-sm text-muted-foreground mb-1">{t('attendance.checkin.time')}</p>
-                <p className="text-2xl font-bold text-success">
-                  {currentTime.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { 
-                    hour: '2-digit', minute: '2-digit', hour12: true 
-                  })}
-                </p>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowCheckInDialog(false);
-              setSelectedCheckInEmployee('');
-              setCheckInStation('all');
-              setCheckInDept('all');
-            }}>
-              {t('common.cancel')}
-            </Button>
-            <Button 
-              className="bg-success hover:bg-success/90"
-              onClick={handleCheckIn}
-              disabled={!selectedCheckInEmployee}
-            >
-              <LogIn className="w-4 h-4 mr-2" />
-              {t('attendance.checkin.confirm')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Check-Out Dialog */}
-      <Dialog open={showCheckOutDialog} onOpenChange={setShowCheckOutDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-              <LogOut className="w-5 h-5 text-destructive" />
-              {t('attendance.checkout.button')}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* Station Filter */}
-            <div>
-              <Label className="mb-2 block">{language === 'ar' ? 'المحطة' : 'Station'}</Label>
-              <Select value={checkOutStation} onValueChange={(v) => { setCheckOutStation(v); setCheckOutDept('all'); setSelectedCheckOutEmployee(''); }}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{language === 'ar' ? 'جميع المحطات' : 'All Stations'}</SelectItem>
-                  {stations.map(s => <SelectItem key={s.id} value={s.id}>{s.nameAr}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Department Filter */}
-            <div>
-              <Label className="mb-2 block">{language === 'ar' ? 'القسم' : 'Department'}</Label>
-              <Select value={checkOutDept} onValueChange={(v) => { setCheckOutDept(v); setSelectedCheckOutEmployee(''); }}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{language === 'ar' ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
-                  {checkOutDepartments.map(d => <SelectItem key={d.id} value={d.id}>{d.nameAr}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Employee Select */}
-            <div>
-              <Label className="mb-2 block">{t('attendance.selectEmployee')}</Label>
-              <Select value={selectedCheckOutEmployee} onValueChange={setSelectedCheckOutEmployee}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t('attendance.selectEmployeePlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredRecordsCheckedInNotOut.length === 0 ? (
-                    <div className="p-4 text-center text-muted-foreground">
-                      {t('attendance.noEmployeesToCheckOut')}
-                    </div>
-                  ) : (
-                    filteredRecordsCheckedInNotOut.map((record) => {
-                      const emp = employees.find(e => e.id === record.employeeId);
-                      const displayName = language === 'ar' 
-                        ? (emp?.nameAr || record.employeeNameAr) 
-                        : (emp?.name || record.employeeName);
-                      return (
-                        <SelectItem key={record.id} value={record.employeeId}>
-                          <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                            <span className="font-mono text-xs text-muted-foreground">{record.employeeId}</span>
-                            <span className="font-medium">{displayName}</span>
-                            <Badge variant="outline" className="text-xs bg-success/10 text-success">
-                              {t('attendance.checkin.time')}: {record.checkIn}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      );
-                    })
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {selectedCheckOutEmployee && (() => {
-              const record = records.find(r => r.date === today && r.employeeId === selectedCheckOutEmployee);
-              const checkInTime = record?.checkIn;
-              let workHours = 0;
-              let workMinutes = 0;
-              
-              if (checkInTime) {
-                const [inH, inM] = checkInTime.split(':').map(Number);
-                const [outH, outM] = [currentTime.getHours(), currentTime.getMinutes()];
-                const diffMinutes = (outH * 60 + outM) - (inH * 60 + inM);
-                workHours = Math.floor(diffMinutes / 60);
-                workMinutes = diffMinutes % 60;
-              }
-              
-              return (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-success/10 rounded-lg border border-success/20">
-                      <p className="text-xs text-muted-foreground">{t('attendance.checkin.time')}</p>
-                      <p className="text-xl font-bold text-success">{checkInTime}</p>
-                    </div>
-                    <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                      <p className="text-xs text-muted-foreground">{t('attendance.checkout.time')}</p>
-                      <p className="text-xl font-bold text-destructive">
-                        {currentTime.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { 
-                          hour: '2-digit', 
-                          minute: '2-digit',
-                          hour12: true 
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/20 text-center">
-                    <p className="text-sm text-muted-foreground mb-1">{t('attendance.workDuration')}</p>
-                    <p className="text-3xl font-bold text-primary">{workHours}h {workMinutes}m</p>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowCheckOutDialog(false);
-              setSelectedCheckOutEmployee('');
-              setCheckOutStation('all');
-              setCheckOutDept('all');
-            }}>
-              {t('common.cancel')}
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={handleCheckOut}
-              disabled={!selectedCheckOutEmployee}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              {t('attendance.checkout.confirm')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Employee Dialog */}
-      <Dialog open={showAddEmployee} onOpenChange={setShowAddEmployee}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('attendance.addNewEmployee')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>{t('attendance.employeeNameEn')}</Label>
-              <Input 
-                value={newEmployee.name}
-                onChange={(e) => setNewEmployee(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="John Doe"
-              />
-            </div>
-            <div>
-              <Label>{t('attendance.employeeNameAr')}</Label>
-              <Input 
-                value={newEmployee.nameAr}
-                onChange={(e) => setNewEmployee(prev => ({ ...prev, nameAr: e.target.value }))}
-                placeholder="جون دو"
-                dir="rtl"
-              />
-            </div>
-            <div>
-              <Label>{t('attendance.department')}</Label>
-              <Select 
-                value={newEmployee.department}
-                onValueChange={(value) => setNewEmployee(prev => ({ ...prev, department: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('attendance.selectDepartment')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IT">IT</SelectItem>
-                  <SelectItem value="HR">HR</SelectItem>
-                  <SelectItem value="Finance">Finance</SelectItem>
-                  <SelectItem value="Sales">Sales</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Operations">Operations</SelectItem>
-                  <SelectItem value="Security">Security</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>{t('attendance.location')}</Label>
-              <Select 
-                value={newEmployee.location}
-                onValueChange={(value) => setNewEmployee(prev => ({ ...prev, location: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="HQ">HQ - المقر الرئيسي</SelectItem>
-                  <SelectItem value="Airport-T1">Airport Terminal 1 - صالة 1</SelectItem>
-                  <SelectItem value="Airport-T2">Airport Terminal 2 - صالة 2</SelectItem>
-                  <SelectItem value="Airport-T3">Airport Terminal 3 - صالة 3</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddEmployee(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button onClick={handleAddEmployee}>
-              <Plus className="w-4 h-4 mr-2" />
-              {t('common.add')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
