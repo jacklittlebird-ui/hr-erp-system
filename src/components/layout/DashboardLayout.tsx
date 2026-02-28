@@ -13,17 +13,32 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const { isRTL } = useLanguage();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <div className={cn(
       "min-h-screen bg-background",
       isRTL ? "font-arabic" : "font-sans"
     )}>
-      <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-      <Sidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
+      <Header onToggleSidebar={() => {
+        if (isMobile) {
+          setSidebarOpen(!sidebarOpen);
+        } else {
+          setSidebarCollapsed(!sidebarCollapsed);
+        }
+      }} />
+      <Sidebar
+        open={sidebarOpen}
+        onOpenChange={setSidebarOpen}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
       <main className={cn(
         "pt-16 min-h-screen transition-all duration-300",
-        !isMobile && sidebarOpen && (isRTL ? "mr-64" : "ml-64")
+        !isMobile && (sidebarCollapsed
+          ? (isRTL ? "mr-16" : "ml-16")
+          : (isRTL ? "mr-64" : "ml-64")
+        )
       )}>
         <div className="p-4 md:p-6">
           {children}

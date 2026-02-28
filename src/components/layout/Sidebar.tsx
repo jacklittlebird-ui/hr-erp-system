@@ -7,6 +7,7 @@ import {
   LayoutDashboard, Users, Building2, Clock, FileText, Calendar, Wallet,
   FileBarChart, HandCoins, UserPlus, Star, Monitor, Shirt, FolderOpen, BarChart3,
   GraduationCap, Settings, Shield, Layers, UserCog, UserCheck,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 interface NavItem {
@@ -44,41 +45,66 @@ const configNavItems: NavItem[] = [
 interface SidebarProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
+export const Sidebar = ({ open, onOpenChange, collapsed, onToggleCollapse }: SidebarProps) => {
   const { t, isRTL } = useLanguage();
   const location = useLocation();
   const isMobile = useIsMobile();
 
+  const CollapseIcon = isRTL
+    ? (collapsed ? ChevronLeft : ChevronRight)
+    : (collapsed ? ChevronRight : ChevronLeft);
+
   const navContent = (
-    <nav className="p-4 space-y-1">
-      {mainNavItems.map((item) => (
-        <NavButton
-          key={item.key}
-          item={item}
-          t={t}
-          isRTL={isRTL}
-          isActive={location.pathname === item.path}
-          onNavigate={() => isMobile && onOpenChange(false)}
-        />
-      ))}
-      <div className="pt-6 pb-2">
-        <p className="px-3 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-          {t('nav.configurations')}
-        </p>
-      </div>
-      {configNavItems.map((item) => (
-        <NavButton
-          key={item.key}
-          item={item}
-          t={t}
-          isRTL={isRTL}
-          isActive={location.pathname === item.path}
-          onNavigate={() => isMobile && onOpenChange(false)}
-        />
-      ))}
-    </nav>
+    <>
+      {/* Collapse toggle - desktop only */}
+      {!isMobile && (
+        <div className={cn("flex items-center p-3", collapsed ? "justify-center" : isRTL ? "justify-start" : "justify-end")}>
+          <button
+            onClick={onToggleCollapse}
+            className="p-1.5 rounded-md hover:bg-sidebar-accent/50 text-sidebar-foreground/60 transition-colors"
+          >
+            <CollapseIcon className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      <nav className="p-2 space-y-1">
+        {mainNavItems.map((item) => (
+          <NavButton
+            key={item.key}
+            item={item}
+            t={t}
+            isRTL={isRTL}
+            isActive={location.pathname === item.path}
+            collapsed={collapsed && !isMobile}
+            onNavigate={() => isMobile && onOpenChange(false)}
+          />
+        ))}
+        {(!collapsed || isMobile) && (
+          <div className="pt-6 pb-2">
+            <p className="px-3 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
+              {t('nav.configurations')}
+            </p>
+          </div>
+        )}
+        {collapsed && !isMobile && <div className="pt-4 border-t border-sidebar-border my-2" />}
+        {configNavItems.map((item) => (
+          <NavButton
+            key={item.key}
+            item={item}
+            t={t}
+            isRTL={isRTL}
+            isActive={location.pathname === item.path}
+            collapsed={collapsed && !isMobile}
+            onNavigate={() => isMobile && onOpenChange(false)}
+          />
+        ))}
+      </nav>
+    </>
   );
 
   // Mobile: use Sheet drawer
@@ -98,12 +124,11 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
   }
 
   // Desktop: collapsible sidebar
-  if (!open) return null;
-
   return (
     <aside className={cn(
-      "fixed top-16 h-[calc(100vh-4rem)] w-64 bg-sidebar border-sidebar-border overflow-y-auto transition-all duration-300 z-40",
-      isRTL ? "right-0 border-l" : "left-0 border-r"
+      "fixed top-16 h-[calc(100vh-4rem)] bg-sidebar border-sidebar-border overflow-y-auto transition-all duration-300 z-40 flex flex-col",
+      isRTL ? "right-0 border-l" : "left-0 border-r",
+      collapsed ? "w-16" : "w-64"
     )}>
       {navContent}
     </aside>
@@ -115,26 +140,29 @@ interface NavButtonProps {
   t: (key: string) => string;
   isRTL: boolean;
   isActive: boolean;
+  collapsed: boolean;
   onNavigate?: () => void;
 }
 
-const NavButton: React.FC<NavButtonProps> = ({ item, t, isRTL, isActive, onNavigate }) => {
+const NavButton: React.FC<NavButtonProps> = ({ item, t, isRTL, isActive, collapsed, onNavigate }) => {
   const Icon = item.icon;
   const navigate = useNavigate();
 
   return (
     <button
       onClick={() => { navigate(item.path); onNavigate?.(); }}
+      title={collapsed ? t(item.key) : undefined}
       className={cn(
-        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+        "w-full flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
+        collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5",
         isActive
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
           : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-        isRTL && "flex-row-reverse text-right"
+        isRTL && !collapsed && "flex-row-reverse text-right"
       )}
     >
       <Icon className="w-5 h-5 shrink-0" />
-      <span>{t(item.key)}</span>
+      {!collapsed && <span>{t(item.key)}</span>}
     </button>
   );
 };
