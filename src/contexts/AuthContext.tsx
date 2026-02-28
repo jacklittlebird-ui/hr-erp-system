@@ -10,6 +10,8 @@ export interface AuthUser {
   nameAr: string;
   email?: string;
   employeeId?: string;
+  /** The actual UUID of the employee record in the employees table */
+  employeeUuid?: string;
   role: UserRole;
   station?: string;
   stationId?: string;
@@ -62,7 +64,9 @@ async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
   }
 
   // Get employee info if employee
+  let employeeUuid: string | undefined;
   if (role === 'employee' && userRole.employee_id) {
+    employeeUuid = userRole.employee_id;
     const { data: emp } = await supabase
       .from('employees')
       .select('employee_code, name_ar, name_en')
@@ -78,6 +82,7 @@ async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
     nameAr,
     email: supabaseUser.email,
     employeeId: employeeCode,
+    employeeUuid,
     role,
     station: stationCode,
     stationId: userRole.station_id || undefined,
