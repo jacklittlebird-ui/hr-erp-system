@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { usePerformanceData, defaultCriteria, calculateScore, CriteriaItem } from '@/contexts/PerformanceDataContext';
-import { usePersistedState } from '@/hooks/usePersistedState';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import { stationLocations } from '@/data/stationLocations';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,8 +73,25 @@ const StationManagerPortal = () => {
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
   const ar = language === 'ar';
 
-  // Shared violations store (same key as ViolationsTab)
-  const [violations, setViolations] = usePersistedState<Violation[]>('hr_violations', []);
+  // Violations from Supabase
+  const [violations, setViolations] = useState<Violation[]>([]);
+
+  const fetchViolations = useCallback(async () => {
+    const { data } = await supabase.from('violations').select('*').order('created_at', { ascending: false });
+    if (data) {
+      setViolations(data.map(v => ({
+        id: v.id,
+        employeeId: v.employee_id,
+        date: v.date,
+        type: v.type,
+        description: v.description || '',
+        penalty: v.penalty || '',
+        status: v.status === 'approved' ? 'active' as const : v.status === 'resolved' ? 'resolved' as const : 'pending' as const,
+      })));
+    }
+  }, []);
+
+  useEffect(() => { fetchViolations(); }, [fetchViolations]);
 
   // Evaluation dialog state
   const [evalDialog, setEvalDialog] = useState(false);
@@ -120,9 +137,9 @@ const StationManagerPortal = () => {
     return reviews.filter(r => empIds.includes(r.employeeId) || r.station === user?.station);
   }, [reviews, stationEmployees, user?.station]);
 
-  // Filter violations for this station's employees
+  // Filter violations for this station's employees (violations now use UUID)
   const stationViolations = useMemo(() => {
-    const empIds = stationEmployees.map(e => e.employeeId);
+    const empIds = stationEmployees.map(e => e.id);
     return violations.filter(v => empIds.includes(v.employeeId));
   }, [violations, stationEmployees]);
 
@@ -181,31 +198,34 @@ const StationManagerPortal = () => {
     resetEvalForm();
   };
 
-  const handleAddViolation = () => {
+  const handleAddViolation = async () => {
     if (!violForm.employeeId || !violForm.type) {
       toast({ title: t('أكمل البيانات المطلوبة', 'Complete required fields'), variant: 'destructive' });
       return;
     }
     const emp = stationEmployees.find(e => e.id === violForm.employeeId);
     if (!emp) return;
-    const newViol: Violation = {
-      id: `viol_${Date.now()}`,
-      employeeId: emp.employeeId,
+    const { error } = await supabase.from('violations').insert({
+      employee_id: emp.id,
       date: violForm.date,
       type: violForm.type,
       description: violForm.description,
       penalty: violForm.penalty,
       status: 'pending',
-    };
-    setViolations(prev => [...prev, newViol]);
-    addNotification({ titleAr: `مخالفة جديدة بانتظار الموافقة للموظف: ${emp.nameAr}`, titleEn: `New violation pending approval for: ${emp.nameEn}`, type: 'warning', module: 'employee' });
-    toast({ title: t('تم إضافة المخالفة بنجاح', 'Violation added successfully') });
+      created_by: user?.id || null,
+    });
+    if (!error) {
+      addNotification({ titleAr: `مخالفة جديدة بانتظار الموافقة للموظف: ${emp.nameAr}`, titleEn: `New violation pending approval for: ${emp.nameEn}`, type: 'warning', module: 'employee' });
+      toast({ title: t('تم إضافة المخالفة بنجاح', 'Violation added successfully') });
+      await fetchViolations();
+    }
     setViolDialog(false);
     setViolForm({ employeeId: '', type: 'absence', description: '', penalty: '', date: new Date().toISOString().split('T')[0] });
   };
 
-  const handleDeleteViolation = (id: string) => {
-    setViolations(prev => prev.filter(v => v.id !== id));
+  const handleDeleteViolation = async (id: string) => {
+    await supabase.from('violations').delete().eq('id', id);
+    await fetchViolations();
     toast({ title: t('تم الحذف', 'Deleted') });
   };
 
@@ -253,8 +273,14 @@ const StationManagerPortal = () => {
     setEditViolDialog(true);
   };
 
-  const handleSaveEditViol = () => {
-    setViolations(prev => prev.map(v => v.id === editViolId ? { ...v, ...editViolForm } : v));
+  const handleSaveEditViol = async () => {
+    await supabase.from('violations').update({
+      type: editViolForm.type,
+      description: editViolForm.description,
+      penalty: editViolForm.penalty,
+      date: editViolForm.date,
+    }).eq('id', editViolId);
+    await fetchViolations();
     toast({ title: t('تم تحديث المخالفة', 'Violation updated') });
     setEditViolDialog(false);
   };
