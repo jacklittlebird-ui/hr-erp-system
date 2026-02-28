@@ -67,6 +67,10 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
         const ci = formatTime(r.check_in);
         const co = formatTime(r.check_out);
         const wt = calculateWorkTime(ci, co);
+        // Use DB values only if they are non-zero, otherwise use calculated values
+        const hasDbHours = (r.work_hours != null && r.work_hours > 0) || (r.work_minutes != null && r.work_minutes > 0);
+        const finalHours = hasDbHours ? (r.work_hours ?? 0) : wt.hours;
+        const finalMinutes = hasDbHours ? (r.work_minutes ?? 0) : wt.minutes;
         return {
           id: r.id,
           employeeId: r.employee_id,
@@ -78,9 +82,9 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
           checkOut: co,
           status: r.status as AttendanceEntry['status'],
           isMission: r.status === 'mission',
-          workHours: r.work_hours ?? wt.hours,
-          workMinutes: r.work_minutes ?? wt.minutes,
-          overtime: Math.max(0, (r.work_hours ?? wt.hours) - 8),
+          workHours: finalHours,
+          workMinutes: finalMinutes,
+          overtime: Math.max(0, finalHours - 8),
           notes: r.notes || undefined,
         };
       }));
@@ -179,7 +183,7 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
       const d = new Date(r.date);
       return d.getFullYear() === year && d.getMonth() === month;
     });
-    const present = monthRecords.filter(r => r.status === 'present' || r.status === 'late').length;
+    const present = monthRecords.filter(r => ['present', 'late', 'early-leave', 'mission'].includes(r.status)).length;
     const late = monthRecords.filter(r => r.status === 'late').length;
     const absent = monthRecords.filter(r => r.status === 'absent').length;
     const totalMinutes = monthRecords.reduce((s, r) => s + r.workHours * 60 + r.workMinutes, 0);
