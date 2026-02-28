@@ -1,8 +1,10 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
-  LayoutDashboard, Users, Building2, Clock, FileText, Calendar, KeyRound, Wallet,
+  LayoutDashboard, Users, Building2, Clock, FileText, Calendar, Wallet,
   FileBarChart, HandCoins, UserPlus, Star, Monitor, Shirt, FolderOpen, BarChart3,
   GraduationCap, Settings, Shield, Layers, UserCog, UserCheck,
 } from 'lucide-react';
@@ -39,28 +41,71 @@ const configNavItems: NavItem[] = [
   { key: 'nav.settings', icon: Settings, path: '/settings' },
 ];
 
-export const Sidebar = () => {
+interface SidebarProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
   const { t, isRTL } = useLanguage();
   const location = useLocation();
+  const isMobile = useIsMobile();
+
+  const navContent = (
+    <nav className="p-4 space-y-1">
+      {mainNavItems.map((item) => (
+        <NavButton
+          key={item.key}
+          item={item}
+          t={t}
+          isRTL={isRTL}
+          isActive={location.pathname === item.path}
+          onNavigate={() => isMobile && onOpenChange(false)}
+        />
+      ))}
+      <div className="pt-6 pb-2">
+        <p className="px-3 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
+          {t('nav.configurations')}
+        </p>
+      </div>
+      {configNavItems.map((item) => (
+        <NavButton
+          key={item.key}
+          item={item}
+          t={t}
+          isRTL={isRTL}
+          isActive={location.pathname === item.path}
+          onNavigate={() => isMobile && onOpenChange(false)}
+        />
+      ))}
+    </nav>
+  );
+
+  // Mobile: use Sheet drawer
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side={isRTL ? 'right' : 'left'}
+          className="w-64 p-0 bg-sidebar border-sidebar-border"
+        >
+          <div className="h-full overflow-y-auto pt-2">
+            {navContent}
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  // Desktop: collapsible sidebar
+  if (!open) return null;
 
   return (
     <aside className={cn(
-      "fixed top-16 h-[calc(100vh-4rem)] w-64 bg-sidebar border-sidebar-border overflow-y-auto",
+      "fixed top-16 h-[calc(100vh-4rem)] w-64 bg-sidebar border-sidebar-border overflow-y-auto transition-all duration-300 z-40",
       isRTL ? "right-0 border-l" : "left-0 border-r"
     )}>
-      <nav className="p-4 space-y-1">
-        {mainNavItems.map((item) => (
-          <NavButton key={item.key} item={item} t={t} isRTL={isRTL} isActive={location.pathname === item.path} />
-        ))}
-        <div className="pt-6 pb-2">
-          <p className="px-3 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-            {t('nav.configurations')}
-          </p>
-        </div>
-        {configNavItems.map((item) => (
-          <NavButton key={item.key} item={item} t={t} isRTL={isRTL} isActive={location.pathname === item.path} />
-        ))}
-      </nav>
+      {navContent}
     </aside>
   );
 };
@@ -70,15 +115,16 @@ interface NavButtonProps {
   t: (key: string) => string;
   isRTL: boolean;
   isActive: boolean;
+  onNavigate?: () => void;
 }
 
-const NavButton: React.FC<NavButtonProps> = ({ item, t, isRTL, isActive }) => {
+const NavButton: React.FC<NavButtonProps> = ({ item, t, isRTL, isActive, onNavigate }) => {
   const Icon = item.icon;
   const navigate = useNavigate();
 
   return (
     <button
-      onClick={() => navigate(item.path)}
+      onClick={() => { navigate(item.path); onNavigate?.(); }}
       className={cn(
         "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
         isActive

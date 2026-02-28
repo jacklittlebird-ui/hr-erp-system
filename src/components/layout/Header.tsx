@@ -1,11 +1,15 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Grid3X3, LogOut } from 'lucide-react';
+import { Grid3X3, LogOut, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
-export const Header = () => {
+interface HeaderProps {
+  onToggleSidebar?: () => void;
+}
+
+export const Header = ({ onToggleSidebar }: HeaderProps) => {
   const { language, setLanguage, t, isRTL } = useLanguage();
   const { logout } = useAuth();
 
@@ -15,27 +19,37 @@ export const Header = () => {
 
   return (
     <header className={cn(
-      "fixed top-0 left-0 right-0 h-16 bg-primary z-50 flex items-center justify-between px-6",
+      "fixed top-0 left-0 right-0 h-16 bg-primary z-50 flex items-center justify-between px-4 md:px-6",
       isRTL && "flex-row-reverse"
     )}>
-      <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
-        <Grid3X3 className="w-6 h-6 text-primary-foreground" />
+      <div className={cn("flex items-center gap-2 md:gap-3", isRTL && "flex-row-reverse")}>
+        {onToggleSidebar && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleSidebar}
+            className="text-primary-foreground hover:bg-primary-foreground/10 shrink-0"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        )}
+        <Grid3X3 className="w-6 h-6 text-primary-foreground hidden sm:block" />
         <h1 className={cn(
-          "text-xl font-bold text-primary-foreground",
+          "text-lg md:text-xl font-bold text-primary-foreground truncate",
           isRTL ? "font-arabic" : "font-sans"
         )}>
           {t('app.title')}
         </h1>
       </div>
 
-      <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
+      <div className={cn("flex items-center gap-2 md:gap-4", isRTL && "flex-row-reverse")}>
         <Button
           variant="secondary"
           size="sm"
           onClick={toggleLanguage}
-          className="min-w-[80px] font-semibold"
+          className="min-w-[60px] md:min-w-[80px] font-semibold text-xs md:text-sm"
         >
-          {language === 'ar' ? 'English' : 'عربي'}
+          {language === 'ar' ? 'EN' : 'عربي'}
         </Button>
         
         <NotificationDropdown variant="header" />
