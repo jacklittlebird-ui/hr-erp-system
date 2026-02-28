@@ -1042,6 +1042,39 @@ export type Database = {
           },
         ]
       }
+      permission_profiles: {
+        Row: {
+          created_at: string
+          description_ar: string | null
+          description_en: string | null
+          id: string
+          is_system: boolean
+          modules: Json
+          name_ar: string
+          name_en: string
+        }
+        Insert: {
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          id?: string
+          is_system?: boolean
+          modules?: Json
+          name_ar: string
+          name_en: string
+        }
+        Update: {
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          id?: string
+          is_system?: boolean
+          modules?: Json
+          name_ar?: string
+          name_en?: string
+        }
+        Relationships: []
+      }
       permission_requests: {
         Row: {
           created_at: string
@@ -1492,6 +1525,38 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_module_permissions: {
+        Row: {
+          created_at: string
+          custom_modules: Json | null
+          id: string
+          profile_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_modules?: Json | null
+          id?: string
+          profile_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_modules?: Json | null
+          id?: string
+          profile_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_module_permissions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "permission_profiles"
             referencedColumns: ["id"]
           },
         ]
