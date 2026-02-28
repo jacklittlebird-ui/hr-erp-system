@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface Employee {
   id: string;
@@ -25,21 +26,24 @@ interface Employee {
   linkId: string;
   hireDate: string;
   mobile: string;
-  photo?: string;
   jobFunctions: string[];
 }
 
 interface TrainingRecord {
   id: string;
   employeeId: string;
+  courseId: string;
   courseName: string;
-  provider: string;
-  location: string;
   startDate: string;
   endDate: string;
-  plannedDate: string;
   result: 'passed' | 'failed' | 'pending';
   percentage?: number;
+}
+
+interface CourseOption {
+  id: string;
+  nameEn: string;
+  nameAr: string;
 }
 
 const jobFunctionLabels: Record<string, { en: string; ar: string }> = {
@@ -58,6 +62,8 @@ const jobFunctionLabels: Record<string, { en: string; ar: string }> = {
 
 export const TrainingRecords = () => {
   const { t, language, isRTL } = useLanguage();
+  const ar = language === 'ar';
+  const { toast } = useToast();
   const { employees: contextEmployees } = useEmployeeData();
   const [searchName, setSearchName] = useState('');
   const [searchDept, setSearchDept] = useState('');
@@ -65,9 +71,19 @@ export const TrainingRecords = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false);
   const [trainingRecords, setTrainingRecords] = useState<TrainingRecord[]>([]);
+  const [courseOptions, setCourseOptions] = useState<CourseOption[]>([]);
   const [newRecord, setNewRecord] = useState({
-    courseName: '', provider: '', location: '', startDate: '', endDate: '', plannedDate: '',
+    courseId: '', startDate: '', endDate: '', result: 'pending' as 'passed' | 'failed' | 'pending', score: '',
   });
+
+  // Fetch available courses from DB
+  useEffect(() => {
+    const fetchCourses = async () => {
+      const { data } = await supabase.from('training_courses').select('id, name_en, name_ar').eq('is_active', true);
+      setCourseOptions((data || []).map((c: any) => ({ id: c.id, nameEn: c.name_en, nameAr: c.name_ar })));
+    };
+    fetchCourses();
+  }, []);
 
   const trainingEmployees: Employee[] = useMemo(() => contextEmployees.map((emp) => ({
     id: emp.id,
@@ -89,15 +105,13 @@ export const TrainingRecords = () => {
         .from('training_records')
         .select('*, training_courses(name_en, name_ar)')
         .eq('employee_id', selectedEmployee.id);
-      setTrainingRecords((data || []).map(r => ({
+      setTrainingRecords((data || []).map((r: any) => ({
         id: r.id,
         employeeId: r.employee_id,
-        courseName: r.training_courses ? (language === 'ar' ? (r.training_courses as any).name_ar : (r.training_courses as any).name_en) : '',
-        provider: '',
-        location: '',
+        courseId: r.course_id || '',
+        courseName: r.training_courses ? (ar ? r.training_courses.name_ar : r.training_courses.name_en) : '',
         startDate: r.start_date || '',
         endDate: r.end_date || '',
-        plannedDate: '',
         result: r.status === 'completed' ? 'passed' : r.status === 'failed' ? 'failed' : 'pending',
         percentage: r.score || undefined,
       })));
@@ -111,6 +125,43 @@ export const TrainingRecords = () => {
     const stationMatch = !searchStation || searchStation === 'all' || emp.station.includes(searchStation);
     return nameMatch && deptMatch && stationMatch;
   });
+
+  const handleAddRecord = async () => {
+    if (!selectedEmployee || !newRecord.courseId) {
+      toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'اختر الدورة' : 'Select a course', variant: 'destructive' });
+      return;
+    }
+    const statusMap = { passed: 'completed', failed: 'failed', pending: 'enrolled' };
+    await supabase.from('training_records').insert({
+      employee_id: selectedEmployee.id,
+      course_id: newRecord.courseId,
+      start_date: newRecord.startDate || null,
+      end_date: newRecord.endDate || null,
+      status: statusMap[newRecord.result],
+      score: newRecord.score ? parseFloat(newRecord.score) : null,
+    });
+    toast({ title: ar ? 'تمت الإضافة' : 'Added' });
+    setIsAddRecordOpen(false);
+    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '' });
+    // Refresh
+    const { data } = await supabase
+      .from('training_records')
+      .select('*, training_courses(name_en, name_ar)')
+      .eq('employee_id', selectedEmployee.id);
+    setTrainingRecords((data || []).map((r: any) => ({
+      id: r.id, employeeId: r.employee_id, courseId: r.course_id || '',
+      courseName: r.training_courses ? (ar ? r.training_courses.name_ar : r.training_courses.name_en) : '',
+      startDate: r.start_date || '', endDate: r.end_date || '',
+      result: r.status === 'completed' ? 'passed' : r.status === 'failed' ? 'failed' : 'pending',
+      percentage: r.score || undefined,
+    })));
+  };
+
+  const handleDeleteRecord = async (id: string) => {
+    await supabase.from('training_records').delete().eq('id', id);
+    setTrainingRecords(prev => prev.filter(r => r.id !== id));
+    toast({ title: ar ? 'تم الحذف' : 'Deleted' });
+  };
 
   const getResultBadge = (result: string) => {
     switch(result) {
@@ -215,7 +266,7 @@ export const TrainingRecords = () => {
                   <TableBody>
                     {trainingRecords.map(record => (
                       <TableRow key={record.id}>
-                        <TableCell><Button variant="ghost" size="icon" className="h-6 w-6 text-destructive"><X className="h-4 w-4" /></Button></TableCell>
+                        <TableCell><Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteRecord(record.id)}><X className="h-4 w-4" /></Button></TableCell>
                         <TableCell>{record.courseName}</TableCell>
                         <TableCell>{record.startDate}</TableCell>
                         <TableCell>{record.endDate}</TableCell>
@@ -240,15 +291,35 @@ export const TrainingRecords = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{t('training.records.add')}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><Label>{t('training.courseName')}</Label><Input value={newRecord.courseName} onChange={(e) => setNewRecord({ ...newRecord, courseName: e.target.value })} /></div>
-            <div><Label>{t('training.provider')}</Label><Input value={newRecord.provider} onChange={(e) => setNewRecord({ ...newRecord, provider: e.target.value })} /></div>
-            <div><Label>{t('training.location')}</Label><Input value={newRecord.location} onChange={(e) => setNewRecord({ ...newRecord, location: e.target.value })} /></div>
+            <div className="col-span-2">
+              <Label>{t('training.courseName')}</Label>
+              <Select value={newRecord.courseId} onValueChange={(v) => setNewRecord({ ...newRecord, courseId: v })}>
+                <SelectTrigger><SelectValue placeholder={ar ? '-- اختر الدورة --' : '-- Select Course --'} /></SelectTrigger>
+                <SelectContent>
+                  {courseOptions.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{ar ? c.nameAr : c.nameEn}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>{t('training.startDate')}</Label><Input type="date" value={newRecord.startDate} onChange={(e) => setNewRecord({ ...newRecord, startDate: e.target.value })} /></div>
             <div><Label>{t('training.endDate')}</Label><Input type="date" value={newRecord.endDate} onChange={(e) => setNewRecord({ ...newRecord, endDate: e.target.value })} /></div>
+            <div>
+              <Label>{t('training.result')}</Label>
+              <Select value={newRecord.result} onValueChange={(v) => setNewRecord({ ...newRecord, result: v as any })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">{t('training.result.pending')}</SelectItem>
+                  <SelectItem value="passed">{t('training.result.passed')}</SelectItem>
+                  <SelectItem value="failed">{t('training.result.failed')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>{t('training.percentage')}</Label><Input type="number" value={newRecord.score} onChange={(e) => setNewRecord({ ...newRecord, score: e.target.value })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddRecordOpen(false)}>{t('common.cancel')}</Button>
-            <Button onClick={() => setIsAddRecordOpen(false)}>{t('common.save')}</Button>
+            <Button onClick={handleAddRecord}>{t('common.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

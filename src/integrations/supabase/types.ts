@@ -1089,6 +1089,101 @@ export type Database = {
           },
         ]
       }
+      planned_course_assignments: {
+        Row: {
+          actual_date: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          planned_course_id: string
+        }
+        Insert: {
+          actual_date?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          planned_course_id: string
+        }
+        Update: {
+          actual_date?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          planned_course_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planned_course_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planned_course_assignments_planned_course_id_fkey"
+            columns: ["planned_course_id"]
+            isOneToOne: false
+            referencedRelation: "planned_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planned_courses: {
+        Row: {
+          cost: number | null
+          course_code: string
+          course_id: string | null
+          course_name: string
+          created_at: string
+          duration: string | null
+          id: string
+          location: string | null
+          participants: number | null
+          planned_date: string | null
+          provider: string | null
+          status: string
+          trainer: string | null
+        }
+        Insert: {
+          cost?: number | null
+          course_code?: string
+          course_id?: string | null
+          course_name?: string
+          created_at?: string
+          duration?: string | null
+          id?: string
+          location?: string | null
+          participants?: number | null
+          planned_date?: string | null
+          provider?: string | null
+          status?: string
+          trainer?: string | null
+        }
+        Update: {
+          cost?: number | null
+          course_code?: string
+          course_id?: string | null
+          course_name?: string
+          created_at?: string
+          duration?: string | null
+          id?: string
+          location?: string | null
+          participants?: number | null
+          planned_date?: string | null
+          provider?: string | null
+          status?: string
+          trainer?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planned_courses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1204,33 +1299,107 @@ export type Database = {
       }
       training_courses: {
         Row: {
+          advanced_topics: string | null
+          basic_topics: string | null
+          course_administration: string | null
+          course_code: string | null
+          course_duration: string | null
+          course_objective: string | null
           created_at: string
           description: string | null
           duration_hours: number | null
+          edited_by: string | null
+          examination: string | null
+          exercises: string | null
           id: string
+          intermediate_topics: string | null
           is_active: boolean | null
           name_ar: string
           name_en: string
+          provider: string | null
+          reference_material: string | null
         }
         Insert: {
+          advanced_topics?: string | null
+          basic_topics?: string | null
+          course_administration?: string | null
+          course_code?: string | null
+          course_duration?: string | null
+          course_objective?: string | null
           created_at?: string
           description?: string | null
           duration_hours?: number | null
+          edited_by?: string | null
+          examination?: string | null
+          exercises?: string | null
           id?: string
+          intermediate_topics?: string | null
           is_active?: boolean | null
           name_ar: string
           name_en: string
+          provider?: string | null
+          reference_material?: string | null
         }
         Update: {
+          advanced_topics?: string | null
+          basic_topics?: string | null
+          course_administration?: string | null
+          course_code?: string | null
+          course_duration?: string | null
+          course_objective?: string | null
           created_at?: string
           description?: string | null
           duration_hours?: number | null
+          edited_by?: string | null
+          examination?: string | null
+          exercises?: string | null
           id?: string
+          intermediate_topics?: string | null
           is_active?: boolean | null
           name_ar?: string
           name_en?: string
+          provider?: string | null
+          reference_material?: string | null
         }
         Relationships: []
+      }
+      training_debts: {
+        Row: {
+          actual_date: string
+          cost: number
+          course_name: string
+          created_at: string
+          employee_id: string
+          expiry_date: string
+          id: string
+        }
+        Insert: {
+          actual_date: string
+          cost?: number
+          course_name: string
+          created_at?: string
+          employee_id: string
+          expiry_date: string
+          id?: string
+        }
+        Update: {
+          actual_date?: string
+          cost?: number
+          course_name?: string
+          created_at?: string
+          employee_id?: string
+          expiry_date?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_debts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       training_records: {
         Row: {

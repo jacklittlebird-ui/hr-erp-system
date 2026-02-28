@@ -20,28 +20,17 @@ interface Course {
   nameEn: string;
   nameAr: string;
   provider: string;
-  category: string;
   duration: string;
-  method: 'classroom' | 'online' | 'cbt' | 'ojt' | 'blended';
-  validityPeriod: string;
   status: 'active' | 'inactive';
   description: string;
+  durationHours: number;
 }
-
-const methodLabels = {
-  classroom: { en: 'Class Room', ar: 'فصل دراسي', abbr: 'CR' },
-  online: { en: 'Self Study', ar: 'دراسة ذاتية', abbr: 'SS' },
-  cbt: { en: 'Computer Based Training', ar: 'تدريب حاسوبي', abbr: 'CBT' },
-  ojt: { en: 'On Job Training', ar: 'تدريب على رأس العمل', abbr: 'OJT' },
-  blended: { en: 'Blended', ar: 'مدمج', abbr: 'BL' },
-};
 
 export const CoursesList = () => {
   const { t, language, isRTL } = useLanguage();
   const { toast } = useToast();
   const [courses, setCourses] = useState<Course[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -50,10 +39,15 @@ export const CoursesList = () => {
 
   const fetchCourses = async () => {
     const { data } = await supabase.from('training_courses').select('*').order('created_at', { ascending: false });
-    setCourses((data || []).map(c => ({
-      id: c.id, code: '', nameEn: c.name_en, nameAr: c.name_ar, provider: '',
-      category: '', duration: c.duration_hours ? `${c.duration_hours} hours` : '',
-      method: 'classroom' as const, validityPeriod: '', description: c.description || '',
+    setCourses((data || []).map((c: any) => ({
+      id: c.id,
+      code: c.course_code || '',
+      nameEn: c.name_en,
+      nameAr: c.name_ar,
+      provider: c.provider || '',
+      duration: c.duration_hours ? `${c.duration_hours} hours` : '',
+      durationHours: c.duration_hours || 0,
+      description: c.description || '',
       status: c.is_active ? 'active' as const : 'inactive' as const,
     })));
   };
@@ -61,15 +55,14 @@ export const CoursesList = () => {
   useEffect(() => { fetchCourses(); }, []);
 
   const filteredCourses = courses.filter(course => {
-    const searchMatch = course.nameEn.toLowerCase().includes(searchQuery.toLowerCase()) || course.nameAr.includes(searchQuery);
-    const categoryMatch = !filterCategory || filterCategory === 'all' || course.category === filterCategory;
+    const searchMatch = course.nameEn.toLowerCase().includes(searchQuery.toLowerCase()) || course.nameAr.includes(searchQuery) || course.code.toLowerCase().includes(searchQuery.toLowerCase());
     const statusMatch = !filterStatus || filterStatus === 'all' || course.status === filterStatus;
-    return searchMatch && categoryMatch && statusMatch;
+    return searchMatch && statusMatch;
   });
 
   const handleNew = () => {
     setSelectedCourse(null); setIsViewMode(false);
-    setFormData({ code: '', nameEn: '', nameAr: '', provider: '', category: 'Safety', duration: '', method: 'classroom', validityPeriod: '', status: 'active', description: '' });
+    setFormData({ code: '', nameEn: '', nameAr: '', provider: '', durationHours: 0, status: 'active', description: '' });
     setIsDialogOpen(true);
   };
 
@@ -79,10 +72,25 @@ export const CoursesList = () => {
   const handleSave = async () => {
     if (!formData.nameEn) { toast({ title: t('common.error'), description: t('training.fillRequired'), variant: 'destructive' }); return; }
     if (selectedCourse) {
-      await supabase.from('training_courses').update({ name_en: formData.nameEn, name_ar: formData.nameAr || '', description: formData.description, is_active: formData.status === 'active' }).eq('id', selectedCourse.id);
+      await supabase.from('training_courses').update({
+        name_en: formData.nameEn,
+        name_ar: formData.nameAr || '',
+        description: formData.description,
+        is_active: formData.status === 'active',
+        provider: formData.provider || '',
+        course_code: formData.code || '',
+        duration_hours: formData.durationHours || 0,
+      } as any).eq('id', selectedCourse.id);
       toast({ title: t('common.success'), description: t('training.courses.updated') });
     } else {
-      await supabase.from('training_courses').insert({ name_en: formData.nameEn || '', name_ar: formData.nameAr || '', description: formData.description });
+      await supabase.from('training_courses').insert({
+        name_en: formData.nameEn || '',
+        name_ar: formData.nameAr || '',
+        description: formData.description,
+        provider: formData.provider || '',
+        course_code: formData.code || '',
+        duration_hours: formData.durationHours || 0,
+      } as any);
       toast({ title: t('common.success'), description: t('training.courses.added') });
     }
     setIsDialogOpen(false);
@@ -93,11 +101,6 @@ export const CoursesList = () => {
     await supabase.from('training_courses').delete().eq('id', courseId);
     toast({ title: t('common.success'), description: t('training.courses.deleted') });
     fetchCourses();
-  };
-
-  const getMethodBadge = (method: string) => {
-    const m = methodLabels[method as keyof typeof methodLabels];
-    return <Badge variant="outline">{m?.abbr || method}</Badge>;
   };
 
   return (
@@ -123,7 +126,9 @@ export const CoursesList = () => {
       <Card><CardContent className="p-0">
         <Table>
           <TableHeader><TableRow>
+            <TableHead>{language === 'ar' ? 'الكود' : 'Code'}</TableHead>
             <TableHead>{t('training.courses.name')}</TableHead>
+            <TableHead>{language === 'ar' ? 'الجهة' : 'Provider'}</TableHead>
             <TableHead>{t('training.courses.duration')}</TableHead>
             <TableHead>{t('training.courses.status')}</TableHead>
             <TableHead>{t('common.actions')}</TableHead>
@@ -131,7 +136,9 @@ export const CoursesList = () => {
           <TableBody>
             {filteredCourses.map(course => (
               <TableRow key={course.id}>
+                <TableCell className="font-mono">{course.code}</TableCell>
                 <TableCell className="font-medium">{language === 'ar' ? course.nameAr : course.nameEn}</TableCell>
+                <TableCell>{course.provider}</TableCell>
                 <TableCell>{course.duration}</TableCell>
                 <TableCell><Badge variant={course.status === 'active' ? 'default' : 'secondary'}>{course.status === 'active' ? t('training.status.active') : t('training.status.inactive')}</Badge></TableCell>
                 <TableCell>
@@ -143,7 +150,7 @@ export const CoursesList = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {filteredCourses.length === 0 && (<TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">{t('training.courses.noResults')}</TableCell></TableRow>)}
+            {filteredCourses.length === 0 && (<TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{t('training.courses.noResults')}</TableCell></TableRow>)}
           </TableBody>
         </Table>
       </CardContent></Card>
@@ -152,8 +159,20 @@ export const CoursesList = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{isViewMode ? t('training.courses.view') : selectedCourse ? t('training.courses.edit') : t('training.courses.add')}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
+            <div><Label>{language === 'ar' ? 'الكود' : 'Code'}</Label><Input value={formData.code || ''} onChange={(e) => setFormData({ ...formData, code: e.target.value })} disabled={isViewMode} /></div>
             <div><Label>{t('training.courses.nameEn')}</Label><Input value={formData.nameEn} onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })} disabled={isViewMode} /></div>
             <div><Label>{t('training.courses.nameAr')}</Label><Input value={formData.nameAr} onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })} disabled={isViewMode} dir="rtl" /></div>
+            <div><Label>{language === 'ar' ? 'الجهة المقدمة' : 'Provider'}</Label><Input value={formData.provider || ''} onChange={(e) => setFormData({ ...formData, provider: e.target.value })} disabled={isViewMode} /></div>
+            <div><Label>{language === 'ar' ? 'المدة (ساعات)' : 'Duration (hours)'}</Label><Input type="number" value={formData.durationHours || ''} onChange={(e) => setFormData({ ...formData, durationHours: parseInt(e.target.value) || 0 })} disabled={isViewMode} /></div>
+            <div><Label>{t('training.courses.status')}</Label>
+              <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v as any })} disabled={isViewMode}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">{t('training.status.active')}</SelectItem>
+                  <SelectItem value="inactive">{t('training.status.inactive')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="col-span-2"><Label>{t('training.courses.description')}</Label><Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} disabled={isViewMode} rows={3} /></div>
           </div>
           <DialogFooter>
