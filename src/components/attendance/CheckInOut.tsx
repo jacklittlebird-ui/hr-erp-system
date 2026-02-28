@@ -51,16 +51,48 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
     name: emp.nameEn,
     nameAr: emp.nameAr,
     department: emp.department,
+    departmentId: emp.departmentId || '',
+    stationId: emp.stationId || '',
     location: 'HQ',
   })), [contextEmployees]);
-  
+
   // Check-in dialog state
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
   const [selectedCheckInEmployee, setSelectedCheckInEmployee] = useState<string>('');
+  const [checkInStation, setCheckInStation] = useState<string>('all');
+  const [checkInDept, setCheckInDept] = useState<string>('all');
   
   // Check-out dialog state
   const [showCheckOutDialog, setShowCheckOutDialog] = useState(false);
   const [selectedCheckOutEmployee, setSelectedCheckOutEmployee] = useState<string>('');
+  const [checkOutStation, setCheckOutStation] = useState<string>('all');
+  const [checkOutDept, setCheckOutDept] = useState<string>('all');
+
+  // Derive unique stations from employees
+  const stations = useMemo(() => {
+    const stationMap = new Map<string, { id: string; nameAr: string; nameEn: string }>();
+    contextEmployees.forEach(emp => {
+      if (emp.stationId && emp.stationName) {
+        stationMap.set(emp.stationId, { id: emp.stationId, nameAr: emp.stationName, nameEn: emp.stationName });
+      }
+    });
+    return Array.from(stationMap.values());
+  }, [contextEmployees]);
+
+  const getDepartmentsForStation = (stationFilter: string) => {
+    const deptMap = new Map<string, { id: string; nameAr: string; nameEn: string }>();
+    contextEmployees.forEach(emp => {
+      if (emp.departmentId && emp.department) {
+        if (stationFilter === 'all' || emp.stationId === stationFilter) {
+          deptMap.set(emp.departmentId, { id: emp.departmentId, nameAr: emp.department, nameEn: emp.department });
+        }
+      }
+    });
+    return Array.from(deptMap.values());
+  };
+
+  const checkInDepartments = useMemo(() => getDepartmentsForStation(checkInStation), [contextEmployees, checkInStation]);
+  const checkOutDepartments = useMemo(() => getDepartmentsForStation(checkOutStation), [contextEmployees, checkOutStation]);
   
   // Add employee dialog state
   const [showAddEmployee, setShowAddEmployee] = useState(false);
@@ -78,13 +110,27 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
     return () => clearInterval(timer);
   }, []);
 
-  // Get employees who haven't checked in today
+  // Get employees who haven't checked in today (filtered by station/dept)
   const employeesNotCheckedIn = employees.filter(emp => {
     const todayRecord = records.find(r => r.date === today && r.employeeId === emp.id);
-    return !todayRecord || !todayRecord.checkIn;
+    if (todayRecord && todayRecord.checkIn) return false;
+    if (checkInStation !== 'all' && emp.stationId !== checkInStation) return false;
+    if (checkInDept !== 'all' && emp.departmentId !== checkInDept) return false;
+    return true;
   });
 
-  // Get records of employees who have checked in but not checked out today
+  // Get records of employees who have checked in but not checked out today (filtered)
+  const filteredRecordsCheckedInNotOut = useMemo(() => {
+    return records.filter(r => {
+      if (r.date !== today || !r.checkIn || r.checkOut) return false;
+      const emp = employees.find(e => e.id === r.employeeId);
+      if (checkOutStation !== 'all' && emp?.stationId !== checkOutStation) return false;
+      if (checkOutDept !== 'all' && emp?.departmentId !== checkOutDept) return false;
+      return true;
+    });
+  }, [records, today, employees, checkOutStation, checkOutDept]);
+  
+  // Keep original unfiltered for stats
   const recordsCheckedInNotOut = records.filter(r => r.date === today && r.checkIn && !r.checkOut);
   
   // Map to employee info for display
@@ -393,12 +439,32 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Station Filter */}
+            <div>
+              <Label className="mb-2 block">{language === 'ar' ? 'المحطة' : 'Station'}</Label>
+              <Select value={checkInStation} onValueChange={(v) => { setCheckInStation(v); setCheckInDept('all'); setSelectedCheckInEmployee(''); }}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'ar' ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  {stations.map(s => <SelectItem key={s.id} value={s.id}>{s.nameAr}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Department Filter */}
+            <div>
+              <Label className="mb-2 block">{language === 'ar' ? 'القسم' : 'Department'}</Label>
+              <Select value={checkInDept} onValueChange={(v) => { setCheckInDept(v); setSelectedCheckInEmployee(''); }}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'ar' ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
+                  {checkInDepartments.map(d => <SelectItem key={d.id} value={d.id}>{d.nameAr}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Employee Select */}
             <div>
               <Label className="mb-2 block">{t('attendance.selectEmployee')}</Label>
-              <Select 
-                value={selectedCheckInEmployee} 
-                onValueChange={setSelectedCheckInEmployee}
-              >
+              <Select value={selectedCheckInEmployee} onValueChange={setSelectedCheckInEmployee}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder={t('attendance.selectEmployeePlaceholder')} />
                 </SelectTrigger>
@@ -413,9 +479,7 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
                         <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
                           <span className="font-mono text-xs text-muted-foreground">{emp.id}</span>
                           <span>{language === 'ar' ? emp.nameAr : emp.name}</span>
-                          <Badge variant="outline" className="text-xs ml-2">
-                            {emp.department}
-                          </Badge>
+                          <Badge variant="outline" className="text-xs ml-2">{emp.department}</Badge>
                         </div>
                       </SelectItem>
                     ))
@@ -429,9 +493,7 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
                 <p className="text-sm text-muted-foreground mb-1">{t('attendance.checkin.time')}</p>
                 <p className="text-2xl font-bold text-success">
                   {currentTime.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    hour12: true 
+                    hour: '2-digit', minute: '2-digit', hour12: true 
                   })}
                 </p>
               </div>
@@ -441,6 +503,8 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
             <Button variant="outline" onClick={() => {
               setShowCheckInDialog(false);
               setSelectedCheckInEmployee('');
+              setCheckInStation('all');
+              setCheckInDept('all');
             }}>
               {t('common.cancel')}
             </Button>
@@ -466,22 +530,42 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Station Filter */}
+            <div>
+              <Label className="mb-2 block">{language === 'ar' ? 'المحطة' : 'Station'}</Label>
+              <Select value={checkOutStation} onValueChange={(v) => { setCheckOutStation(v); setCheckOutDept('all'); setSelectedCheckOutEmployee(''); }}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'ar' ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  {stations.map(s => <SelectItem key={s.id} value={s.id}>{s.nameAr}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Department Filter */}
+            <div>
+              <Label className="mb-2 block">{language === 'ar' ? 'القسم' : 'Department'}</Label>
+              <Select value={checkOutDept} onValueChange={(v) => { setCheckOutDept(v); setSelectedCheckOutEmployee(''); }}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'ar' ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
+                  {checkOutDepartments.map(d => <SelectItem key={d.id} value={d.id}>{d.nameAr}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Employee Select */}
             <div>
               <Label className="mb-2 block">{t('attendance.selectEmployee')}</Label>
-              <Select 
-                value={selectedCheckOutEmployee} 
-                onValueChange={setSelectedCheckOutEmployee}
-              >
+              <Select value={selectedCheckOutEmployee} onValueChange={setSelectedCheckOutEmployee}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder={t('attendance.selectEmployeePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {recordsCheckedInNotOut.length === 0 ? (
+                  {filteredRecordsCheckedInNotOut.length === 0 ? (
                     <div className="p-4 text-center text-muted-foreground">
                       {t('attendance.noEmployeesToCheckOut')}
                     </div>
                   ) : (
-                    recordsCheckedInNotOut.map((record) => {
+                    filteredRecordsCheckedInNotOut.map((record) => {
                       const emp = employees.find(e => e.id === record.employeeId);
                       const displayName = language === 'ar' 
                         ? (emp?.nameAr || record.employeeNameAr) 
@@ -547,6 +631,8 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut }: CheckInOutProps) 
             <Button variant="outline" onClick={() => {
               setShowCheckOutDialog(false);
               setSelectedCheckOutEmployee('');
+              setCheckOutStation('all');
+              setCheckOutDept('all');
             }}>
               {t('common.cancel')}
             </Button>

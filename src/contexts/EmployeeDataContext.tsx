@@ -29,6 +29,8 @@ function mapRow(row: any): Employee {
     status: row.status as Employee['status'],
     avatar: row.avatar || undefined,
     stationLocation: row.stations?.code || '',
+    stationId: row.station_id || undefined,
+    stationName: row.stations?.name_ar || undefined,
     firstName: row.first_name || row.name_en?.split(' ')[0] || '',
     fatherName: row.father_name || undefined,
     familyName: row.family_name || undefined,
