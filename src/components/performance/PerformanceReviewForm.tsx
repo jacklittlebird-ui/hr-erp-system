@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Star, Save, Send, Users, Target, Lightbulb, TrendingUp, MessageSquare, CheckCircle, Circle } from 'lucide-react';
+import { Star, Save, Send, Users, Target, Lightbulb, TrendingUp, MessageSquare, CheckCircle, Circle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
@@ -46,6 +46,8 @@ export const PerformanceReviewForm = () => {
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedQuarter, setSelectedQuarter] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [employeePage, setEmployeePage] = useState(0);
+  const PAGE_SIZE = 5;
 
   // Form
   const [criteria, setCriteria] = useState<CriteriaScore[]>(initialCriteria);
@@ -101,6 +103,12 @@ export const PerformanceReviewForm = () => {
     if (departmentFilter !== 'all') list = list.filter(e => e.department === departmentFilter);
     return list;
   }, [activeEmployees, stationFilter, departmentFilter]);
+
+  // Reset page when filters change
+  useEffect(() => { setEmployeePage(0); }, [stationFilter, departmentFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / PAGE_SIZE));
+  const paginatedEmployees = filteredEmployees.slice(employeePage * PAGE_SIZE, (employeePage + 1) * PAGE_SIZE);
 
   // Set of employee IDs that have been evaluated for selected quarter+year
   const evaluatedEmployeeIds = useMemo(() => {
@@ -278,51 +286,79 @@ export const PerformanceReviewForm = () => {
                 {ar ? 'لا يوجد موظفون بالفلتر المحدد' : 'No employees match the selected filters'}
               </div>
             ) : (
-              <div className="divide-y">
-                {filteredEmployees.map(emp => {
-                  const isEvaluated = evaluatedEmployeeIds.has(emp.id);
-                  const isSelected = selectedEmployee === emp.id;
-                  const stationLabel = stationLocations.find(s => s.value === emp.stationLocation);
-                  return (
-                    <button
-                      key={emp.id}
-                      type="button"
-                      onClick={() => setSelectedEmployee(emp.id)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/50",
-                        isSelected && "bg-primary/10 border-primary",
-                        isRTL && "flex-row-reverse text-right"
-                      )}
+              <>
+                <div className="divide-y">
+                  {paginatedEmployees.map(emp => {
+                    const isEvaluated = evaluatedEmployeeIds.has(emp.id);
+                    const isSelected = selectedEmployee === emp.id;
+                    const stationLabel = stationLocations.find(s => s.value === emp.stationLocation);
+                    return (
+                      <button
+                        key={emp.id}
+                        type="button"
+                        onClick={() => setSelectedEmployee(emp.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/50",
+                          isSelected && "bg-primary/10 border-primary",
+                          isRTL && "flex-row-reverse text-right"
+                        )}
+                      >
+                        {selectedQuarter && selectedYear ? (
+                          <span className={cn(
+                            "w-3 h-3 rounded-full shrink-0 ring-2 ring-offset-1",
+                            isEvaluated
+                              ? "bg-stat-green ring-stat-green/30"
+                              : "bg-muted-foreground/30 ring-muted-foreground/10"
+                          )} />
+                        ) : (
+                          <Circle className="w-3 h-3 text-muted-foreground/30 shrink-0" />
+                        )}
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                          {(ar ? emp.nameAr : emp.nameEn).split(' ').map(w => w[0]).join('').slice(0, 2)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{ar ? emp.nameAr : emp.nameEn}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {emp.employeeId} • {emp.department} {stationLabel ? `• ${ar ? stationLabel.labelAr : stationLabel.labelEn}` : ''}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle className="w-5 h-5 text-primary shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {totalPages > 1 && (
+                  <div className={cn("flex items-center justify-between px-4 py-2 border-t bg-muted/30", isRTL && "flex-row-reverse")}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={employeePage === 0}
+                      onClick={() => setEmployeePage(p => p - 1)}
+                      className="gap-1"
                     >
-                      {/* Evaluation indicator */}
-                      {selectedQuarter && selectedYear ? (
-                        <span className={cn(
-                          "w-3 h-3 rounded-full shrink-0 ring-2 ring-offset-1",
-                          isEvaluated
-                            ? "bg-stat-green ring-stat-green/30"
-                            : "bg-muted-foreground/30 ring-muted-foreground/10"
-                        )} />
-                      ) : (
-                        <Circle className="w-3 h-3 text-muted-foreground/30 shrink-0" />
-                      )}
-                      {/* Avatar */}
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                        {(ar ? emp.nameAr : emp.nameEn).split(' ').map(w => w[0]).join('').slice(0, 2)}
-                      </div>
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{ar ? emp.nameAr : emp.nameEn}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {emp.employeeId} • {emp.department} {stationLabel ? `• ${ar ? stationLabel.labelAr : stationLabel.labelEn}` : ''}
-                        </p>
-                      </div>
-                      {isSelected && (
-                        <CheckCircle className="w-5 h-5 text-primary shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                      <ChevronRight className={cn("w-4 h-4", !isRTL && "hidden")} />
+                      <ChevronLeft className={cn("w-4 h-4", isRTL && "hidden")} />
+                      {ar ? 'السابق' : 'Previous'}
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      {ar ? `صفحة ${employeePage + 1} من ${totalPages}` : `Page ${employeePage + 1} of ${totalPages}`}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={employeePage >= totalPages - 1}
+                      onClick={() => setEmployeePage(p => p + 1)}
+                      className="gap-1"
+                    >
+                      {ar ? 'التالي' : 'Next'}
+                      <ChevronLeft className={cn("w-4 h-4", !isRTL && "hidden")} />
+                      <ChevronRight className={cn("w-4 h-4", isRTL && "hidden")} />
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
