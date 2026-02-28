@@ -20,19 +20,36 @@ export const PerformanceDashboard = () => {
 
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [selectedQuarter, setSelectedQuarter] = useState('');
+  const [stationFilter, setStationFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
 
   const years = useMemo(() => Array.from({ length: 11 }, (_, i) => String(2025 + i)), []);
   const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
 
-  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'active'), [employees]);
+  const allActiveEmployees = useMemo(() => employees.filter(e => e.status === 'active'), [employees]);
 
-  // Filter reviews by selected year & quarter
+  const departments = useMemo(() => {
+    const depts = [...new Set(allActiveEmployees.map(e => e.department).filter(Boolean))];
+    return depts.sort();
+  }, [allActiveEmployees]);
+
+  const activeEmployees = useMemo(() => {
+    let list = allActiveEmployees;
+    if (stationFilter !== 'all') list = list.filter(e => e.stationLocation === stationFilter);
+    if (departmentFilter !== 'all') list = list.filter(e => e.department === departmentFilter);
+    return list;
+  }, [allActiveEmployees, stationFilter, departmentFilter]);
+
+  // Filter reviews by selected year, quarter & station/department employees
+  const activeEmployeeIds = useMemo(() => new Set(activeEmployees.map(e => e.id)), [activeEmployees]);
+
   const filteredReviews = useMemo(() => {
     let list = reviews;
     if (selectedYear) list = list.filter(r => r.year === selectedYear);
     if (selectedQuarter && selectedQuarter !== 'all') list = list.filter(r => r.quarter === selectedQuarter);
+    if (stationFilter !== 'all' || departmentFilter !== 'all') list = list.filter(r => activeEmployeeIds.has(r.employeeId));
     return list;
-  }, [reviews, selectedYear, selectedQuarter]);
+  }, [reviews, selectedYear, selectedQuarter, stationFilter, departmentFilter, activeEmployeeIds]);
 
   // Status counts
   const statusCounts = useMemo(() => {
@@ -157,6 +174,26 @@ export const PerformanceDashboard = () => {
                 <SelectContent>
                   <SelectItem value="all">{ar ? 'جميع الأرباع' : 'All Quarters'}</SelectItem>
                   {quarters.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">{ar ? 'المحطة' : 'Station'}</Label>
+              <Select value={stationFilter} onValueChange={setStationFilter}>
+                <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  {stationLocations.map(s => <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">{ar ? 'القسم' : 'Department'}</Label>
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
+                  {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
