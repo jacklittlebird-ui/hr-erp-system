@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePerformanceData, defaultCriteria, calculateScore, CriteriaItem } from '@/contexts/PerformanceDataContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,9 +9,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Star, Save, Send, Users, Target, Lightbulb, TrendingUp, MessageSquare, CheckCircle } from 'lucide-react';
+import { Star, Save, Send, Users, Target, Lightbulb, TrendingUp, MessageSquare, CheckCircle, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
+import { stationLocations } from '@/data/stationLocations';
 
 interface CriteriaScore {
   id: string;
@@ -35,15 +36,49 @@ const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
 
 export const PerformanceReviewForm = () => {
   const { t, isRTL, language } = useLanguage();
-  const { addReview } = usePerformanceData();
-  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const { addReview, reviews } = usePerformanceData();
+  const { employees } = useEmployeeData();
+  const ar = language === 'ar';
+
+  // Filters
+  const [stationFilter, setStationFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedQuarter, setSelectedQuarter] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState('');
+
+  // Form
   const [criteria, setCriteria] = useState<CriteriaScore[]>(initialCriteria);
   const [strengths, setStrengths] = useState('');
   const [improvements, setImprovements] = useState('');
   const [goals, setGoals] = useState('');
   const [managerComments, setManagerComments] = useState('');
+
+  const activeEmployees = employees.filter(e => e.status === 'active');
+
+  // Get unique departments from employees
+  const departments = useMemo(() => {
+    const depts = [...new Set(activeEmployees.map(e => e.department).filter(Boolean))];
+    return depts.sort();
+  }, [activeEmployees]);
+
+  // Filter employees by station + department
+  const filteredEmployees = useMemo(() => {
+    let list = activeEmployees;
+    if (stationFilter !== 'all') list = list.filter(e => e.stationLocation === stationFilter);
+    if (departmentFilter !== 'all') list = list.filter(e => e.department === departmentFilter);
+    return list;
+  }, [activeEmployees, stationFilter, departmentFilter]);
+
+  // Set of employee IDs that have been evaluated for selected quarter+year
+  const evaluatedEmployeeIds = useMemo(() => {
+    if (!selectedQuarter || !selectedYear) return new Set<string>();
+    return new Set(
+      reviews
+        .filter(r => r.quarter === selectedQuarter && r.year === selectedYear)
+        .map(r => r.employeeId)
+    );
+  }, [reviews, selectedQuarter, selectedYear]);
 
   const handleScoreChange = (id: string, newScore: number[]) => {
     setCriteria(prev => prev.map(c => c.id === id ? { ...c, score: newScore[0] } : c));
@@ -66,22 +101,19 @@ export const PerformanceReviewForm = () => {
   const overallScore = parseFloat(calculateOverallScore());
   const scoreInfo = getScoreLabel(overallScore);
 
-  const { employees } = useEmployeeData();
-  const activeEmployees = employees.filter(e => e.status === 'active');
-
   const buildReview = (status: 'draft' | 'submitted' | 'approved') => {
     const emp = employees.find(e => e.id === selectedEmployee);
     if (!emp) return null;
     return {
-      employeeId: emp.employeeId,
-      employeeName: language === 'ar' ? emp.nameAr : emp.nameEn,
+      employeeId: emp.id,
+      employeeName: ar ? emp.nameAr : emp.nameEn,
       department: emp.department,
-      station: '',
+      station: emp.stationLocation || '',
       quarter: selectedQuarter,
       year: selectedYear,
       score: overallScore,
       status,
-      reviewer: language === 'ar' ? 'المدير' : 'Manager',
+      reviewer: ar ? 'المدير' : 'Manager',
       reviewDate: new Date().toISOString().split('T')[0],
       strengths,
       improvements,
@@ -93,8 +125,6 @@ export const PerformanceReviewForm = () => {
 
   const resetForm = () => {
     setSelectedEmployee('');
-    setSelectedYear('');
-    setSelectedQuarter('');
     setCriteria(initialCriteria.map(c => ({ ...c })));
     setStrengths('');
     setImprovements('');
@@ -108,11 +138,7 @@ export const PerformanceReviewForm = () => {
       return;
     }
     const review = buildReview('draft');
-    if (review) {
-      addReview(review);
-      resetForm();
-      toast.success(t('performance.form.draftSaved'));
-    }
+    if (review) { addReview(review); resetForm(); toast.success(t('performance.form.draftSaved')); }
   };
 
   const handleSubmit = () => {
@@ -121,11 +147,7 @@ export const PerformanceReviewForm = () => {
       return;
     }
     const review = buildReview('submitted');
-    if (review) {
-      addReview(review);
-      resetForm();
-      toast.success(t('performance.form.submitted'));
-    }
+    if (review) { addReview(review); resetForm(); toast.success(t('performance.form.submitted')); }
   };
 
   const handleApprove = () => {
@@ -134,11 +156,7 @@ export const PerformanceReviewForm = () => {
       return;
     }
     const review = buildReview('approved');
-    if (review) {
-      addReview(review);
-      resetForm();
-      toast.success(language === 'ar' ? 'تم اعتماد التقييم بنجاح' : 'Review approved successfully');
-    }
+    if (review) { addReview(review); resetForm(); toast.success(ar ? 'تم اعتماد التقييم بنجاح' : 'Review approved successfully'); }
   };
 
   const getQuarterLabel = (q: string) => {
@@ -148,12 +166,14 @@ export const PerformanceReviewForm = () => {
       'Q3': { ar: 'Q3 (يوليو - سبتمبر)', en: 'Q3 (Jul - Sep)' },
       'Q4': { ar: 'Q4 (أكتوبر - ديسمبر)', en: 'Q4 (Oct - Dec)' },
     };
-    return language === 'ar' ? labels[q].ar : labels[q].en;
+    return ar ? labels[q].ar : labels[q].en;
   };
+
+  const selectedEmp = employees.find(e => e.id === selectedEmployee);
 
   return (
     <div className="space-y-6">
-      {/* Employee & Period Selection */}
+      {/* Filters: Station, Department, Year, Quarter */}
       <Card>
         <CardHeader>
           <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
@@ -161,26 +181,43 @@ export const PerformanceReviewForm = () => {
             {t('performance.form.selectEmployee')}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Station */}
             <div className="space-y-2">
-              <Label>{t('performance.form.employee')}</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger><SelectValue placeholder={t('performance.form.selectEmployeePlaceholder')} /></SelectTrigger>
+              <Label>{ar ? 'المحطة' : 'Station'}</Label>
+              <Select value={stationFilter} onValueChange={setStationFilter}>
+                <SelectTrigger><SelectValue placeholder={ar ? 'اختر المحطة...' : 'Select station...'} /></SelectTrigger>
                 <SelectContent>
-                  {activeEmployees.map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>{language === 'ar' ? emp.nameAr : emp.nameEn} - {emp.department}</SelectItem>
+                  <SelectItem value="all">{ar ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  {stationLocations.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+            {/* Department */}
             <div className="space-y-2">
-              <Label>{language === 'ar' ? 'السنة' : 'Year'}</Label>
+              <Label>{ar ? 'القسم' : 'Department'}</Label>
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger><SelectValue placeholder={ar ? 'اختر القسم...' : 'Select department...'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
+                  {departments.map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Year */}
+            <div className="space-y-2">
+              <Label>{ar ? 'السنة' : 'Year'}</Label>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger><SelectValue placeholder={language === 'ar' ? 'اختر السنة...' : 'Select year...'} /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={ar ? 'اختر السنة...' : 'Select year...'} /></SelectTrigger>
                 <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {/* Quarter */}
             <div className="space-y-2">
               <Label>{t('performance.form.quarter')}</Label>
               <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
@@ -189,6 +226,78 @@ export const PerformanceReviewForm = () => {
               </Select>
             </div>
           </div>
+
+          {/* Employee List with evaluation status */}
+          <div className="border rounded-lg max-h-[300px] overflow-y-auto">
+            <div className="p-3 border-b bg-muted/50 flex items-center justify-between">
+              <span className="text-sm font-medium">{ar ? 'الموظفون' : 'Employees'} ({filteredEmployees.length})</span>
+              {selectedQuarter && selectedYear && (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-stat-green inline-block" /> {ar ? 'تم التقييم' : 'Evaluated'}</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30 inline-block" /> {ar ? 'لم يتم التقييم' : 'Not evaluated'}</span>
+                </div>
+              )}
+            </div>
+            {filteredEmployees.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground text-sm">
+                {ar ? 'لا يوجد موظفون بالفلتر المحدد' : 'No employees match the selected filters'}
+              </div>
+            ) : (
+              <div className="divide-y">
+                {filteredEmployees.map(emp => {
+                  const isEvaluated = evaluatedEmployeeIds.has(emp.id);
+                  const isSelected = selectedEmployee === emp.id;
+                  const stationLabel = stationLocations.find(s => s.value === emp.stationLocation);
+                  return (
+                    <button
+                      key={emp.id}
+                      type="button"
+                      onClick={() => setSelectedEmployee(emp.id)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/50",
+                        isSelected && "bg-primary/10 border-primary",
+                        isRTL && "flex-row-reverse text-right"
+                      )}
+                    >
+                      {/* Evaluation indicator */}
+                      {selectedQuarter && selectedYear ? (
+                        <span className={cn(
+                          "w-3 h-3 rounded-full shrink-0 ring-2 ring-offset-1",
+                          isEvaluated
+                            ? "bg-stat-green ring-stat-green/30"
+                            : "bg-muted-foreground/30 ring-muted-foreground/10"
+                        )} />
+                      ) : (
+                        <Circle className="w-3 h-3 text-muted-foreground/30 shrink-0" />
+                      )}
+                      {/* Avatar */}
+                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                        {(ar ? emp.nameAr : emp.nameEn).split(' ').map(w => w[0]).join('').slice(0, 2)}
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{ar ? emp.nameAr : emp.nameEn}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {emp.employeeId} • {emp.department} {stationLabel ? `• ${ar ? stationLabel.labelAr : stationLabel.labelEn}` : ''}
+                        </p>
+                      </div>
+                      {isSelected && (
+                        <CheckCircle className="w-5 h-5 text-primary shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {selectedEmp && (
+            <div className={cn("p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm", isRTL && "text-right")}>
+              <span className="font-medium">{ar ? 'الموظف المحدد:' : 'Selected:'}</span>{' '}
+              <span className="text-primary font-semibold">{ar ? selectedEmp.nameAr : selectedEmp.nameEn}</span>
+              {' - '}{selectedEmp.department}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -206,7 +315,7 @@ export const PerformanceReviewForm = () => {
             <div key={criterion.id} className="space-y-2">
               <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
                 <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                  <Label className="text-base font-medium">{language === 'ar' ? criterion.nameAr : criterion.name}</Label>
+                  <Label className="text-base font-medium">{ar ? criterion.nameAr : criterion.name}</Label>
                   <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{criterion.weight}%</span>
                 </div>
                 <div className={cn("flex items-center gap-1", isRTL && "flex-row-reverse")}>
@@ -263,7 +372,7 @@ export const PerformanceReviewForm = () => {
       <div className={cn("flex gap-3", isRTL ? "flex-row-reverse justify-start" : "justify-end")}>
         <Button variant="outline" onClick={handleSaveDraft} className="gap-2"><Save className="w-4 h-4" />{t('performance.form.saveDraft')}</Button>
         <Button onClick={handleSubmit} className="gap-2"><Send className="w-4 h-4" />{t('performance.form.submit')}</Button>
-        <Button onClick={handleApprove} className="gap-2 bg-stat-green hover:bg-stat-green/90"><CheckCircle className="w-4 h-4" />{language === 'ar' ? 'اعتماد' : 'Approve'}</Button>
+        <Button onClick={handleApprove} className="gap-2 bg-stat-green hover:bg-stat-green/90"><CheckCircle className="w-4 h-4" />{ar ? 'اعتماد' : 'Approve'}</Button>
       </div>
     </div>
   );
