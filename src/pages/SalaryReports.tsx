@@ -641,7 +641,7 @@ const SalaryReports = () => {
               <SelectTrigger className="w-40"><SelectValue placeholder={ar ? 'القسم' : 'Department'} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{ar ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
-                {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                {departments.filter(d => d && d.trim() !== '').map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
