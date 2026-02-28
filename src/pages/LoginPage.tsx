@@ -111,7 +111,11 @@ const LoginPage = () => {
               </p>
             </div>
           </CardContent>
-        </Card>
+      </Card>
+
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          Developed by OneStory Solutions
+        </p>
       </div>
     </div>
   );
