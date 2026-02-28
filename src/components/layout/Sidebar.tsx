@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useModulePermissions, PATH_TO_MODULE, ModuleKey } from '@/hooks/useModulePermissions';
 import {
   LayoutDashboard, Users, Building2, Clock, FileText, Calendar, Wallet,
   FileBarChart, HandCoins, UserPlus, Star, Monitor, Shirt, FolderOpen, BarChart3,
@@ -14,32 +15,31 @@ interface NavItem {
   key: string;
   icon: React.ElementType;
   path: string;
+  moduleKey: ModuleKey;
 }
 
 const mainNavItems: NavItem[] = [
-  { key: 'nav.dashboard', icon: LayoutDashboard, path: '/' },
-  { key: 'nav.employeePortal', icon: UserCheck, path: '/employee-portal' },
-  { key: 'nav.employees', icon: Users, path: '/employees' },
-  { key: 'nav.departments', icon: Building2, path: '/departments' },
-  { key: 'nav.attendance', icon: Clock, path: '/attendance' },
-  { key: 'nav.leaves', icon: Calendar, path: '/leaves' },
-  { key: 'nav.salaries', icon: Wallet, path: '/salaries' },
-  { key: 'nav.salaryReports', icon: FileBarChart, path: '/salary-reports' },
-  { key: 'nav.loans', icon: HandCoins, path: '/loans' },
-  { key: 'nav.recruitment', icon: UserPlus, path: '/recruitment' },
-  { key: 'nav.performance', icon: Star, path: '/performance' },
-  { key: 'nav.assets', icon: Monitor, path: '/assets' },
-  { key: 'nav.uniforms', icon: Shirt, path: '/uniforms' },
-  { key: 'nav.documents', icon: FolderOpen, path: '/documents' },
-  { key: 'nav.reports', icon: BarChart3, path: '/reports' },
-  { key: 'nav.training', icon: GraduationCap, path: '/training' },
+  { key: 'nav.dashboard', icon: LayoutDashboard, path: '/', moduleKey: 'dashboard' },
+  { key: 'nav.employeePortal', icon: UserCheck, path: '/employee-portal', moduleKey: 'employee-portal' },
+  { key: 'nav.employees', icon: Users, path: '/employees', moduleKey: 'employees' },
+  { key: 'nav.departments', icon: Building2, path: '/departments', moduleKey: 'departments' },
+  { key: 'nav.attendance', icon: Clock, path: '/attendance', moduleKey: 'attendance' },
+  { key: 'nav.leaves', icon: Calendar, path: '/leaves', moduleKey: 'leaves' },
+  { key: 'nav.salaries', icon: Wallet, path: '/salaries', moduleKey: 'salaries' },
+  { key: 'nav.salaryReports', icon: FileBarChart, path: '/salary-reports', moduleKey: 'salary-reports' },
+  { key: 'nav.loans', icon: HandCoins, path: '/loans', moduleKey: 'loans' },
+  { key: 'nav.recruitment', icon: UserPlus, path: '/recruitment', moduleKey: 'recruitment' },
+  { key: 'nav.performance', icon: Star, path: '/performance', moduleKey: 'performance' },
+  { key: 'nav.assets', icon: Monitor, path: '/assets', moduleKey: 'assets' },
+  { key: 'nav.uniforms', icon: Shirt, path: '/uniforms', moduleKey: 'uniforms' },
+  { key: 'nav.documents', icon: FolderOpen, path: '/documents', moduleKey: 'documents' },
+  { key: 'nav.reports', icon: BarChart3, path: '/reports', moduleKey: 'reports' },
+  { key: 'nav.training', icon: GraduationCap, path: '/training', moduleKey: 'training' },
 ];
 
 const configNavItems: NavItem[] = [
-  { key: 'nav.users', icon: UserCog, path: '/users' },
-  { key: 'nav.groups', icon: Layers, path: '/groups' },
-  { key: 'nav.roles', icon: Shield, path: '/roles' },
-  { key: 'nav.settings', icon: Settings, path: '/settings' },
+  { key: 'nav.users', icon: UserCog, path: '/users', moduleKey: 'users' },
+  { key: 'nav.settings', icon: Settings, path: '/settings', moduleKey: 'settings' },
 ];
 
 interface SidebarProps {
@@ -53,10 +53,14 @@ export const Sidebar = ({ open, onOpenChange, collapsed, onToggleCollapse }: Sid
   const { t, isRTL } = useLanguage();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { hasAccess } = useModulePermissions();
 
   const CollapseIcon = isRTL
     ? (collapsed ? ChevronLeft : ChevronRight)
     : (collapsed ? ChevronRight : ChevronLeft);
+
+  const visibleMainItems = mainNavItems.filter(item => hasAccess(item.moduleKey));
+  const visibleConfigItems = configNavItems.filter(item => hasAccess(item.moduleKey));
 
   const navContent = (
     <>
@@ -73,7 +77,7 @@ export const Sidebar = ({ open, onOpenChange, collapsed, onToggleCollapse }: Sid
       )}
 
       <nav className="p-2 space-y-1">
-        {mainNavItems.map((item) => (
+        {visibleMainItems.map((item) => (
           <NavButton
             key={item.key}
             item={item}
@@ -84,25 +88,29 @@ export const Sidebar = ({ open, onOpenChange, collapsed, onToggleCollapse }: Sid
             onNavigate={() => isMobile && onOpenChange(false)}
           />
         ))}
-        {(!collapsed || isMobile) && (
-          <div className="pt-6 pb-2">
-            <p className="px-3 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-              {t('nav.configurations')}
-            </p>
-          </div>
+        {visibleConfigItems.length > 0 && (
+          <>
+            {(!collapsed || isMobile) && (
+              <div className="pt-6 pb-2">
+                <p className="px-3 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
+                  {t('nav.configurations')}
+                </p>
+              </div>
+            )}
+            {collapsed && !isMobile && <div className="pt-4 border-t border-sidebar-border my-2" />}
+            {visibleConfigItems.map((item) => (
+              <NavButton
+                key={item.key}
+                item={item}
+                t={t}
+                isRTL={isRTL}
+                isActive={location.pathname === item.path}
+                collapsed={collapsed && !isMobile}
+                onNavigate={() => isMobile && onOpenChange(false)}
+              />
+            ))}
+          </>
         )}
-        {collapsed && !isMobile && <div className="pt-4 border-t border-sidebar-border my-2" />}
-        {configNavItems.map((item) => (
-          <NavButton
-            key={item.key}
-            item={item}
-            t={t}
-            isRTL={isRTL}
-            isActive={location.pathname === item.path}
-            collapsed={collapsed && !isMobile}
-            onNavigate={() => isMobile && onOpenChange(false)}
-          />
-        ))}
       </nav>
     </>
   );
