@@ -1,41 +1,104 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePerformanceData } from '@/contexts/PerformanceDataContext';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { Star, TrendingUp, Users, Target, Award, BarChart3 } from 'lucide-react';
+import { Star, TrendingUp, Users, Target, Award, BarChart3, CheckCircle, Clock, FileText, Send, ShieldCheck, Building2, MapPin, UserCheck, UserX } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { stationLocations } from '@/data/stationLocations';
 
 export const PerformanceDashboard = () => {
   const { t, isRTL, language } = useLanguage();
   const { reviews } = usePerformanceData();
+  const { employees } = useEmployeeData();
+  const ar = language === 'ar';
+
+  const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+  const [selectedQuarter, setSelectedQuarter] = useState('');
+
+  const years = useMemo(() => Array.from({ length: 11 }, (_, i) => String(2025 + i)), []);
+  const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+
+  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'active'), [employees]);
+
+  // Filter reviews by selected year & quarter
+  const filteredReviews = useMemo(() => {
+    let list = reviews;
+    if (selectedYear) list = list.filter(r => r.year === selectedYear);
+    if (selectedQuarter && selectedQuarter !== 'all') list = list.filter(r => r.quarter === selectedQuarter);
+    return list;
+  }, [reviews, selectedYear, selectedQuarter]);
+
+  // Status counts
+  const statusCounts = useMemo(() => {
+    const draft = filteredReviews.filter(r => r.status === 'draft').length;
+    const submitted = filteredReviews.filter(r => r.status === 'submitted').length;
+    const approved = filteredReviews.filter(r => r.status === 'approved').length;
+    return { draft, submitted, approved, total: filteredReviews.length };
+  }, [filteredReviews]);
+
+  // Evaluated employee IDs
+  const evaluatedIds = useMemo(() => new Set(filteredReviews.map(r => r.employeeId)), [filteredReviews]);
+
+  // Station breakdown
+  const stationBreakdown = useMemo(() => {
+    const stationMap: Record<string, { total: number; evaluated: number; labelAr: string; labelEn: string }> = {};
+    activeEmployees.forEach(emp => {
+      const key = emp.stationLocation || '_none';
+      if (!stationMap[key]) {
+        const sl = stationLocations.find(s => s.value === emp.stationLocation);
+        stationMap[key] = { total: 0, evaluated: 0, labelAr: sl?.labelAr || (ar ? 'غير محدد' : 'Unassigned'), labelEn: sl?.labelEn || 'Unassigned' };
+      }
+      stationMap[key].total++;
+      if (evaluatedIds.has(emp.id)) stationMap[key].evaluated++;
+    });
+    return Object.entries(stationMap)
+      .map(([key, v]) => ({ key, ...v, notEvaluated: v.total - v.evaluated }))
+      .sort((a, b) => b.total - a.total);
+  }, [activeEmployees, evaluatedIds, ar]);
+
+  // Department breakdown
+  const deptBreakdown = useMemo(() => {
+    const deptMap: Record<string, { total: number; evaluated: number }> = {};
+    activeEmployees.forEach(emp => {
+      const key = emp.department || (ar ? 'غير محدد' : 'Unassigned');
+      if (!deptMap[key]) deptMap[key] = { total: 0, evaluated: 0 };
+      deptMap[key].total++;
+      if (evaluatedIds.has(emp.id)) deptMap[key].evaluated++;
+    });
+    return Object.entries(deptMap)
+      .map(([dept, v]) => ({ dept, ...v, notEvaluated: v.total - v.evaluated }))
+      .sort((a, b) => b.total - a.total);
+  }, [activeEmployees, evaluatedIds, ar]);
 
   const { performanceData, quarterlyTrend, topPerformers, stats } = useMemo(() => {
-    const total = reviews.length;
-    const avgScore = total > 0 ? (reviews.reduce((s, r) => s + r.score, 0) / total) : 0;
-    const approved = reviews.filter(r => r.status === 'approved').length;
-    const pending = reviews.filter(r => r.status === 'submitted' || r.status === 'draft').length;
+    const total = filteredReviews.length;
+    const avgScore = total > 0 ? (filteredReviews.reduce((s, r) => s + r.score, 0) / total) : 0;
+    const approved = filteredReviews.filter(r => r.status === 'approved').length;
+    const pending = filteredReviews.filter(r => r.status === 'submitted' || r.status === 'draft').length;
     const completionRate = total > 0 ? Math.round((approved / total) * 100) : 0;
 
-    // Distribution
-    const excellent = reviews.filter(r => r.score >= 4.5).length;
-    const veryGood = reviews.filter(r => r.score >= 3.5 && r.score < 4.5).length;
-    const good = reviews.filter(r => r.score >= 2.5 && r.score < 3.5).length;
-    const acceptable = reviews.filter(r => r.score >= 1.5 && r.score < 2.5).length;
-    const poor = reviews.filter(r => r.score < 1.5).length;
+    const excellent = filteredReviews.filter(r => r.score >= 4.5).length;
+    const veryGood = filteredReviews.filter(r => r.score >= 3.5 && r.score < 4.5).length;
+    const good = filteredReviews.filter(r => r.score >= 2.5 && r.score < 3.5).length;
+    const acceptable = filteredReviews.filter(r => r.score >= 1.5 && r.score < 2.5).length;
+    const poor = filteredReviews.filter(r => r.score < 1.5).length;
 
     const performanceData = [
-      { name: language === 'ar' ? 'ممتاز' : 'Excellent', value: excellent, color: 'hsl(var(--stat-green))' },
-      { name: language === 'ar' ? 'جيد جداً' : 'Very Good', value: veryGood, color: 'hsl(var(--stat-blue))' },
-      { name: language === 'ar' ? 'جيد' : 'Good', value: good, color: 'hsl(var(--stat-yellow))' },
-      { name: language === 'ar' ? 'مقبول' : 'Acceptable', value: acceptable, color: 'hsl(var(--stat-coral))' },
-      { name: language === 'ar' ? 'ضعيف' : 'Poor', value: poor, color: 'hsl(var(--destructive))' },
+      { name: ar ? 'ممتاز' : 'Excellent', value: excellent, color: 'hsl(var(--stat-green))' },
+      { name: ar ? 'جيد جداً' : 'Very Good', value: veryGood, color: 'hsl(var(--stat-blue))' },
+      { name: ar ? 'جيد' : 'Good', value: good, color: 'hsl(var(--stat-yellow))' },
+      { name: ar ? 'مقبول' : 'Acceptable', value: acceptable, color: 'hsl(var(--stat-coral))' },
+      { name: ar ? 'ضعيف' : 'Poor', value: poor, color: 'hsl(var(--destructive))' },
     ].filter(d => d.value > 0);
 
-    // Quarterly trend from actual data
     const quarterMap: Record<string, { total: number; count: number }> = {};
-    reviews.forEach(r => {
+    filteredReviews.forEach(r => {
       const key = `${r.quarter} ${r.year}`;
       if (!quarterMap[key]) quarterMap[key] = { total: 0, count: 0 };
       quarterMap[key].total += r.score;
@@ -50,9 +113,8 @@ export const PerformanceDashboard = () => {
         completed: data.count,
       }));
 
-    // Top performers - best score per employee
     const empBest: Record<string, { name: string; department: string; score: number }> = {};
-    reviews.filter(r => r.status === 'approved').forEach(r => {
+    filteredReviews.filter(r => r.status === 'approved').forEach(r => {
       if (!empBest[r.employeeId] || r.score > empBest[r.employeeId].score) {
         empBest[r.employeeId] = { name: r.employeeName, department: r.department, score: r.score };
       }
@@ -70,11 +132,162 @@ export const PerformanceDashboard = () => {
     ];
 
     return { performanceData, quarterlyTrend, topPerformers, stats };
-  }, [reviews, language]);
+  }, [filteredReviews, ar]);
+
+  const totalEvaluated = evaluatedIds.size;
+  const totalNotEvaluated = activeEmployees.length - totalEvaluated;
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Year & Quarter Filter */}
+      <Card>
+        <CardContent className="p-4">
+          <div className={cn("flex items-end gap-4 flex-wrap", isRTL && "flex-row-reverse")}>
+            <div className="space-y-1">
+              <Label className="text-xs">{ar ? 'السنة' : 'Year'}</Label>
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">{ar ? 'الربع السنوي' : 'Quarter'}</Label>
+              <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder={ar ? 'الكل' : 'All'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? 'جميع الأرباع' : 'All Quarters'}</SelectItem>
+                  {quarters.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Summary Status Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Total Evaluated */}
+        <Card className="border-stat-green/30">
+          <CardContent className="p-4 text-center space-y-1">
+            <UserCheck className="w-6 h-6 mx-auto text-stat-green" />
+            <p className="text-2xl font-bold text-stat-green">{totalEvaluated}</p>
+            <p className="text-xs text-muted-foreground">{ar ? 'تم تقييمهم' : 'Evaluated'}</p>
+          </CardContent>
+        </Card>
+        {/* Total Not Evaluated */}
+        <Card className="border-destructive/30">
+          <CardContent className="p-4 text-center space-y-1">
+            <UserX className="w-6 h-6 mx-auto text-destructive" />
+            <p className="text-2xl font-bold text-destructive">{totalNotEvaluated}</p>
+            <p className="text-xs text-muted-foreground">{ar ? 'لم يتم تقييمهم' : 'Not Evaluated'}</p>
+          </CardContent>
+        </Card>
+        {/* Total Employees */}
+        <Card>
+          <CardContent className="p-4 text-center space-y-1">
+            <Users className="w-6 h-6 mx-auto text-primary" />
+            <p className="text-2xl font-bold">{activeEmployees.length}</p>
+            <p className="text-xs text-muted-foreground">{ar ? 'إجمالي الموظفين' : 'Total Employees'}</p>
+          </CardContent>
+        </Card>
+        {/* Draft */}
+        <Card className="border-muted-foreground/20">
+          <CardContent className="p-4 text-center space-y-1">
+            <FileText className="w-6 h-6 mx-auto text-muted-foreground" />
+            <p className="text-2xl font-bold text-muted-foreground">{statusCounts.draft}</p>
+            <p className="text-xs text-muted-foreground">{ar ? 'مسودة' : 'Draft'}</p>
+          </CardContent>
+        </Card>
+        {/* Submitted */}
+        <Card className="border-stat-yellow/30">
+          <CardContent className="p-4 text-center space-y-1">
+            <Send className="w-6 h-6 mx-auto text-stat-yellow" />
+            <p className="text-2xl font-bold text-stat-yellow">{statusCounts.submitted}</p>
+            <p className="text-xs text-muted-foreground">{ar ? 'مرسلة' : 'Submitted'}</p>
+          </CardContent>
+        </Card>
+        {/* Approved */}
+        <Card className="border-stat-green/30">
+          <CardContent className="p-4 text-center space-y-1">
+            <ShieldCheck className="w-6 h-6 mx-auto text-stat-green" />
+            <p className="text-2xl font-bold text-stat-green">{statusCounts.approved}</p>
+            <p className="text-xs text-muted-foreground">{ar ? 'معتمدة' : 'Approved'}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Station & Department Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* By Station */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className={cn("flex items-center gap-2 text-base", isRTL && "flex-row-reverse")}>
+              <MapPin className="w-5 h-5 text-primary" />
+              {ar ? 'حالة التقييم حسب المحطة' : 'Evaluation Status by Station'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {stationBreakdown.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">{ar ? 'لا توجد بيانات' : 'No data'}</p>
+            ) : stationBreakdown.map(s => {
+              const pct = s.total > 0 ? Math.round((s.evaluated / s.total) * 100) : 0;
+              return (
+                <div key={s.key} className="space-y-1.5">
+                  <div className={cn("flex items-center justify-between text-sm", isRTL && "flex-row-reverse")}>
+                    <span className="font-medium">{ar ? s.labelAr : s.labelEn}</span>
+                    <div className={cn("flex items-center gap-2 text-xs", isRTL && "flex-row-reverse")}>
+                      <Badge variant="outline" className="bg-stat-green/10 text-stat-green border-stat-green/30 gap-1">
+                        <UserCheck className="w-3 h-3" /> {s.evaluated}
+                      </Badge>
+                      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 gap-1">
+                        <UserX className="w-3 h-3" /> {s.notEvaluated}
+                      </Badge>
+                      <span className="text-muted-foreground">/ {s.total}</span>
+                    </div>
+                  </div>
+                  <Progress value={pct} className="h-2" />
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        {/* By Department */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className={cn("flex items-center gap-2 text-base", isRTL && "flex-row-reverse")}>
+              <Building2 className="w-5 h-5 text-primary" />
+              {ar ? 'حالة التقييم حسب القسم' : 'Evaluation Status by Department'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {deptBreakdown.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">{ar ? 'لا توجد بيانات' : 'No data'}</p>
+            ) : deptBreakdown.map(d => {
+              const pct = d.total > 0 ? Math.round((d.evaluated / d.total) * 100) : 0;
+              return (
+                <div key={d.dept} className="space-y-1.5">
+                  <div className={cn("flex items-center justify-between text-sm", isRTL && "flex-row-reverse")}>
+                    <span className="font-medium">{d.dept}</span>
+                    <div className={cn("flex items-center gap-2 text-xs", isRTL && "flex-row-reverse")}>
+                      <Badge variant="outline" className="bg-stat-green/10 text-stat-green border-stat-green/30 gap-1">
+                        <UserCheck className="w-3 h-3" /> {d.evaluated}
+                      </Badge>
+                      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 gap-1">
+                        <UserX className="w-3 h-3" /> {d.notEvaluated}
+                      </Badge>
+                      <span className="text-muted-foreground">/ {d.total}</span>
+                    </div>
+                  </div>
+                  <Progress value={pct} className="h-2" />
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Original Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
@@ -120,7 +333,7 @@ export const PerformanceDashboard = () => {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">{language === 'ar' ? 'لا توجد بيانات' : 'No data'}</div>
+                <div className="flex items-center justify-center h-full text-muted-foreground">{ar ? 'لا توجد بيانات' : 'No data'}</div>
               )}
             </div>
           </CardContent>
@@ -147,7 +360,7 @@ export const PerformanceDashboard = () => {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">{language === 'ar' ? 'لا توجد بيانات' : 'No data'}</div>
+                <div className="flex items-center justify-center h-full text-muted-foreground">{ar ? 'لا توجد بيانات' : 'No data'}</div>
               )}
             </div>
           </CardContent>
@@ -187,7 +400,7 @@ export const PerformanceDashboard = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">{language === 'ar' ? 'لا توجد تقييمات معتمدة بعد' : 'No approved reviews yet'}</div>
+            <div className="text-center py-8 text-muted-foreground">{ar ? 'لا توجد تقييمات معتمدة بعد' : 'No approved reviews yet'}</div>
           )}
         </CardContent>
       </Card>
