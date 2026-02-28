@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
-import { usePersistedState } from '@/hooks/usePersistedState';
-// Employee data comes from EmployeeDataContext where needed
+import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface CriteriaItem {
   name: string;
@@ -37,75 +36,6 @@ export const defaultCriteria: CriteriaItem[] = [
   { name: 'الحضور والالتزام', nameEn: 'Attendance', score: 3, weight: 10 },
 ];
 
-// Real initial reviews based on actual employees
-const initialReviews: PerformanceReview[] = [
-  {
-    id: '1', employeeId: 'Emp001', employeeName: 'جلال عبد الرازق عبد العليم', department: 'الإدارة', station: 'cairo',
-    quarter: 'Q4', year: '2025', score: 4.5, status: 'approved', reviewer: 'محمد السيد', reviewDate: '2025-12-15',
-    strengths: 'أداء ممتاز في إدارة الفريق والالتزام بالمواعيد', improvements: 'تحسين مهارات العرض التقديمي', goals: 'قيادة مشروع تطوير النظام الجديد', managerComments: 'موظف متميز يستحق الترقية',
-    criteria: [
-      { name: 'جودة العمل', nameEn: 'Work Quality', score: 5, weight: 25 },
-      { name: 'الإنتاجية', nameEn: 'Productivity', score: 4, weight: 20 },
-      { name: 'العمل الجماعي', nameEn: 'Teamwork', score: 5, weight: 20 },
-      { name: 'التواصل', nameEn: 'Communication', score: 4, weight: 15 },
-      { name: 'المبادرة', nameEn: 'Initiative', score: 4, weight: 10 },
-      { name: 'الحضور والالتزام', nameEn: 'Attendance', score: 5, weight: 10 },
-    ],
-  },
-  {
-    id: '2', employeeId: 'Emp002', employeeName: 'أحمد محمد علي', department: 'تقنية المعلومات', station: 'hq1',
-    quarter: 'Q4', year: '2025', score: 4.2, status: 'approved', reviewer: 'أحمد حسن', reviewDate: '2025-12-14',
-    strengths: 'إتقان البرمجة وحل المشكلات التقنية بسرعة', improvements: 'تحسين التوثيق الفني', goals: 'تعلم تقنيات الذكاء الاصطناعي',
-    criteria: [
-      { name: 'جودة العمل', nameEn: 'Work Quality', score: 4, weight: 25 },
-      { name: 'الإنتاجية', nameEn: 'Productivity', score: 4, weight: 20 },
-      { name: 'العمل الجماعي', nameEn: 'Teamwork', score: 5, weight: 20 },
-      { name: 'التواصل', nameEn: 'Communication', score: 4, weight: 15 },
-      { name: 'المبادرة', nameEn: 'Initiative', score: 4, weight: 10 },
-      { name: 'الحضور والالتزام', nameEn: 'Attendance', score: 4, weight: 10 },
-    ],
-  },
-  {
-    id: '3', employeeId: 'Emp004', employeeName: 'شريف منير', department: 'المبيعات', station: 'hurghada',
-    quarter: 'Q4', year: '2025', score: 4.0, status: 'submitted', reviewer: 'هدى علي', reviewDate: '2025-12-12',
-    strengths: 'مهارات تواصل ممتازة مع العملاء', improvements: 'الالتزام بالمواعيد النهائية', goals: 'زيادة المبيعات بنسبة 15%',
-    criteria: [
-      { name: 'جودة العمل', nameEn: 'Work Quality', score: 4, weight: 25 },
-      { name: 'الإنتاجية', nameEn: 'Productivity', score: 4, weight: 20 },
-      { name: 'العمل الجماعي', nameEn: 'Teamwork', score: 4, weight: 20 },
-      { name: 'التواصل', nameEn: 'Communication', score: 5, weight: 15 },
-      { name: 'المبادرة', nameEn: 'Initiative', score: 3, weight: 10 },
-      { name: 'الحضور والالتزام', nameEn: 'Attendance', score: 4, weight: 10 },
-    ],
-  },
-  {
-    id: '4', employeeId: 'Emp001', employeeName: 'جلال عبد الرازق عبد العليم', department: 'الإدارة', station: 'cairo',
-    quarter: 'Q3', year: '2025', score: 3.9, status: 'approved', reviewer: 'محمد عبدالله', reviewDate: '2025-09-20',
-    strengths: 'التزام عالي بالجودة', improvements: 'تطوير مهارات القيادة', goals: 'إتمام دورة القيادة المتقدمة',
-    criteria: [
-      { name: 'جودة العمل', nameEn: 'Work Quality', score: 4, weight: 25 },
-      { name: 'الإنتاجية', nameEn: 'Productivity', score: 4, weight: 20 },
-      { name: 'العمل الجماعي', nameEn: 'Teamwork', score: 4, weight: 20 },
-      { name: 'التواصل', nameEn: 'Communication', score: 3, weight: 15 },
-      { name: 'المبادرة', nameEn: 'Initiative', score: 4, weight: 10 },
-      { name: 'الحضور والالتزام', nameEn: 'Attendance', score: 4, weight: 10 },
-    ],
-  },
-  {
-    id: '5', employeeId: 'Emp002', employeeName: 'أحمد محمد علي', department: 'تقنية المعلومات', station: 'hq1',
-    quarter: 'Q3', year: '2025', score: 4.3, status: 'approved', reviewer: 'سمير أحمد', reviewDate: '2025-09-18',
-    strengths: 'سرعة في التنفيذ وجودة الكود', improvements: 'مشاركة المعرفة مع الفريق', goals: 'بناء نظام CI/CD',
-    criteria: [
-      { name: 'جودة العمل', nameEn: 'Work Quality', score: 5, weight: 25 },
-      { name: 'الإنتاجية', nameEn: 'Productivity', score: 4, weight: 20 },
-      { name: 'العمل الجماعي', nameEn: 'Teamwork', score: 4, weight: 20 },
-      { name: 'التواصل', nameEn: 'Communication', score: 4, weight: 15 },
-      { name: 'المبادرة', nameEn: 'Initiative', score: 5, weight: 10 },
-      { name: 'الحضور والالتزام', nameEn: 'Attendance', score: 4, weight: 10 },
-    ],
-  },
-];
-
 export const calculateScore = (criteria: CriteriaItem[]) => {
   const totalWeight = criteria.reduce((s, c) => s + c.weight, 0);
   const weightedSum = criteria.reduce((s, c) => s + (c.score * c.weight), 0);
@@ -121,20 +51,85 @@ interface PerformanceDataContextType {
 
 const PerformanceDataContext = createContext<PerformanceDataContextType | undefined>(undefined);
 
+const mapRow = (r: any): PerformanceReview => ({
+  id: r.id,
+  employeeId: r.employee_id,
+  employeeName: (r.employees as any)?.name_ar || '',
+  department: '',
+  station: '',
+  quarter: r.quarter,
+  year: r.year,
+  score: r.score ?? 0,
+  status: r.status as PerformanceReview['status'],
+  reviewer: r.reviewer_id || '',
+  reviewDate: r.review_date || '',
+  strengths: r.strengths || undefined,
+  improvements: r.improvements || undefined,
+  goals: r.goals || undefined,
+  managerComments: r.manager_comments || undefined,
+  criteria: r.criteria ? (r.criteria as CriteriaItem[]) : undefined,
+});
+
 export const PerformanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [reviews, setReviews] = usePersistedState<PerformanceReview[]>('hr_performance_reviews', initialReviews);
+  const [reviews, setReviews] = useState<PerformanceReview[]>([]);
 
-  const addReview = useCallback((review: Omit<PerformanceReview, 'id'>) => {
-    setReviews(prev => [...prev, { ...review, id: String(Date.now()) }]);
+  const fetchReviews = useCallback(async () => {
+    const { data } = await supabase
+      .from('performance_reviews')
+      .select('*, employees(name_ar)')
+      .order('created_at', { ascending: false });
+    if (data) setReviews(data.map(mapRow));
   }, []);
 
-  const updateReview = useCallback((id: string, updates: Partial<PerformanceReview>) => {
-    setReviews(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
-  }, []);
+  useEffect(() => {
+    fetchReviews();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') fetchReviews();
+    });
+    return () => subscription.unsubscribe();
+  }, [fetchReviews]);
 
-  const deleteReview = useCallback((id: string) => {
-    setReviews(prev => prev.filter(r => r.id !== id));
-  }, []);
+  const addReview = useCallback(async (review: Omit<PerformanceReview, 'id'>) => {
+    await supabase.from('performance_reviews').insert({
+      employee_id: review.employeeId,
+      quarter: review.quarter,
+      year: review.year,
+      score: review.score,
+      status: review.status,
+      reviewer_id: review.reviewer || null,
+      review_date: review.reviewDate || null,
+      strengths: review.strengths || null,
+      improvements: review.improvements || null,
+      goals: review.goals || null,
+      manager_comments: review.managerComments || null,
+      criteria: review.criteria ? JSON.parse(JSON.stringify(review.criteria)) : null,
+    });
+    await fetchReviews();
+  }, [fetchReviews]);
+
+  const updateReview = useCallback(async (id: string, updates: Partial<PerformanceReview>) => {
+    const payload: any = {};
+    if (updates.quarter !== undefined) payload.quarter = updates.quarter;
+    if (updates.year !== undefined) payload.year = updates.year;
+    if (updates.score !== undefined) payload.score = updates.score;
+    if (updates.status !== undefined) payload.status = updates.status;
+    if (updates.reviewer !== undefined) payload.reviewer_id = updates.reviewer;
+    if (updates.reviewDate !== undefined) payload.review_date = updates.reviewDate;
+    if (updates.strengths !== undefined) payload.strengths = updates.strengths;
+    if (updates.improvements !== undefined) payload.improvements = updates.improvements;
+    if (updates.goals !== undefined) payload.goals = updates.goals;
+    if (updates.managerComments !== undefined) payload.manager_comments = updates.managerComments;
+    if (updates.criteria !== undefined) payload.criteria = JSON.parse(JSON.stringify(updates.criteria));
+    if (updates.employeeId !== undefined) payload.employee_id = updates.employeeId;
+
+    await supabase.from('performance_reviews').update(payload).eq('id', id);
+    await fetchReviews();
+  }, [fetchReviews]);
+
+  const deleteReview = useCallback(async (id: string) => {
+    await supabase.from('performance_reviews').delete().eq('id', id);
+    await fetchReviews();
+  }, [fetchReviews]);
 
   return (
     <PerformanceDataContext.Provider value={{ reviews, addReview, updateReview, deleteReview }}>

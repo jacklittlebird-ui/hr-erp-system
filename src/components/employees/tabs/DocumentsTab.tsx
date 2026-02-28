@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { cn } from '@/lib/utils';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, FileText, Trash2 } from 'lucide-react';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useNotifications } from '@/contexts/NotificationContext';
 
@@ -40,32 +40,38 @@ export const DocumentsTab = ({ employee }: DocumentsTabProps) => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { addNotification } = useNotifications();
-  const [documents, setDocuments] = usePersistedState<Document[]>('hr_documents', []);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'contract', date: new Date().toISOString().split('T')[0], expiryDate: '', notes: '' });
 
-  const empDocs = documents.filter(d => d.employeeId === employee.employeeId).sort((a, b) => b.date.localeCompare(a.date));
+  const fetchDocs = useCallback(async () => {
+    const { data } = await supabase.from('employee_documents').select('*').eq('employee_id', employee.id).order('uploaded_at', { ascending: false });
+    if (data) {
+      setDocuments(data.map(d => ({ id: d.id, employeeId: d.employee_id, name: d.name, type: d.type || 'other', date: d.uploaded_at.split('T')[0], notes: '' })));
+    }
+  }, [employee.id]);
 
-  const handleAdd = () => {
+  useEffect(() => { fetchDocs(); }, [fetchDocs]);
+
+  const empDocs = documents;
+
+  const handleAdd = async () => {
     if (!form.name.trim()) {
       toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'أدخل اسم المستند' : 'Enter document name', variant: 'destructive' });
       return;
     }
-    const newDoc: Document = {
-      id: `doc_${Date.now()}`,
-      employeeId: employee.employeeId,
-      ...form,
-    };
-    setDocuments(prev => [...prev, newDoc]);
+    await supabase.from('employee_documents').insert({ employee_id: employee.id, name: form.name, type: form.type });
     addNotification({ titleAr: `مستند جديد للموظف: ${employee.nameAr}`, titleEn: `New document for: ${employee.nameEn}`, type: 'info', module: 'employee' });
     toast({ title: ar ? 'تمت الإضافة' : 'Added' });
     setShowDialog(false);
     setForm({ name: '', type: 'contract', date: new Date().toISOString().split('T')[0], expiryDate: '', notes: '' });
+    await fetchDocs();
   };
 
-  const handleDelete = (id: string) => {
-    setDocuments(prev => prev.filter(d => d.id !== id));
+  const handleDelete = async (id: string) => {
+    await supabase.from('employee_documents').delete().eq('id', id);
     toast({ title: ar ? 'تم الحذف' : 'Deleted' });
+    await fetchDocs();
   };
 
   return (

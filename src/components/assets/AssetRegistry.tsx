@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { Plus, Search, Edit, Trash2, Eye, Monitor, Laptop, Smartphone, Printer, HardDrive, Package, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Asset {
   id: string;
@@ -50,8 +50,30 @@ export const AssetRegistry = () => {
   const { t, isRTL } = useLanguage();
   const { toast } = useToast();
   const { employees } = useEmployeeData();
-  const [assets, setAssets] = usePersistedState<Asset[]>('hr_asset_registry', initialAssets);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const activeEmployees = employees.filter(e => e.status === 'active');
+
+  const fetchAssets = useCallback(async () => {
+    const { data } = await supabase.from('assets').select('*').order('created_at', { ascending: false });
+    if (data) {
+      setAssets(data.map(a => ({
+        id: a.id, assetCode: a.asset_code, nameAr: a.name_ar, nameEn: a.name_en,
+        category: a.category as Asset['category'], brand: a.brand || '', model: a.model || '',
+        serialNumber: a.serial_number || '', purchaseDate: a.purchase_date || '',
+        purchasePrice: a.purchase_price ?? 0, status: a.status as Asset['status'],
+        condition: (a.condition || 'good') as Asset['condition'], location: a.location || '',
+        notes: a.notes || '', assignedTo: a.assigned_to || undefined,
+      })));
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAssets();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') fetchAssets();
+    });
+    return () => subscription.unsubscribe();
+  }, [fetchAssets]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -77,20 +99,28 @@ export const AssetRegistry = () => {
     return matchSearch && matchStatus && matchCategory;
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.nameAr || !form.brand) {
       toast({ title: t('assets.error'), description: t('assets.fillRequired'), variant: 'destructive' });
       return;
     }
+    const payload = {
+      name_ar: form.nameAr, name_en: form.nameEn, category: form.category,
+      brand: form.brand, model: form.model, serial_number: form.serialNumber,
+      purchase_date: form.purchaseDate || null, purchase_price: form.purchasePrice,
+      location: form.location, notes: form.notes,
+      assigned_to: form.assignedTo || null,
+      status: form.assignedTo ? 'assigned' : 'available',
+    };
     if (editingAsset) {
-      setAssets(prev => prev.map(a => a.id === editingAsset.id ? { ...a, ...form } : a));
+      await supabase.from('assets').update(payload).eq('id', editingAsset.id);
       toast({ title: t('assets.success'), description: t('assets.assetUpdated') });
     } else {
-      const newStatus = form.assignedTo ? 'assigned' : 'available';
-      const newAsset: Asset = { id: String(Date.now()), assetCode: `AST-${String(assets.length + 1).padStart(3, '0')}`, ...form, status: newStatus, condition: 'new' };
-      setAssets(prev => [newAsset, ...prev]);
+      const assetCode = `AST-${String(assets.length + 1).padStart(3, '0')}`;
+      await supabase.from('assets').insert({ ...payload, asset_code: assetCode, condition: 'new' });
       toast({ title: t('assets.success'), description: t('assets.assetCreated') });
     }
+    await fetchAssets();
     setDialogOpen(false);
     setEditingAsset(null);
     setForm(emptyForm);
@@ -102,8 +132,9 @@ export const AssetRegistry = () => {
     setDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setAssets(prev => prev.filter(a => a.id !== id));
+  const handleDelete = async (id: string) => {
+    await supabase.from('assets').delete().eq('id', id);
+    await fetchAssets();
     toast({ title: t('assets.success'), description: t('assets.assetDeleted') });
   };
 

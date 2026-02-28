@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { cn } from '@/lib/utils';
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, AlertTriangle, Trash2, CheckCircle } from 'lucide-react';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useNotifications } from '@/contexts/NotificationContext';
 
@@ -41,34 +41,40 @@ export const ViolationsTab = ({ employee }: ViolationsTabProps) => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { addNotification } = useNotifications();
-  const [violations, setViolations] = usePersistedState<Violation[]>('hr_violations', []);
+  const [violations, setViolations] = useState<Violation[]>([]);
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState({ type: 'absence', description: '', penalty: '', date: new Date().toISOString().split('T')[0] });
 
-  const empViolations = violations.filter(v => v.employeeId === employee.employeeId).sort((a, b) => b.date.localeCompare(a.date));
+  const fetchViolations = useCallback(async () => {
+    const { data } = await supabase.from('violations').select('*').eq('employee_id', employee.id).order('date', { ascending: false });
+    if (data) {
+      setViolations(data.map(v => ({ id: v.id, employeeId: v.employee_id, date: v.date, type: v.type, description: v.description || '', penalty: v.penalty || '', status: v.status === 'approved' ? 'active' as const : v.status === 'pending' ? 'pending' as const : 'resolved' as const })));
+    }
+  }, [employee.id]);
 
-  const handleAdd = () => {
-    const newV: Violation = {
-      id: `viol_${Date.now()}`,
-      employeeId: employee.employeeId,
-      ...form,
-      status: 'active',
-    };
-    setViolations(prev => [...prev, newV]);
+  useEffect(() => { fetchViolations(); }, [fetchViolations]);
+
+  const empViolations = violations;
+
+  const handleAdd = async () => {
+    await supabase.from('violations').insert({ employee_id: employee.id, type: form.type, description: form.description, penalty: form.penalty, date: form.date, status: 'pending' });
     addNotification({ titleAr: `مخالفة جديدة للموظف: ${employee.nameAr}`, titleEn: `New violation for: ${employee.nameEn}`, type: 'warning', module: 'employee' });
     toast({ title: ar ? 'تمت الإضافة' : 'Added' });
     setShowDialog(false);
     setForm({ type: 'absence', description: '', penalty: '', date: new Date().toISOString().split('T')[0] });
+    await fetchViolations();
   };
 
-  const handleDelete = (id: string) => {
-    setViolations(prev => prev.filter(v => v.id !== id));
+  const handleDelete = async (id: string) => {
+    await supabase.from('violations').delete().eq('id', id);
     toast({ title: ar ? 'تم الحذف' : 'Deleted' });
+    await fetchViolations();
   };
 
-  const handleApprove = (id: string) => {
-    setViolations(prev => prev.map(v => v.id === id ? { ...v, status: 'active' } : v));
+  const handleApprove = async (id: string) => {
+    await supabase.from('violations').update({ status: 'approved' }).eq('id', id);
     toast({ title: ar ? 'تمت الموافقة على المخالفة' : 'Violation approved' });
+    await fetchViolations();
   };
 
   return (

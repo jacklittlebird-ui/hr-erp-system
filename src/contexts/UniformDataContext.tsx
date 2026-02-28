@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useCallback } from 'react';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface UniformItem {
   id: number;
@@ -53,20 +53,63 @@ interface UniformDataContextType {
 
 const UniformDataContext = createContext<UniformDataContextType | undefined>(undefined);
 
+const mapRow = (r: any): UniformItem => ({
+  id: r.id, // UUID but cast
+  employeeId: r.employee_id,
+  typeAr: r.type_ar,
+  typeEn: r.type_en,
+  quantity: r.quantity,
+  unitPrice: r.unit_price ?? 0,
+  totalPrice: r.total_price ?? 0,
+  deliveryDate: r.delivery_date,
+  notes: r.notes || undefined,
+});
+
 export const UniformDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [uniforms, setUniforms] = usePersistedState<UniformItem[]>('hr_uniforms', []);
+  const [uniforms, setUniforms] = useState<UniformItem[]>([]);
 
-  const addUniform = useCallback((item: Omit<UniformItem, 'id'>) => {
-    setUniforms(prev => [...prev, { ...item, id: Date.now() }]);
+  const fetchUniforms = useCallback(async () => {
+    const { data } = await supabase.from('uniforms').select('*').order('delivery_date', { ascending: false });
+    if (data) setUniforms(data.map(mapRow));
   }, []);
 
-  const deleteUniform = useCallback((id: number) => {
-    setUniforms(prev => prev.filter(u => u.id !== id));
-  }, []);
+  useEffect(() => {
+    fetchUniforms();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') fetchUniforms();
+    });
+    return () => subscription.unsubscribe();
+  }, [fetchUniforms]);
 
-  const updateUniform = useCallback((id: number, updates: Partial<UniformItem>) => {
-    setUniforms(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
-  }, []);
+  const addUniform = useCallback(async (item: Omit<UniformItem, 'id'>) => {
+    await supabase.from('uniforms').insert({
+      employee_id: item.employeeId,
+      type_ar: item.typeAr,
+      type_en: item.typeEn,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      delivery_date: item.deliveryDate,
+      notes: item.notes || null,
+    });
+    await fetchUniforms();
+  }, [fetchUniforms]);
+
+  const deleteUniform = useCallback(async (id: number) => {
+    await supabase.from('uniforms').delete().eq('id', id as any);
+    await fetchUniforms();
+  }, [fetchUniforms]);
+
+  const updateUniform = useCallback(async (id: number, updates: Partial<UniformItem>) => {
+    const payload: any = {};
+    if (updates.typeAr !== undefined) payload.type_ar = updates.typeAr;
+    if (updates.typeEn !== undefined) payload.type_en = updates.typeEn;
+    if (updates.quantity !== undefined) payload.quantity = updates.quantity;
+    if (updates.unitPrice !== undefined) payload.unit_price = updates.unitPrice;
+    if (updates.deliveryDate !== undefined) payload.delivery_date = updates.deliveryDate;
+    if (updates.notes !== undefined) payload.notes = updates.notes;
+    await supabase.from('uniforms').update(payload).eq('id', id as any);
+    await fetchUniforms();
+  }, [fetchUniforms]);
 
   const getEmployeeUniforms = useCallback((employeeId: string) => {
     return uniforms.filter(u => u.employeeId === employeeId && !isExpired(u.deliveryDate));
