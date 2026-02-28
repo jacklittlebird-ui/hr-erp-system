@@ -1,0 +1,1 @@
+ALTER TABLE public.employees ADD COLUMN home_phone text DEFAULT NULL;

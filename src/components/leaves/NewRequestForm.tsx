@@ -164,6 +164,14 @@ const PermissionForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
     const [fH, fM] = fromTime.split(':').map(Number);
     const [tH, tM] = toTime.split(':').map(Number);
     const durationHours = Math.max(0, (tH * 60 + tM - fH * 60 - fM) / 60);
+    if (durationHours > 2) {
+      toast({ title: t('leaves.form.error'), description: isRTL ? 'الحد الأقصى للإذن ساعتان' : 'Maximum permission duration is 2 hours', variant: 'destructive' });
+      return;
+    }
+    if (durationHours < 0.5) {
+      toast({ title: t('leaves.form.error'), description: isRTL ? 'الحد الأدنى للإذن نصف ساعة' : 'Minimum permission duration is 30 minutes', variant: 'destructive' });
+      return;
+    }
     onSubmit({
       employeeId,
       employeeName: emp?.nameEn || '',

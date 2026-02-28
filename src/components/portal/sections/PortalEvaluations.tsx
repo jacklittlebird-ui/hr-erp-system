@@ -15,7 +15,7 @@ export const PortalEvaluations = () => {
 
   const myReviews = useMemo(
     () => reviews.filter(r => r.employeeId === PORTAL_EMPLOYEE_ID),
-    [reviews]
+    [reviews, PORTAL_EMPLOYEE_ID]
   );
 
   const statusLabel = (status: string) => {
