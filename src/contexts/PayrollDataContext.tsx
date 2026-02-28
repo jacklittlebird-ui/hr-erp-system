@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useCallback } from 'react';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ProcessedPayroll {
   employeeId: string;
@@ -10,22 +10,17 @@ export interface ProcessedPayroll {
   stationLocation: string;
   month: string;
   year: string;
-  // Earnings from salary record
   basicSalary: number;
   transportAllowance: number;
   incentives: number;
   stationAllowance: number;
   mobileAllowance: number;
-  // Monthly manual entries
   livingAllowance: number;
   overtimePay: number;
-  // Bonus
   bonusType: 'amount' | 'percentage';
   bonusValue: number;
   bonusAmount: number;
-  // Gross
   gross: number;
-  // Deductions
   employeeInsurance: number;
   loanPayment: number;
   advanceAmount: number;
@@ -36,13 +31,10 @@ export interface ProcessedPayroll {
   penaltyValue: number;
   penaltyAmount: number;
   totalDeductions: number;
-  // Net
   netSalary: number;
-  // Employer contributions
   employerSocialInsurance: number;
   healthInsurance: number;
   incomeTax: number;
-  // Meta
   processedAt: string;
 }
 
@@ -57,59 +49,124 @@ interface PayrollDataContextType {
 
 const PayrollDataContext = createContext<PayrollDataContextType | undefined>(undefined);
 
-// Pre-populated with some data
-const initialPayroll: ProcessedPayroll[] = [
-  {
-    employeeId: 'Emp001', employeeName: 'جلال عبد الرازق عبد العليم', employeeNameEn: 'Galal AbdelRazek AbdelHaliem',
-    department: 'الإدارة', stationLocation: 'capital', month: '01', year: '2026',
-    basicSalary: 8500, transportAllowance: 500, incentives: 1000, stationAllowance: 600, mobileAllowance: 400,
-    livingAllowance: 800, overtimePay: 0,
-    bonusType: 'amount', bonusValue: 500, bonusAmount: 500,
-    gross: 11800, employeeInsurance: 950, loanPayment: 2500, advanceAmount: 0, mobileBill: 350,
-    leaveDays: 0, leaveDeduction: 0, penaltyType: 'amount', penaltyValue: 0, penaltyAmount: 0,
-    totalDeductions: 3800, netSalary: 8500,
-    employerSocialInsurance: 1200, healthInsurance: 300, incomeTax: 500,
-    processedAt: '2026-01-28',
-  },
-  {
-    employeeId: 'Emp002', employeeName: 'أحمد محمد علي', employeeNameEn: 'Ahmed Mohamed Ali',
-    department: 'تقنية المعلومات', stationLocation: 'cairo', month: '01', year: '2026',
-    basicSalary: 7200, transportAllowance: 400, incentives: 800, stationAllowance: 500, mobileAllowance: 300,
-    livingAllowance: 600, overtimePay: 200,
-    bonusType: 'amount', bonusValue: 0, bonusAmount: 0,
-    gross: 10000, employeeInsurance: 800, loanPayment: 2000, advanceAmount: 0, mobileBill: 280,
-    leaveDays: 2, leaveDeduction: 667, penaltyType: 'amount', penaltyValue: 0, penaltyAmount: 0,
-    totalDeductions: 3747, netSalary: 6253,
-    employerSocialInsurance: 1000, healthInsurance: 250, incomeTax: 400,
-    processedAt: '2026-01-28',
-  },
-];
+const mapRowToEntry = (r: any): ProcessedPayroll => ({
+  employeeId: r.employee_id,
+  employeeName: '',
+  employeeNameEn: '',
+  department: '',
+  stationLocation: '',
+  month: r.month,
+  year: r.year,
+  basicSalary: r.basic_salary ?? 0,
+  transportAllowance: r.transport_allowance ?? 0,
+  incentives: r.incentives ?? 0,
+  stationAllowance: r.station_allowance ?? 0,
+  mobileAllowance: r.mobile_allowance ?? 0,
+  livingAllowance: r.living_allowance ?? 0,
+  overtimePay: r.overtime_pay ?? 0,
+  bonusType: (r.bonus_type as 'amount' | 'percentage') ?? 'amount',
+  bonusValue: r.bonus_value ?? 0,
+  bonusAmount: r.bonus_amount ?? 0,
+  gross: r.gross ?? 0,
+  employeeInsurance: r.employee_insurance ?? 0,
+  loanPayment: r.loan_payment ?? 0,
+  advanceAmount: r.advance_amount ?? 0,
+  mobileBill: r.mobile_bill ?? 0,
+  leaveDays: r.leave_days ?? 0,
+  leaveDeduction: r.leave_deduction ?? 0,
+  penaltyType: (r.penalty_type as 'amount' | 'days' | 'percentage') ?? 'amount',
+  penaltyValue: r.penalty_value ?? 0,
+  penaltyAmount: r.penalty_amount ?? 0,
+  totalDeductions: r.total_deductions ?? 0,
+  netSalary: r.net_salary ?? 0,
+  employerSocialInsurance: r.employer_social_insurance ?? 0,
+  healthInsurance: r.health_insurance ?? 0,
+  incomeTax: r.income_tax ?? 0,
+  processedAt: r.processed_at ?? '',
+});
+
+const entryToPayload = (entry: ProcessedPayroll) => ({
+  employee_id: entry.employeeId,
+  month: entry.month,
+  year: entry.year,
+  basic_salary: entry.basicSalary,
+  transport_allowance: entry.transportAllowance,
+  incentives: entry.incentives,
+  station_allowance: entry.stationAllowance,
+  mobile_allowance: entry.mobileAllowance,
+  living_allowance: entry.livingAllowance,
+  overtime_pay: entry.overtimePay,
+  bonus_type: entry.bonusType,
+  bonus_value: entry.bonusValue,
+  bonus_amount: entry.bonusAmount,
+  gross: entry.gross,
+  employee_insurance: entry.employeeInsurance,
+  loan_payment: entry.loanPayment,
+  advance_amount: entry.advanceAmount,
+  mobile_bill: entry.mobileBill,
+  leave_days: entry.leaveDays,
+  leave_deduction: entry.leaveDeduction,
+  penalty_type: entry.penaltyType,
+  penalty_value: entry.penaltyValue,
+  penalty_amount: entry.penaltyAmount,
+  total_deductions: entry.totalDeductions,
+  net_salary: entry.netSalary,
+  employer_social_insurance: entry.employerSocialInsurance,
+  health_insurance: entry.healthInsurance,
+  income_tax: entry.incomeTax,
+  processed_at: entry.processedAt || new Date().toISOString(),
+});
 
 export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [payrollEntries, setPayrollEntries] = usePersistedState<ProcessedPayroll[]>('hr_payroll', initialPayroll);
+  const [payrollEntries, setPayrollEntries] = useState<ProcessedPayroll[]>([]);
   const { addNotification } = useNotifications();
 
-  const savePayrollEntry = useCallback((entry: ProcessedPayroll) => {
-    setPayrollEntries(prev => {
-      const idx = prev.findIndex(e => e.employeeId === entry.employeeId && e.month === entry.month && e.year === entry.year);
-      if (idx >= 0) { const u = [...prev]; u[idx] = entry; return u; }
-      return [...prev, entry];
-    });
-    addNotification({ titleAr: `تم معالجة مسير الراتب: ${entry.employeeName}`, titleEn: `Payroll processed: ${entry.employeeNameEn}`, type: 'success', module: 'payroll' });
-  }, [addNotification]);
+  const fetchEntries = useCallback(async () => {
+    const { data, error } = await supabase.from('payroll_entries').select('*');
+    if (!error && data) {
+      setPayrollEntries(data.map(mapRowToEntry));
+    }
+  }, []);
 
-  const savePayrollEntries = useCallback((entries: ProcessedPayroll[]) => {
-    setPayrollEntries(prev => {
-      const updated = [...prev];
-      entries.forEach(entry => {
-        const idx = updated.findIndex(e => e.employeeId === entry.employeeId && e.month === entry.month && e.year === entry.year);
-        if (idx >= 0) updated[idx] = entry;
-        else updated.push(entry);
-      });
-      return updated;
+  useEffect(() => {
+    fetchEntries();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') fetchEntries();
     });
+    return () => subscription.unsubscribe();
+  }, [fetchEntries]);
+
+  const upsertEntry = async (entry: ProcessedPayroll) => {
+    const payload = entryToPayload(entry);
+    // Check if exists
+    const { data: existing } = await supabase
+      .from('payroll_entries')
+      .select('id')
+      .eq('employee_id', entry.employeeId)
+      .eq('month', entry.month)
+      .eq('year', entry.year)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase.from('payroll_entries').update(payload).eq('id', existing.id);
+    } else {
+      await supabase.from('payroll_entries').insert(payload);
+    }
+  };
+
+  const savePayrollEntry = useCallback(async (entry: ProcessedPayroll) => {
+    await upsertEntry(entry);
+    await fetchEntries();
+    addNotification({ titleAr: `تم معالجة مسير الراتب: ${entry.employeeName}`, titleEn: `Payroll processed: ${entry.employeeNameEn}`, type: 'success', module: 'payroll' });
+  }, [addNotification, fetchEntries]);
+
+  const savePayrollEntries = useCallback(async (entries: ProcessedPayroll[]) => {
+    for (const entry of entries) {
+      await upsertEntry(entry);
+    }
+    await fetchEntries();
     addNotification({ titleAr: `تم معالجة مسير الرواتب لـ ${entries.length} موظف`, titleEn: `Payroll processed for ${entries.length} employees`, type: 'success', module: 'payroll' });
-  }, [addNotification]);
+  }, [addNotification, fetchEntries]);
 
   const getPayrollEntry = useCallback((employeeId: string, month: string, year: string) => {
     return payrollEntries.find(e => e.employeeId === employeeId && e.month === month && e.year === year);
