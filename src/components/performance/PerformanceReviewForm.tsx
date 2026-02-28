@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePerformanceData, defaultCriteria, calculateScore, CriteriaItem } from '@/contexts/PerformanceDataContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -36,7 +36,7 @@ const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
 
 export const PerformanceReviewForm = () => {
   const { t, isRTL, language } = useLanguage();
-  const { addReview, reviews } = usePerformanceData();
+  const { addReview, updateReview, reviews } = usePerformanceData();
   const { employees } = useEmployeeData();
   const ar = language === 'ar';
 
@@ -53,6 +53,38 @@ export const PerformanceReviewForm = () => {
   const [improvements, setImprovements] = useState('');
   const [goals, setGoals] = useState('');
   const [managerComments, setManagerComments] = useState('');
+
+  // Find existing review for selected employee+quarter+year
+  const existingReview = useMemo(() => {
+    if (!selectedEmployee || !selectedQuarter || !selectedYear) return null;
+    return reviews.find(r => r.employeeId === selectedEmployee && r.quarter === selectedQuarter && r.year === selectedYear) || null;
+  }, [reviews, selectedEmployee, selectedQuarter, selectedYear]);
+
+  // Load existing review data into form when found
+  useEffect(() => {
+    if (existingReview) {
+      if (existingReview.criteria && existingReview.criteria.length > 0) {
+        setCriteria(existingReview.criteria.map((c, i) => ({
+          id: initialCriteria[i]?.id || `c${i}`,
+          name: c.nameEn,
+          nameAr: c.name,
+          score: c.score,
+          weight: c.weight,
+        })));
+      }
+      setStrengths(existingReview.strengths || '');
+      setImprovements(existingReview.improvements || '');
+      setGoals(existingReview.goals || '');
+      setManagerComments(existingReview.managerComments || '');
+    } else {
+      // Reset form for new evaluation
+      setCriteria(initialCriteria.map(c => ({ ...c })));
+      setStrengths('');
+      setImprovements('');
+      setGoals('');
+      setManagerComments('');
+    }
+  }, [existingReview]);
 
   const activeEmployees = employees.filter(e => e.status === 'active');
 
@@ -132,32 +164,30 @@ export const PerformanceReviewForm = () => {
     setManagerComments('');
   };
 
-  const handleSaveDraft = () => {
+  const saveOrUpdate = (status: 'draft' | 'submitted' | 'approved') => {
     if (!selectedEmployee || !selectedYear || !selectedQuarter) {
       toast.error(t('performance.form.fillRequired'));
       return;
     }
-    const review = buildReview('draft');
-    if (review) { addReview(review); resetForm(); toast.success(t('performance.form.draftSaved')); }
+    const review = buildReview(status);
+    if (!review) return;
+
+    if (existingReview) {
+      updateReview(existingReview.id, { ...review });
+    } else {
+      addReview(review);
+    }
+    const msgs: Record<string, string> = {
+      draft: t('performance.form.draftSaved'),
+      submitted: t('performance.form.submitted'),
+      approved: ar ? 'تم اعتماد التقييم بنجاح' : 'Review approved successfully',
+    };
+    toast.success(msgs[status]);
   };
 
-  const handleSubmit = () => {
-    if (!selectedEmployee || !selectedYear || !selectedQuarter) {
-      toast.error(t('performance.form.fillRequired'));
-      return;
-    }
-    const review = buildReview('submitted');
-    if (review) { addReview(review); resetForm(); toast.success(t('performance.form.submitted')); }
-  };
-
-  const handleApprove = () => {
-    if (!selectedEmployee || !selectedYear || !selectedQuarter) {
-      toast.error(t('performance.form.fillRequired'));
-      return;
-    }
-    const review = buildReview('approved');
-    if (review) { addReview(review); resetForm(); toast.success(ar ? 'تم اعتماد التقييم بنجاح' : 'Review approved successfully'); }
-  };
+  const handleSaveDraft = () => saveOrUpdate('draft');
+  const handleSubmit = () => saveOrUpdate('submitted');
+  const handleApprove = () => saveOrUpdate('approved');
 
   const getQuarterLabel = (q: string) => {
     const labels: Record<string, { ar: string; en: string }> = {
@@ -296,6 +326,11 @@ export const PerformanceReviewForm = () => {
               <span className="font-medium">{ar ? 'الموظف المحدد:' : 'Selected:'}</span>{' '}
               <span className="text-primary font-semibold">{ar ? selectedEmp.nameAr : selectedEmp.nameEn}</span>
               {' - '}{selectedEmp.department}
+              {existingReview && (
+                <Badge variant="outline" className="ml-2 bg-stat-yellow/10 text-stat-yellow border-stat-yellow">
+                  {ar ? `تقييم موجود (${existingReview.status === 'draft' ? 'مسودة' : existingReview.status === 'submitted' ? 'مرسل' : 'معتمد'})` : `Existing (${existingReview.status})`}
+                </Badge>
+              )}
             </div>
           )}
         </CardContent>
