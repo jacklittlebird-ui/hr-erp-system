@@ -8,9 +8,9 @@ import { LateArrivals } from '@/components/attendance/LateArrivals';
 import { AttendanceReports } from '@/components/attendance/AttendanceReports';
 import { ShiftManagement } from '@/components/attendance/ShiftManagement';
 import { AttendanceRules } from '@/components/attendance/AttendanceRules';
-import { LocationManagement } from '@/components/attendance/LocationManagement';
+
 import { EmployeeAssignment } from '@/components/attendance/EmployeeAssignment';
-import { Clock, List, AlertTriangle, BarChart3, Calendar, Settings2, MapPin, Users } from 'lucide-react';
+import { Clock, List, AlertTriangle, BarChart3, Calendar, Settings2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface AttendanceRecord {
@@ -216,7 +216,7 @@ const Attendance = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={cn("grid w-full grid-cols-8 mb-6", isRTL && "direction-rtl")}>
+          <TabsList className={cn("grid w-full grid-cols-7 mb-6", isRTL && "direction-rtl")}>
             <TabsTrigger value="checkin" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
               <span className="hidden lg:inline">{t('attendance.tabs.checkInOut')}</span>
@@ -245,10 +245,6 @@ const Attendance = () => {
             <TabsTrigger value="rules" className="flex items-center gap-2">
               <Settings2 className="w-4 h-4" />
               <span className="hidden lg:inline">{t('attendance.tabs.rules')}</span>
-            </TabsTrigger>
-            <TabsTrigger value="locations" className="flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              <span className="hidden lg:inline">{t('attendance.tabs.locations')}</span>
             </TabsTrigger>
             <TabsTrigger value="assignment" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -284,9 +280,6 @@ const Attendance = () => {
             <AttendanceRules />
           </TabsContent>
 
-          <TabsContent value="locations">
-            <LocationManagement />
-          </TabsContent>
 
           <TabsContent value="assignment">
             <EmployeeAssignment />

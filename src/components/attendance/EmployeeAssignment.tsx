@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,129 +11,54 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Users, Search, Plus, Edit2, Building2, Plane, Timer,
-  Clock, Calendar, Filter
+  Clock, Calendar, Filter, Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { 
-  EmployeeAttendanceAssignment, 
-  sampleAttendanceRules, 
-  sampleLocations,
-  sampleShiftDefinitions
-} from '@/types/attendance';
+import { sampleAttendanceRules, sampleShiftDefinitions } from '@/types/attendance';
+import { stationLocations } from '@/data/stationLocations';
+import { useEmployeeData } from '@/contexts/EmployeeDataContext';
+import { toast } from '@/hooks/use-toast';
 
-interface EmployeeData {
+interface Assignment {
   id: string;
-  name: string;
-  nameAr: string;
-  department: string;
-  jobTitle: string;
-  avatar?: string;
+  employeeId: string;
+  attendanceRuleId: string;
+  stationValue: string;
+  shiftId?: string;
+  effectiveFrom: string;
+  isActive: boolean;
 }
-
-const sampleEmployees: EmployeeData[] = [
-  { id: 'EMP001', name: 'Ahmed Mohamed', nameAr: 'أحمد محمد', department: 'IT', jobTitle: 'Developer' },
-  { id: 'EMP002', name: 'Sara Ali', nameAr: 'سارة علي', department: 'HR', jobTitle: 'HR Specialist' },
-  { id: 'EMP003', name: 'Mohamed Hassan', nameAr: 'محمد حسن', department: 'Security', jobTitle: 'Security Officer' },
-  { id: 'EMP004', name: 'Fatima Omar', nameAr: 'فاطمة عمر', department: 'Security', jobTitle: 'Security Officer' },
-  { id: 'EMP005', name: 'Ali Mahmoud', nameAr: 'علي محمود', department: 'Operations', jobTitle: 'Operations Manager' },
-  { id: 'EMP006', name: 'Nour Ahmed', nameAr: 'نور أحمد', department: 'Security', jobTitle: 'Security Supervisor' },
-];
-
-const sampleAssignments: (EmployeeAttendanceAssignment & { employee: EmployeeData })[] = [
-  {
-    id: 'assign-1',
-    employeeId: 'EMP001',
-    attendanceRuleId: 'rule-hq-fixed',
-    locationId: 'loc-hq',
-    effectiveFrom: '2024-01-01',
-    isActive: true,
-    employee: sampleEmployees[0],
-  },
-  {
-    id: 'assign-2',
-    employeeId: 'EMP002',
-    attendanceRuleId: 'rule-hq-flexible',
-    locationId: 'loc-hq',
-    effectiveFrom: '2024-01-01',
-    isActive: true,
-    employee: sampleEmployees[1],
-  },
-  {
-    id: 'assign-3',
-    employeeId: 'EMP003',
-    attendanceRuleId: 'rule-airport-3shift',
-    locationId: 'loc-cai',
-    shiftId: 'shift-morning',
-    effectiveFrom: '2024-01-01',
-    isActive: true,
-    employee: sampleEmployees[2],
-  },
-  {
-    id: 'assign-4',
-    employeeId: 'EMP004',
-    attendanceRuleId: 'rule-airport-3shift',
-    locationId: 'loc-cai',
-    shiftId: 'shift-afternoon',
-    effectiveFrom: '2024-01-01',
-    isActive: true,
-    employee: sampleEmployees[3],
-  },
-  {
-    id: 'assign-5',
-    employeeId: 'EMP005',
-    attendanceRuleId: 'rule-hq-fixed',
-    locationId: 'loc-hq',
-    effectiveFrom: '2024-01-01',
-    isActive: true,
-    employee: sampleEmployees[4],
-  },
-  {
-    id: 'assign-6',
-    employeeId: 'EMP006',
-    attendanceRuleId: 'rule-airport-3shift',
-    locationId: 'loc-hrg',
-    shiftId: 'shift-night',
-    effectiveFrom: '2024-01-01',
-    isActive: true,
-    employee: sampleEmployees[5],
-  },
-];
 
 export const EmployeeAssignment = () => {
   const { t, isRTL, language } = useLanguage();
-  const [assignments, setAssignments] = useState(sampleAssignments);
+  const { employees: contextEmployees } = useEmployeeData();
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [locationFilter, setLocationFilter] = useState<string>('all');
+  const [stationFilter, setStationFilter] = useState<string>('all');
   const [ruleFilter, setRuleFilter] = useState<string>('all');
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<string | null>(null);
   
-  // Form state for new/edit assignment
   const [formData, setFormData] = useState({
     employeeId: '',
     attendanceRuleId: '',
-    locationId: '',
+    stationValue: '',
     shiftId: '',
     effectiveFrom: new Date().toISOString().split('T')[0],
   });
 
   const rules = sampleAttendanceRules;
-  const locations = sampleLocations;
   const shifts = sampleShiftDefinitions;
 
   const getRule = (ruleId: string) => rules.find(r => r.id === ruleId);
-  const getLocation = (locationId: string) => locations.find(l => l.id === locationId);
   const getShift = (shiftId?: string) => shiftId ? shifts.find(s => s.id === shiftId) : null;
-
-  const getRuleIcon = (ruleId: string) => {
-    const rule = getRule(ruleId);
-    if (!rule) return <Clock className="w-4 h-4" />;
-    switch (rule.scheduleType) {
-      case 'fixed': return <Building2 className="w-4 h-4" />;
-      case 'flexible': return <Timer className="w-4 h-4" />;
-      case 'shift': return <Plane className="w-4 h-4" />;
-    }
+  const getStationLabel = (val: string) => {
+    const s = stationLocations.find(st => st.value === val);
+    if (!s) return val;
+    return language === 'ar' ? s.labelAr : s.labelEn;
   };
+
+  const getEmployee = (empId: string) => contextEmployees.find(e => e.id === empId);
 
   const getRuleBadgeColor = (ruleId: string) => {
     const rule = getRule(ruleId);
@@ -145,58 +70,82 @@ export const EmployeeAssignment = () => {
     }
   };
 
+  const getRuleIcon = (ruleId: string) => {
+    const rule = getRule(ruleId);
+    if (!rule) return <Clock className="w-4 h-4" />;
+    switch (rule.scheduleType) {
+      case 'fixed': return <Building2 className="w-4 h-4" />;
+      case 'flexible': return <Timer className="w-4 h-4" />;
+      case 'shift': return <Plane className="w-4 h-4" />;
+    }
+  };
+
+  // Filter employees by selected station for cascading selection
+  const filteredEmployeesForForm = useMemo(() => {
+    if (!formData.stationValue) return contextEmployees;
+    return contextEmployees.filter(e => {
+      const empStation = e.stationName?.toLowerCase() || '';
+      const selectedStation = stationLocations.find(s => s.value === formData.stationValue);
+      if (!selectedStation) return true;
+      return empStation === selectedStation.labelEn.toLowerCase() || empStation === selectedStation.labelAr;
+    });
+  }, [contextEmployees, formData.stationValue]);
+
   const handleSaveAssignment = () => {
-    if (!formData.employeeId || !formData.attendanceRuleId || !formData.locationId) {
+    if (!formData.employeeId || !formData.attendanceRuleId || !formData.stationValue) {
+      toast({
+        title: language === 'ar' ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields',
+        variant: 'destructive',
+      });
       return;
     }
 
-    const employee = sampleEmployees.find(e => e.id === formData.employeeId);
-    if (!employee) return;
-
     if (editingAssignment) {
-      // Update existing
       setAssignments(prev => prev.map(a => 
         a.id === editingAssignment 
           ? {
               ...a,
               attendanceRuleId: formData.attendanceRuleId,
-              locationId: formData.locationId,
+              stationValue: formData.stationValue,
               shiftId: formData.shiftId || undefined,
               effectiveFrom: formData.effectiveFrom,
             }
           : a
       ));
+      toast({ title: language === 'ar' ? 'تم تحديث التعيين بنجاح' : 'Assignment updated successfully' });
     } else {
-      // Add new
-      const newAssignment = {
+      // Check if employee already has an assignment
+      const existing = assignments.find(a => a.employeeId === formData.employeeId && a.isActive);
+      if (existing) {
+        toast({
+          title: language === 'ar' ? 'هذا الموظف معين بالفعل' : 'Employee already assigned',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const newAssignment: Assignment = {
         id: `assign-${Date.now()}`,
         employeeId: formData.employeeId,
         attendanceRuleId: formData.attendanceRuleId,
-        locationId: formData.locationId,
+        stationValue: formData.stationValue,
         shiftId: formData.shiftId || undefined,
         effectiveFrom: formData.effectiveFrom,
         isActive: true,
-        employee,
       };
       setAssignments(prev => [...prev, newAssignment]);
+      toast({ title: language === 'ar' ? 'تم التعيين بنجاح' : 'Assignment saved successfully' });
     }
 
-    setFormData({
-      employeeId: '',
-      attendanceRuleId: '',
-      locationId: '',
-      shiftId: '',
-      effectiveFrom: new Date().toISOString().split('T')[0],
-    });
-    setEditingAssignment(null);
+    resetForm();
     setIsAssignDialogOpen(false);
   };
 
-  const handleEditAssignment = (assignment: typeof sampleAssignments[0]) => {
+  const handleEditAssignment = (assignment: Assignment) => {
     setFormData({
       employeeId: assignment.employeeId,
       attendanceRuleId: assignment.attendanceRuleId,
-      locationId: assignment.locationId,
+      stationValue: assignment.stationValue,
       shiftId: assignment.shiftId || '',
       effectiveFrom: assignment.effectiveFrom,
     });
@@ -204,11 +153,16 @@ export const EmployeeAssignment = () => {
     setIsAssignDialogOpen(true);
   };
 
+  const handleDeleteAssignment = (id: string) => {
+    setAssignments(prev => prev.filter(a => a.id !== id));
+    toast({ title: language === 'ar' ? 'تم حذف التعيين' : 'Assignment deleted' });
+  };
+
   const resetForm = () => {
     setFormData({
       employeeId: '',
       attendanceRuleId: '',
-      locationId: '',
+      stationValue: '',
       shiftId: '',
       effectiveFrom: new Date().toISOString().split('T')[0],
     });
@@ -216,16 +170,22 @@ export const EmployeeAssignment = () => {
   };
 
   const filteredAssignments = assignments.filter(a => {
-    const matchesSearch = 
-      a.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.employee.nameAr.includes(searchTerm) ||
-      a.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
+    const emp = getEmployee(a.employeeId);
+    const matchesSearch = emp ? (
+      emp.nameAr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.nameEn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
+    ) : false;
     
-    const matchesLocation = locationFilter === 'all' || a.locationId === locationFilter;
+    const matchesStation = stationFilter === 'all' || a.stationValue === stationFilter;
     const matchesRule = ruleFilter === 'all' || a.attendanceRuleId === ruleFilter;
     
-    return matchesSearch && matchesLocation && matchesRule;
+    return (searchTerm === '' || matchesSearch) && matchesStation && matchesRule;
   });
+
+  // Show which rule is shift-based for conditional shift selection
+  const selectedRule = getRule(formData.attendanceRuleId);
+  const isShiftRule = selectedRule?.scheduleType === 'shift';
 
   return (
     <div className="space-y-6">
@@ -252,6 +212,27 @@ export const EmployeeAssignment = () => {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {/* Station Selection */}
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'المحطة / الموقع' : 'Station / Location'}</Label>
+                <Select 
+                  value={formData.stationValue}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, stationValue: v, employeeId: '' }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={language === 'ar' ? 'اختر المحطة' : 'Select Station'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stationLocations.map((station) => (
+                      <SelectItem key={station.value} value={station.value}>
+                        {language === 'ar' ? station.labelAr : station.labelEn}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Employee Selection */}
               <div className="space-y-2">
                 <Label>{t('attendance.assignment.employee')}</Label>
                 <Select 
@@ -263,20 +244,21 @@ export const EmployeeAssignment = () => {
                     <SelectValue placeholder={t('attendance.assignment.selectEmployee')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {sampleEmployees.map((emp) => (
+                    {filteredEmployeesForForm.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id}>
-                        {language === 'ar' ? emp.nameAr : emp.name} ({emp.id})
+                        {language === 'ar' ? emp.nameAr : emp.nameEn} ({emp.employeeId})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               
+              {/* Attendance Rule */}
               <div className="space-y-2">
                 <Label>{t('attendance.assignment.attendanceRule')}</Label>
                 <Select 
                   value={formData.attendanceRuleId}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, attendanceRuleId: v }))}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, attendanceRuleId: v, shiftId: '' }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t('attendance.assignment.selectRule')} />
@@ -291,45 +273,29 @@ export const EmployeeAssignment = () => {
                 </Select>
               </div>
               
-              <div className="space-y-2">
-                <Label>{t('attendance.assignment.location')}</Label>
-                <Select 
-                  value={formData.locationId}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, locationId: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('attendance.assignment.selectLocation')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((loc) => (
-                      <SelectItem key={loc.id} value={loc.id}>
-                        {language === 'ar' ? loc.nameAr : loc.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Shift - only show if rule is shift-based */}
+              {isShiftRule && (
+                <div className="space-y-2">
+                  <Label>{t('attendance.assignment.shift')}</Label>
+                  <Select 
+                    value={formData.shiftId}
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, shiftId: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('attendance.assignment.selectShift')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {shifts.map((shift) => (
+                        <SelectItem key={shift.id} value={shift.id}>
+                          {language === 'ar' ? shift.nameAr : shift.name} ({shift.startTime} - {shift.endTime})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               
-              <div className="space-y-2">
-                <Label>{t('attendance.assignment.shift')}</Label>
-                <Select 
-                  value={formData.shiftId}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, shiftId: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('attendance.assignment.selectShift')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('attendance.assignment.noShift')}</SelectItem>
-                    {shifts.map((shift) => (
-                      <SelectItem key={shift.id} value={shift.id}>
-                        {language === 'ar' ? shift.nameAr : shift.name} ({shift.startTime} - {shift.endTime})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
+              {/* Effective From */}
               <div className="space-y-2">
                 <Label>{t('attendance.assignment.effectiveFrom')}</Label>
                 <Input 
@@ -361,16 +327,16 @@ export const EmployeeAssignment = () => {
               />
             </div>
             
-            <Select value={locationFilter} onValueChange={setLocationFilter}>
+            <Select value={stationFilter} onValueChange={setStationFilter}>
               <SelectTrigger className="w-[200px]">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t('attendance.assignment.allLocations')}</SelectItem>
-                {locations.map((loc) => (
-                  <SelectItem key={loc.id} value={loc.id}>
-                    {language === 'ar' ? loc.nameAr : loc.name}
+                <SelectItem value="all">{language === 'ar' ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                {stationLocations.map((station) => (
+                  <SelectItem key={station.value} value={station.value}>
+                    {language === 'ar' ? station.labelAr : station.labelEn}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -394,6 +360,49 @@ export const EmployeeAssignment = () => {
         </CardContent>
       </Card>
 
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+              <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <Users className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{assignments.length}</p>
+                <p className="text-sm text-muted-foreground">{language === 'ar' ? 'إجمالي التعيينات' : 'Total Assignments'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+              <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/30">
+                <Building2 className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{new Set(assignments.map(a => a.stationValue)).size}</p>
+                <p className="text-sm text-muted-foreground">{language === 'ar' ? 'المحطات المغطاة' : 'Stations Covered'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+              <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                <Clock className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{assignments.filter(a => a.shiftId).length}</p>
+                <p className="text-sm text-muted-foreground">{language === 'ar' ? 'بنظام الورديات' : 'On Shift System'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Assignments Table */}
       <Card>
         <CardHeader>
@@ -406,97 +415,89 @@ export const EmployeeAssignment = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.employee')}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.department')}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.location')}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.attendanceRule')}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.shift')}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.effectiveFrom')}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAssignments.map((assignment) => {
-                  const rule = getRule(assignment.attendanceRuleId);
-                  const location = getLocation(assignment.locationId);
-                  const shift = getShift(assignment.shiftId);
-                  
-                  return (
-                    <TableRow key={assignment.id}>
-                      <TableCell>
-                        <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
-                          <Avatar className="h-9 w-9">
-                            <AvatarImage src={assignment.employee.avatar} />
-                            <AvatarFallback>
-                              {assignment.employee.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">
-                              {language === 'ar' ? assignment.employee.nameAr : assignment.employee.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">{assignment.employeeId}</p>
+          {filteredAssignments.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p>{language === 'ar' ? 'لا توجد تعيينات بعد. اضغط على زر "تعيين موظف" للبدء.' : 'No assignments yet. Click "Assign Employee" to get started.'}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.employee')}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{language === 'ar' ? 'المحطة' : 'Station'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.attendanceRule')}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.shift')}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.effectiveFrom')}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{t('attendance.assignment.actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAssignments.map((assignment) => {
+                    const emp = getEmployee(assignment.employeeId);
+                    const rule = getRule(assignment.attendanceRuleId);
+                    const shift = getShift(assignment.shiftId);
+                    
+                    return (
+                      <TableRow key={assignment.id}>
+                        <TableCell>
+                          <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+                            <Avatar className="h-9 w-9">
+                              <AvatarFallback>
+                                {emp ? emp.nameEn.split(' ').map(n => n[0]).join('') : '?'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">
+                                {emp ? (language === 'ar' ? emp.nameAr : emp.nameEn) : assignment.employeeId}
+                              </p>
+                              <p className="text-sm text-muted-foreground">{emp?.employeeId}</p>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{assignment.employee.department}</TableCell>
-                      <TableCell>
-                        <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                          {location?.type === 'airport' ? (
-                            <Plane className="w-4 h-4 text-purple-500" />
-                          ) : (
-                            <Building2 className="w-4 h-4 text-blue-500" />
-                          )}
-                          <span>{location ? (language === 'ar' ? location.nameAr : location.name) : '-'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={cn("gap-1", getRuleBadgeColor(assignment.attendanceRuleId))}>
-                          {getRuleIcon(assignment.attendanceRuleId)}
-                          {rule ? (language === 'ar' ? rule.nameAr : rule.name) : '-'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {shift ? (
-                          <Badge 
-                            variant="outline" 
-                            style={{ 
-                              backgroundColor: `${shift.color}20`, 
-                              borderColor: shift.color,
-                              color: shift.color 
-                            }}
-                          >
-                            {language === 'ar' ? shift.nameAr : shift.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="gap-1">
+                            <Building2 className="w-3 h-3" />
+                            {getStationLabel(assignment.stationValue)}
                           </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className={cn("flex items-center gap-1 text-sm", isRTL && "flex-row-reverse")}>
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                          {assignment.effectiveFrom}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleEditAssignment(assignment)}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                        </TableCell>
+                        <TableCell>
+                          {rule && (
+                            <Badge variant="outline" className={cn("gap-1", getRuleBadgeColor(assignment.attendanceRuleId))}>
+                              {getRuleIcon(assignment.attendanceRuleId)}
+                              {language === 'ar' ? rule.nameAr : rule.name}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {shift ? (
+                            <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: shift.color }} />
+                              <span className="text-sm">{language === 'ar' ? shift.nameAr : shift.name}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">{assignment.effectiveFrom}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAssignment(assignment)}>
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteAssignment(assignment.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
