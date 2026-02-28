@@ -43,6 +43,7 @@ function mapRow(row: any): Employee {
     educationAr: row.education_ar || undefined,
     graduationYear: row.graduation_year || undefined,
     email: row.email || undefined,
+    homePhone: row.home_phone || undefined,
     mobile: row.phone || undefined,
     address: row.address || undefined,
     city: row.city || undefined,
@@ -182,7 +183,7 @@ async function mapUpdates(updates: Partial<Employee>): Promise<Record<string, an
     notes: 'notes',
     jobTitle: 'job_title_ar',
     mobile: 'phone',
-    homePhone: 'phone',
+    homePhone: 'home_phone',
   };
 
   const dbUpdates: Record<string, any> = {};

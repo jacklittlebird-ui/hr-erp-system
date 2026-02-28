@@ -275,6 +275,7 @@ export type Database = {
           has_social_insurance: boolean | null
           health_insurance_card_no: string | null
           hire_date: string | null
+          home_phone: string | null
           id: string
           id_expiry_date: string | null
           id_issue_date: string | null
@@ -357,6 +358,7 @@ export type Database = {
           has_social_insurance?: boolean | null
           health_insurance_card_no?: string | null
           hire_date?: string | null
+          home_phone?: string | null
           id?: string
           id_expiry_date?: string | null
           id_issue_date?: string | null
@@ -439,6 +441,7 @@ export type Database = {
           has_social_insurance?: boolean | null
           health_insurance_card_no?: string | null
           hire_date?: string | null
+          home_phone?: string | null
           id?: string
           id_expiry_date?: string | null
           id_issue_date?: string | null
