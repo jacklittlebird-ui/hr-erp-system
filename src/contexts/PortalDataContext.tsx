@@ -168,8 +168,9 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [documents, setDocuments] = useState<PortalDocument[]>([]);
 
   const fetchAll = useCallback(async () => {
-    // Leave balances
-    const { data: lbData } = await supabase.from('leave_balances').select('*');
+    // Leave balances - current year only
+    const currentYear = new Date().getFullYear();
+    const { data: lbData } = await supabase.from('leave_balances').select('*').eq('year', currentYear);
     if (lbData) {
       const mapped: Record<string, LeaveBalance[]> = {};
       lbData.forEach(lb => {

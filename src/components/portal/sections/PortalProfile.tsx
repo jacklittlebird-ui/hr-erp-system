@@ -20,8 +20,8 @@ export const PortalProfile = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const portalEmployeeId = usePortalEmployee();
-  const { getEmployeeById } = useEmployeeData();
-  const employee = getEmployeeById(portalEmployeeId);
+  const { getEmployee } = useEmployeeData();
+  const employee = getEmployee(portalEmployeeId);
 
   if (!employee) {
     return <div className="p-10 text-center text-muted-foreground">{ar ? 'لم يتم العثور على بيانات الموظف' : 'Employee data not found'}</div>;
