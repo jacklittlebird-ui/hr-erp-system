@@ -669,49 +669,6 @@ const SalaryReports = () => {
     { id: 'allowances', label: ar ? 'تحليل البدلات والخصومات' : 'Allowances & Deductions' },
   ];
 
-  // Filters component
-  const FiltersBar = () => (
-    <Card className="mb-6">
-      <CardContent className="p-4">
-        <div className={cn("flex flex-wrap gap-3 items-center justify-between", isRTL && "flex-row-reverse")}>
-          <div className={cn("flex flex-wrap gap-3", isRTL && "flex-row-reverse")}>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-              <SelectContent>{Array.from({ length: 11 }, (_, i) => String(2025 + i)).map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
-            </Select>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-36"><SelectValue placeholder={ar ? 'الشهر' : 'Month'} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{ar ? 'كل الأشهر' : 'All Months'}</SelectItem>
-                {monthNames.map((name, i) => <SelectItem key={i} value={String(i + 1).padStart(2, '0')}>{name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={station} onValueChange={setStation}>
-              <SelectTrigger className="w-40"><SelectValue placeholder={ar ? 'المحطة' : 'Station'} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{ar ? 'جميع المحطات' : 'All Stations'}</SelectItem>
-                {stationLocations.map(s => <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={department} onValueChange={setDepartment}>
-              <SelectTrigger className="w-40"><SelectValue placeholder={ar ? 'القسم' : 'Department'} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{ar ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
-                {departments.filter(d => d && d.trim() !== '').map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className={cn("flex gap-2 flex-wrap", isRTL && "flex-row-reverse")}>
-            <Button variant="outline" size="sm" onClick={handlePrintMonthlyDetail}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة تفصيلي' : 'Print Detail'}</Button>
-            <Button variant="outline" size="sm" onClick={handlePrintMonthlySummary}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة ملخص' : 'Print Summary'}</Button>
-            <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: ar ? 'تقرير الرواتب' : 'Salary Report', data: getDetailExportDataFull(), columns: getDetailColumns() })}><FileText className="w-4 h-4 mr-1" />Excel</Button>
-            <Button variant="outline" size="sm" onClick={() => exportToPDF({ title: ar ? 'تقرير الرواتب' : 'Salary Report', data: getDetailExportDataFull(), columns: getDetailColumns() })}><Download className="w-4 h-4 mr-1" />PDF</Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
   return (
     <DashboardLayout>
       <div className={cn("mb-6", isRTL && "text-right")}>
@@ -719,7 +676,45 @@ const SalaryReports = () => {
         <p className="text-muted-foreground mt-1">{ar ? 'تقارير وتحليلات تفصيلية لمسير الرواتب' : 'Detailed payroll analytics and reports'}</p>
       </div>
 
-      <FiltersBar />
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className={cn("flex flex-wrap gap-3 items-center justify-between", isRTL && "flex-row-reverse")}>
+            <div className={cn("flex flex-wrap gap-3", isRTL && "flex-row-reverse")}>
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                <SelectContent>{Array.from({ length: 11 }, (_, i) => String(2025 + i)).map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-36"><SelectValue placeholder={ar ? 'الشهر' : 'Month'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? 'كل الأشهر' : 'All Months'}</SelectItem>
+                  {monthNames.map((name, i) => <SelectItem key={i} value={String(i + 1).padStart(2, '0')}>{name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={station} onValueChange={setStation}>
+                <SelectTrigger className="w-40"><SelectValue placeholder={ar ? 'المحطة' : 'Station'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+                  {stationLocations.map(s => <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.labelEn}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={department} onValueChange={setDepartment}>
+                <SelectTrigger className="w-40"><SelectValue placeholder={ar ? 'القسم' : 'Department'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
+                  {departments.filter(d => d && d.trim() !== '').map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className={cn("flex gap-2 flex-wrap", isRTL && "flex-row-reverse")}>
+              <Button variant="outline" size="sm" onClick={handlePrintMonthlyDetail}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة تفصيلي' : 'Print Detail'}</Button>
+              <Button variant="outline" size="sm" onClick={handlePrintMonthlySummary}><Printer className="w-4 h-4 mr-1" />{ar ? 'طباعة ملخص' : 'Print Summary'}</Button>
+              <Button variant="outline" size="sm" onClick={() => exportToCSV({ title: ar ? 'تقرير الرواتب' : 'Salary Report', data: getDetailExportDataFull(), columns: getDetailColumns() })}><FileText className="w-4 h-4 mr-1" />Excel</Button>
+              <Button variant="outline" size="sm" onClick={() => exportToPDF({ title: ar ? 'تقرير الرواتب' : 'Salary Report', data: getDetailExportDataFull(), columns: getDetailColumns() })}><Download className="w-4 h-4 mr-1" />PDF</Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
