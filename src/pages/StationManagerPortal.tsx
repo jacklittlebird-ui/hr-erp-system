@@ -344,29 +344,29 @@ const StationManagerPortal = () => {
     <div className={cn("min-h-screen bg-background", isRTL ? "font-arabic" : "font-sans")} dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="sticky top-0 z-40 bg-card border-b border-border shadow-sm">
-        <div className="flex items-center justify-between h-16 px-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <MapPin className="h-5 w-5 text-primary-foreground" />
+        <div className="flex items-center justify-between h-16 px-4 md:px-6">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
+            <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <MapPin className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="font-bold text-foreground">{t('بوابة مدير المحطة', 'Station Manager Portal')}</h1>
-              <p className="text-xs text-muted-foreground">{stationName} - {language === 'ar' ? user?.nameAr : user?.name}</p>
+            <div className="min-w-0">
+              <h1 className="font-bold text-foreground text-sm md:text-base truncate">{t('بوابة مدير المحطة', 'Station Manager Portal')}</h1>
+              <p className="text-[10px] md:text-xs text-muted-foreground truncate">{stationName} - {language === 'ar' ? user?.nameAr : user?.name}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2 shrink-0">
             <Button variant="ghost" size="icon" onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}>
               <Globe className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1.5 text-destructive">
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1 md:gap-1.5 text-destructive">
               <LogOut className="h-4 w-4" />
-              {t('خروج', 'Logout')}
+              <span className="hidden sm:inline">{t('خروج', 'Logout')}</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="p-6 max-w-7xl mx-auto space-y-6">
+      <main className="p-4 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card><CardContent className="p-4 flex items-center gap-3">
@@ -390,9 +390,9 @@ const StationManagerPortal = () => {
         {/* Tabs */}
         <Tabs defaultValue="employees" className="space-y-4">
           <TabsList className="grid grid-cols-3 w-full max-w-md">
-            <TabsTrigger value="employees" className="gap-1.5"><Users className="h-4 w-4" />{t('الموظفين', 'Employees')}</TabsTrigger>
-            <TabsTrigger value="evaluations" className="gap-1.5"><Star className="h-4 w-4" />{t('التقييمات', 'Evaluations')}</TabsTrigger>
-            <TabsTrigger value="violations" className="gap-1.5"><AlertTriangle className="h-4 w-4" />{t('المخالفات', 'Violations')}</TabsTrigger>
+            <TabsTrigger value="employees" className="gap-1 md:gap-1.5 text-xs md:text-sm"><Users className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('الموظفين', 'Employees')}</span></TabsTrigger>
+            <TabsTrigger value="evaluations" className="gap-1 md:gap-1.5 text-xs md:text-sm"><Star className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('التقييمات', 'Evaluations')}</span></TabsTrigger>
+            <TabsTrigger value="violations" className="gap-1 md:gap-1.5 text-xs md:text-sm"><AlertTriangle className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('المخالفات', 'Violations')}</span></TabsTrigger>
           </TabsList>
 
           {/* Employees Tab */}
@@ -400,8 +400,8 @@ const StationManagerPortal = () => {
             <Card>
               <CardHeader className="space-y-3">
                 <CardTitle>{t('موظفي المحطة', 'Station Employees')}</CardTitle>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="relative flex-1 min-w-[200px]">
+                <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
+                  <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
                     <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input placeholder={t('بحث بالاسم أو الرقم...', 'Search by name or ID...')} value={empSearch} onChange={e => setEmpSearch(e.target.value)} className="ps-9" />
                   </div>
