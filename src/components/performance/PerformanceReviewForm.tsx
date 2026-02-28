@@ -145,7 +145,7 @@ export const PerformanceReviewForm = () => {
       year: selectedYear,
       score: overallScore,
       status,
-      reviewer: ar ? 'المدير' : 'Manager',
+      reviewer: '',
       reviewDate: new Date().toISOString().split('T')[0],
       strengths,
       improvements,
@@ -164,7 +164,7 @@ export const PerformanceReviewForm = () => {
     setManagerComments('');
   };
 
-  const saveOrUpdate = (status: 'draft' | 'submitted' | 'approved') => {
+  const saveOrUpdate = async (status: 'draft' | 'submitted' | 'approved') => {
     if (!selectedEmployee || !selectedYear || !selectedQuarter) {
       toast.error(t('performance.form.fillRequired'));
       return;
@@ -172,17 +172,22 @@ export const PerformanceReviewForm = () => {
     const review = buildReview(status);
     if (!review) return;
 
-    if (existingReview) {
-      updateReview(existingReview.id, { ...review });
-    } else {
-      addReview(review);
+    try {
+      if (existingReview) {
+        await updateReview(existingReview.id, { ...review });
+      } else {
+        await addReview(review);
+      }
+      const msgs: Record<string, string> = {
+        draft: t('performance.form.draftSaved'),
+        submitted: t('performance.form.submitted'),
+        approved: ar ? 'تم اعتماد التقييم بنجاح' : 'Review approved successfully',
+      };
+      toast.success(msgs[status]);
+    } catch (err) {
+      toast.error(ar ? 'حدث خطأ أثناء الحفظ' : 'Error saving review');
+      console.error(err);
     }
-    const msgs: Record<string, string> = {
-      draft: t('performance.form.draftSaved'),
-      submitted: t('performance.form.submitted'),
-      approved: ar ? 'تم اعتماد التقييم بنجاح' : 'Review approved successfully',
-    };
-    toast.success(msgs[status]);
   };
 
   const handleSaveDraft = () => saveOrUpdate('draft');

@@ -90,7 +90,7 @@ export const PerformanceDataProvider: React.FC<{ children: React.ReactNode }> = 
   }, [fetchReviews]);
 
   const addReview = useCallback(async (review: Omit<PerformanceReview, 'id'>) => {
-    await supabase.from('performance_reviews').insert({
+    const { error } = await supabase.from('performance_reviews').insert({
       employee_id: review.employeeId,
       quarter: review.quarter,
       year: review.year,
@@ -104,6 +104,7 @@ export const PerformanceDataProvider: React.FC<{ children: React.ReactNode }> = 
       manager_comments: review.managerComments || null,
       criteria: review.criteria ? JSON.parse(JSON.stringify(review.criteria)) : null,
     });
+    if (error) { console.error('addReview error:', error); throw error; }
     await fetchReviews();
   }, [fetchReviews]);
 
@@ -113,7 +114,7 @@ export const PerformanceDataProvider: React.FC<{ children: React.ReactNode }> = 
     if (updates.year !== undefined) payload.year = updates.year;
     if (updates.score !== undefined) payload.score = updates.score;
     if (updates.status !== undefined) payload.status = updates.status;
-    if (updates.reviewer !== undefined) payload.reviewer_id = updates.reviewer;
+    if (updates.reviewer !== undefined) payload.reviewer_id = updates.reviewer || null;
     if (updates.reviewDate !== undefined) payload.review_date = updates.reviewDate;
     if (updates.strengths !== undefined) payload.strengths = updates.strengths;
     if (updates.improvements !== undefined) payload.improvements = updates.improvements;
@@ -122,7 +123,8 @@ export const PerformanceDataProvider: React.FC<{ children: React.ReactNode }> = 
     if (updates.criteria !== undefined) payload.criteria = JSON.parse(JSON.stringify(updates.criteria));
     if (updates.employeeId !== undefined) payload.employee_id = updates.employeeId;
 
-    await supabase.from('performance_reviews').update(payload).eq('id', id);
+    const { error } = await supabase.from('performance_reviews').update(payload).eq('id', id);
+    if (error) { console.error('updateReview error:', error); throw error; }
     await fetchReviews();
   }, [fetchReviews]);
 
