@@ -11,18 +11,63 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Clock, Plus, Edit2, Trash2, Calendar, Users, Moon, Sun, Sunset, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ShiftDefinition, Location, sampleShiftDefinitions, sampleLocations } from '@/types/attendance';
+import { ShiftDefinition } from '@/types/attendance';
+import { stationLocations } from '@/data/stationLocations';
 import { toast } from '@/hooks/use-toast';
+
+// Initial sample shifts using station values
+const initialShifts: ShiftDefinition[] = [
+  {
+    id: 'shift-morning',
+    name: 'Morning Shift',
+    nameAr: 'وردية صباحية',
+    code: 'MORNING',
+    startTime: '06:00',
+    endTime: '14:00',
+    isOvernight: false,
+    breakDuration: 30,
+    workDuration: 8,
+    color: '#22c55e',
+    locationId: 'cairo',
+    order: 1,
+  },
+  {
+    id: 'shift-afternoon',
+    name: 'Afternoon Shift',
+    nameAr: 'وردية مسائية',
+    code: 'AFTERNOON',
+    startTime: '14:00',
+    endTime: '22:00',
+    isOvernight: false,
+    breakDuration: 30,
+    workDuration: 8,
+    color: '#f59e0b',
+    locationId: 'cairo',
+    order: 2,
+  },
+  {
+    id: 'shift-night',
+    name: 'Night Shift',
+    nameAr: 'وردية ليلية',
+    code: 'NIGHT',
+    startTime: '22:00',
+    endTime: '06:00',
+    isOvernight: true,
+    breakDuration: 30,
+    workDuration: 8,
+    color: '#6366f1',
+    locationId: 'cairo',
+    order: 3,
+  },
+];
 
 export const ShiftManagement = () => {
   const { t, isRTL, language } = useLanguage();
-  const [shifts, setShifts] = useState<ShiftDefinition[]>(sampleShiftDefinitions);
-  const [locations] = useState<Location[]>(sampleLocations);
+  const [shifts, setShifts] = useState<ShiftDefinition[]>(initialShifts);
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   
-  // Shift form state
   const [formData, setFormData] = useState<Partial<ShiftDefinition>>({
     name: '',
     nameAr: '',
@@ -76,28 +121,27 @@ export const ShiftManagement = () => {
 
   const getShiftIcon = (code: string) => {
     switch (code.toUpperCase()) {
-      case 'MORNING':
-        return <Sun className="w-4 h-4" />;
-      case 'AFTERNOON':
-        return <Sunset className="w-4 h-4" />;
-      case 'NIGHT':
-        return <Moon className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
+      case 'MORNING': return <Sun className="w-4 h-4" />;
+      case 'AFTERNOON': return <Sunset className="w-4 h-4" />;
+      case 'NIGHT': return <Moon className="w-4 h-4" />;
+      default: return <Clock className="w-4 h-4" />;
     }
+  };
+
+  const getStationLabel = (stationValue: string) => {
+    const station = stationLocations.find(s => s.value === stationValue);
+    if (!station) return stationValue;
+    return language === 'ar' ? station.labelAr : station.labelEn;
   };
 
   const calculateWorkDuration = (start: string, end: string, isOvernight: boolean): number => {
     const [startHour, startMin] = start.split(':').map(Number);
     const [endHour, endMin] = end.split(':').map(Number);
-    
     let startMinutes = startHour * 60 + startMin;
     let endMinutes = endHour * 60 + endMin;
-    
     if (isOvernight && endMinutes < startMinutes) {
       endMinutes += 24 * 60;
     }
-    
     return (endMinutes - startMinutes) / 60;
   };
 
@@ -110,14 +154,9 @@ export const ShiftManagement = () => {
       return;
     }
     
-    const workDuration = calculateWorkDuration(
-      formData.startTime,
-      formData.endTime!,
-      formData.isOvernight || false
-    );
+    const workDuration = calculateWorkDuration(formData.startTime, formData.endTime!, formData.isOvernight || false);
     
     if (editingShiftId) {
-      // Update existing shift
       setShifts(prev => prev.map(shift => {
         if (shift.id === editingShiftId) {
           return {
@@ -136,11 +175,8 @@ export const ShiftManagement = () => {
         }
         return shift;
       }));
-      toast({
-        title: language === 'ar' ? 'تم تحديث الوردية بنجاح' : 'Shift updated successfully',
-      });
+      toast({ title: language === 'ar' ? 'تم تحديث الوردية بنجاح' : 'Shift updated successfully' });
     } else {
-      // Add new shift
       const shift: ShiftDefinition = {
         id: `shift-${Date.now()}`,
         name: formData.name!,
@@ -155,11 +191,8 @@ export const ShiftManagement = () => {
         locationId: formData.locationId!,
         order: shifts.length + 1,
       };
-      
       setShifts(prev => [...prev, shift]);
-      toast({
-        title: language === 'ar' ? 'تمت إضافة الوردية بنجاح' : 'Shift added successfully',
-      });
+      toast({ title: language === 'ar' ? 'تمت إضافة الوردية بنجاح' : 'Shift added successfully' });
     }
     
     resetForm();
@@ -168,16 +201,12 @@ export const ShiftManagement = () => {
 
   const handleDeleteShift = (shiftId: string) => {
     setShifts(shifts.filter(s => s.id !== shiftId));
-    toast({
-      title: language === 'ar' ? 'تم حذف الوردية' : 'Shift deleted',
-    });
+    toast({ title: language === 'ar' ? 'تم حذف الوردية' : 'Shift deleted' });
   };
 
   const filteredShifts = selectedLocation === 'all' 
     ? shifts 
     : shifts.filter(s => s.locationId === selectedLocation);
-
-  const airportLocations = locations.filter(l => l.type === 'airport');
 
   return (
     <div className="space-y-6">
@@ -248,18 +277,18 @@ export const ShiftManagement = () => {
             </div>
             
             <div className="space-y-2">
-              <Label>{t('attendance.shifts.location')}</Label>
+              <Label>{language === 'ar' ? 'المحطة / الموقع' : 'Station / Location'}</Label>
               <Select 
                 value={formData.locationId}
                 onValueChange={(v) => setFormData({ ...formData, locationId: v })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={t('attendance.shifts.selectLocation')} />
+                  <SelectValue placeholder={language === 'ar' ? 'اختر المحطة' : 'Select Station'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {airportLocations.map((loc) => (
-                    <SelectItem key={loc.id} value={loc.id}>
-                      {language === 'ar' ? loc.nameAr : loc.name}
+                  {stationLocations.map((station) => (
+                    <SelectItem key={station.value} value={station.value}>
+                      {language === 'ar' ? station.labelAr : station.labelEn}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -307,18 +336,18 @@ export const ShiftManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Location Filter */}
+      {/* Station Filter */}
       <div className={cn("flex gap-4 items-center", isRTL && "flex-row-reverse")}>
-        <Label>{t('attendance.shifts.filterByLocation')}</Label>
+        <Label>{language === 'ar' ? 'تصفية حسب المحطة' : 'Filter by Station'}</Label>
         <Select value={selectedLocation} onValueChange={setSelectedLocation}>
           <SelectTrigger className="w-[250px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t('attendance.shifts.allLocations')}</SelectItem>
-            {airportLocations.map((loc) => (
-              <SelectItem key={loc.id} value={loc.id}>
-                {language === 'ar' ? loc.nameAr : loc.name}
+            <SelectItem value="all">{language === 'ar' ? 'جميع المحطات' : 'All Stations'}</SelectItem>
+            {stationLocations.map((station) => (
+              <SelectItem key={station.value} value={station.value}>
+                {language === 'ar' ? station.labelAr : station.labelEn}
               </SelectItem>
             ))}
           </SelectContent>
@@ -327,82 +356,67 @@ export const ShiftManagement = () => {
 
       {/* Shifts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredShifts.map((shift) => {
-          const location = locations.find(l => l.id === shift.locationId);
-          return (
-            <Card key={shift.id} className="relative overflow-hidden">
-              <div 
-                className="absolute top-0 left-0 right-0 h-1" 
-                style={{ backgroundColor: shift.color }}
-              />
-              <CardHeader className="pb-2">
-                <div className={cn("flex justify-between items-start", isRTL && "flex-row-reverse")}>
-                  <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                    <div 
-                      className="p-2 rounded-lg"
-                      style={{ backgroundColor: `${shift.color}20` }}
-                    >
-                      {getShiftIcon(shift.code)}
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">
-                        {language === 'ar' ? shift.nameAr : shift.name}
-                      </CardTitle>
-                      <p className="text-xs text-muted-foreground">{shift.code}</p>
-                    </div>
+        {filteredShifts.map((shift) => (
+          <Card key={shift.id} className="relative overflow-hidden">
+            <div 
+              className="absolute top-0 left-0 right-0 h-1" 
+              style={{ backgroundColor: shift.color }}
+            />
+            <CardHeader className="pb-2">
+              <div className={cn("flex justify-between items-start", isRTL && "flex-row-reverse")}>
+                <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                  <div 
+                    className="p-2 rounded-lg"
+                    style={{ backgroundColor: `${shift.color}20` }}
+                  >
+                    {getShiftIcon(shift.code)}
                   </div>
-                  <div className="flex gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => handleOpenEditDialog(shift)}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => handleDeleteShift(shift.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <div>
+                    <CardTitle className="text-lg">
+                      {language === 'ar' ? shift.nameAr : shift.name}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">{shift.code}</p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className={cn("flex justify-between text-sm", isRTL && "flex-row-reverse")}>
-                  <span className="text-muted-foreground">{t('attendance.shifts.time')}</span>
-                  <span className="font-medium">
-                    {shift.startTime} - {shift.endTime}
-                  </span>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEditDialog(shift)}>
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteShift(shift.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-                <div className={cn("flex justify-between text-sm", isRTL && "flex-row-reverse")}>
-                  <span className="text-muted-foreground">{t('attendance.shifts.duration')}</span>
-                  <span className="font-medium">{shift.workDuration}h</span>
-                </div>
-                <div className={cn("flex justify-between text-sm", isRTL && "flex-row-reverse")}>
-                  <span className="text-muted-foreground">{t('attendance.shifts.break')}</span>
-                  <span className="font-medium">{shift.breakDuration} min</span>
-                </div>
-                <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
-                  <span className="text-sm text-muted-foreground">{t('attendance.shifts.location')}</span>
-                  <Badge variant="outline" className="gap-1">
-                    <Building2 className="w-3 h-3" />
-                    {location ? (language === 'ar' ? location.nameAr : location.name) : '-'}
-                  </Badge>
-                </div>
-                {shift.isOvernight && (
-                  <Badge variant="secondary" className="gap-1">
-                    <Moon className="w-3 h-3" />
-                    {t('attendance.shifts.overnightShift')}
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className={cn("flex justify-between text-sm", isRTL && "flex-row-reverse")}>
+                <span className="text-muted-foreground">{t('attendance.shifts.time')}</span>
+                <span className="font-medium">{shift.startTime} - {shift.endTime}</span>
+              </div>
+              <div className={cn("flex justify-between text-sm", isRTL && "flex-row-reverse")}>
+                <span className="text-muted-foreground">{t('attendance.shifts.duration')}</span>
+                <span className="font-medium">{shift.workDuration}h</span>
+              </div>
+              <div className={cn("flex justify-between text-sm", isRTL && "flex-row-reverse")}>
+                <span className="text-muted-foreground">{t('attendance.shifts.break')}</span>
+                <span className="font-medium">{shift.breakDuration} min</span>
+              </div>
+              <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
+                <span className="text-sm text-muted-foreground">{language === 'ar' ? 'المحطة' : 'Station'}</span>
+                <Badge variant="outline" className="gap-1">
+                  <Building2 className="w-3 h-3" />
+                  {getStationLabel(shift.locationId)}
+                </Badge>
+              </div>
+              {shift.isOvernight && (
+                <Badge variant="secondary" className="gap-1">
+                  <Moon className="w-3 h-3" />
+                  {t('attendance.shifts.overnightShift')}
+                </Badge>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Shift Schedule Table */}
@@ -420,50 +434,31 @@ export const ShiftManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className={cn(isRTL && "text-right")}>{t('attendance.shifts.shift')}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{t('attendance.shifts.location')}</TableHead>
+                  <TableHead className={cn(isRTL && "text-right")}>{language === 'ar' ? 'المحطة' : 'Station'}</TableHead>
                   <TableHead className={cn(isRTL && "text-right")}>{t('attendance.shifts.time')}</TableHead>
                   <TableHead className={cn(isRTL && "text-right")}>{t('attendance.shifts.duration')}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{t('attendance.shifts.employees')}</TableHead>
                   <TableHead className={cn(isRTL && "text-right")}>{t('attendance.shifts.status')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredShifts.map((shift) => {
-                  const location = locations.find(l => l.id === shift.locationId);
-                  return (
-                    <TableRow key={shift.id}>
-                      <TableCell>
-                        <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                          <div 
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: shift.color }}
-                          />
-                          {language === 'ar' ? shift.nameAr : shift.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {location ? (language === 'ar' ? location.nameAr : location.name) : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <code className="bg-muted px-2 py-1 rounded text-sm">
-                          {shift.startTime} → {shift.endTime}
-                        </code>
-                      </TableCell>
-                      <TableCell>{shift.workDuration}h</TableCell>
-                      <TableCell>
-                        <div className={cn("flex items-center gap-1", isRTL && "flex-row-reverse")}>
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          <span>{Math.floor(Math.random() * 20) + 5}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="default" className="bg-success">
-                          {t('attendance.shifts.active')}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {filteredShifts.map((shift) => (
+                  <TableRow key={shift.id}>
+                    <TableCell>
+                      <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: shift.color }} />
+                        {language === 'ar' ? shift.nameAr : shift.name}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStationLabel(shift.locationId)}</TableCell>
+                    <TableCell>{shift.startTime} - {shift.endTime}</TableCell>
+                    <TableCell>{shift.workDuration}h</TableCell>
+                    <TableCell>
+                      <Badge variant="default" className="bg-green-100 text-green-700 border-green-300">
+                        {language === 'ar' ? 'نشط' : 'Active'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
