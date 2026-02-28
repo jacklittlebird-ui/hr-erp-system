@@ -55,7 +55,10 @@ export const PortalAttendance = () => {
   const hasCheckedOut = !!todayRecord?.checkOut;
 
   const handleCheckIn = () => {
-    if (!PORTAL_EMPLOYEE_ID) return;
+    if (!PORTAL_EMPLOYEE_ID) {
+      toast.error(ar ? 'خطأ: لم يتم ربط حسابك بموظف' : 'Error: Your account is not linked to an employee record');
+      return;
+    }
     checkIn(PORTAL_EMPLOYEE_ID, employeeName.en, employeeName.ar, employeeName.dept);
     toast.success(ar ? 'تم تسجيل الحضور بنجاح' : 'Check-in recorded successfully');
   };
