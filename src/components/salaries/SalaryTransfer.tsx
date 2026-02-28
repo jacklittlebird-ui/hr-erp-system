@@ -19,8 +19,8 @@ export const SalaryTransfer = () => {
   const { employees } = useEmployeeData();
   const { exportToCSV } = useReportExport();
 
-  const [selectedMonth, setSelectedMonth] = useState('01');
-  const [selectedYear, setSelectedYear] = useState('2026');
+  const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
+  const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [selectedStation, setSelectedStation] = useState('all');
 
   const months = [

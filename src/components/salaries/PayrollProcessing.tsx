@@ -25,8 +25,8 @@ export const PayrollProcessing = () => {
   const { getSalaryRecord, salaryRecords } = useSalaryData();
   const { savePayrollEntry, savePayrollEntries, getPayrollEntry, getMonthlyPayroll } = usePayrollData();
   const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState('02');
-  const [selectedYear, setSelectedYear] = useState('2026');
+  const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
+  const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [searchName, setSearchName] = useState('');
   const [searchStation, setSearchStation] = useState('');
 

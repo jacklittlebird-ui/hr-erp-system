@@ -19,7 +19,7 @@ export const PayrollHistory = () => {
   const { payrollEntries } = usePayrollData();
   const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
   const [search, setSearch] = useState('');
-  const [selectedYear, setSelectedYear] = useState('2026');
+  const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [selectedStation, setSelectedStation] = useState('all');
 
   const yearEntries = useMemo(() =>
