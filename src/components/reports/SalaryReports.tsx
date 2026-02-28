@@ -15,7 +15,7 @@ export const SalaryReports = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { payrollEntries } = usePayrollData();
-  const [selectedYear, setSelectedYear] = useState('2026');
+  const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [station, setStation] = useState('all');
   const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
 

@@ -23,8 +23,8 @@ const SalaryReports = () => {
   const { payrollEntries } = usePayrollData();
   const { reportRef, handlePrint, exportToCSV, exportToPDF, exportBilingualPDF, exportBilingualCSV } = useReportExport();
 
-  const [selectedYear, setSelectedYear] = useState('2026');
-  const [selectedMonth, setSelectedMonth] = useState('01');
+  const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+  const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [station, setStation] = useState('all');
   const [department, setDepartment] = useState('all');
   const [activeTab, setActiveTab] = useState('overview');
