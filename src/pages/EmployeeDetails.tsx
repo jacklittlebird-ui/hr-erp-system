@@ -140,7 +140,7 @@ const EmployeeDetails = () => {
       case 'insurance': return <InsuranceTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
       case 'permits': return <PermitsTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
       case 'certificates': return <CertificatesTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
-      case 'departments': return <DepartmentsTab employee={employee} />;
+      case 'departments': return <DepartmentsTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
       case 'attendanceRecord': return <AttendanceRecordTab employee={employee} />;
       case 'evaluations': return <EvaluationsTab employee={employee} />;
       case 'violations': return <ViolationsTab employee={employee} />;

@@ -38,7 +38,7 @@ export const AttendanceRecordTab = ({ employee }: AttendanceRecordTabProps) => {
 
   const filteredLogs = useMemo(() => {
     return attendanceLogs
-      .filter(log => log.employeeId === employee.employeeId)
+      .filter(log => log.employeeId === employee.id)
       .filter(log => {
         const d = new Date(log.date);
         return String(d.getMonth() + 1).padStart(2, '0') === selectedMonth && String(d.getFullYear()) === selectedYear;

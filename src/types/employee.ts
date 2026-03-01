@@ -86,4 +86,5 @@ export interface Employee {
   bankIdNumber?: string;
   bankAccountType?: string;
   bankName?: string;
+  deptCode?: string;
 }
