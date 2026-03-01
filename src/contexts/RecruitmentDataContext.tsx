@@ -15,6 +15,13 @@ export interface JobOpening {
   description: string;
 }
 
+export interface StageEvaluation {
+  notes: string;
+  rating?: number;
+  proposedSalary?: number;
+  evaluatedAt?: string;
+}
+
 export interface Candidate {
   id: string;
   nameAr: string;
@@ -29,6 +36,7 @@ export interface Candidate {
   appliedDate: string;
   notes: string;
   source: string;
+  stageEvaluations?: Record<string, StageEvaluation>;
 }
 
 export interface Interview {
