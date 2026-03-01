@@ -7,12 +7,13 @@ import { Label } from '@/components/ui/label';
 
 interface DepartmentsTabProps {
   employee: Employee;
-  onChange?: (field: string, value: string) => void;
+  onUpdate?: (updates: Partial<Employee>) => void;
+  readOnly?: boolean;
 }
 
 const DEPT_CODES = ['PS', 'LL', 'OO', 'RO', 'LC', 'SC', 'IA', 'AD', 'AC', 'WO', 'TR'];
 
-export const DepartmentsTab = ({ employee, onChange }: DepartmentsTabProps) => {
+export const DepartmentsTab = ({ employee, onUpdate, readOnly }: DepartmentsTabProps) => {
   const { t, isRTL } = useLanguage();
 
   const selectedCode = (employee as any).deptCode || '';
@@ -26,9 +27,10 @@ export const DepartmentsTab = ({ employee, onChange }: DepartmentsTabProps) => {
         </div>
         <RadioGroup
           value={selectedCode}
-          onValueChange={(val) => onChange?.('deptCode', val)}
+          onValueChange={(val) => !readOnly && onUpdate?.({ deptCode: val } as any)}
           className="flex flex-wrap gap-4"
           dir={isRTL ? 'rtl' : 'ltr'}
+          disabled={readOnly}
         >
           {DEPT_CODES.map((code) => (
             <div key={code} className="flex items-center gap-1.5">

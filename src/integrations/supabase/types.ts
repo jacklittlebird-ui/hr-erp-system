@@ -249,6 +249,7 @@ export type Database = {
           contract_type: string | null
           created_at: string
           department_id: string | null
+          dept_code: string | null
           education_ar: string | null
           email: string | null
           employee_code: string
@@ -332,6 +333,7 @@ export type Database = {
           contract_type?: string | null
           created_at?: string
           department_id?: string | null
+          dept_code?: string | null
           education_ar?: string | null
           email?: string | null
           employee_code: string
@@ -415,6 +417,7 @@ export type Database = {
           contract_type?: string | null
           created_at?: string
           department_id?: string | null
+          dept_code?: string | null
           education_ar?: string | null
           email?: string | null
           employee_code?: string

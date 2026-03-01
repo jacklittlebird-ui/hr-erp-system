@@ -102,6 +102,7 @@ function mapRow(row: any): Employee {
     bankAccountType: row.bank_account_type || undefined,
     bankName: row.bank_name || undefined,
     notes: row.notes || undefined,
+    deptCode: row.dept_code || undefined,
   };
 }
 
@@ -183,6 +184,7 @@ async function mapUpdates(updates: Partial<Employee>): Promise<Record<string, an
     bankAccountType: 'bank_account_type',
     bankName: 'bank_name',
     notes: 'notes',
+    deptCode: 'dept_code',
     jobTitle: 'job_title_ar',
     mobile: 'phone',
     homePhone: 'home_phone',
