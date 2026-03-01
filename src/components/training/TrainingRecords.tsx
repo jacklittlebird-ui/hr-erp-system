@@ -94,7 +94,7 @@ export const TrainingRecords = () => {
     linkId: emp.employeeId.replace('Emp', ''),
     hireDate: emp.hireDate || '',
     mobile: emp.phone || '',
-    jobFunctions: [],
+    jobFunctions: (emp as any).deptCode ? [(emp as any).deptCode] : [],
   })), [contextEmployees]);
 
   // Fetch training records from DB when employee is selected
