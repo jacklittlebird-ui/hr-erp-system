@@ -2,17 +2,21 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { usePayrollData } from '@/contexts/PayrollDataContext';
 import { useAttendanceData } from '@/contexts/AttendanceDataContext';
 import { usePortalData } from '@/contexts/PortalDataContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Clock, Calendar, Wallet, Star, LogIn, LogOut, FileText, Bell } from 'lucide-react';
-import { useMemo } from 'react';
+import { Clock, Calendar, Wallet, Star, LogIn, LogOut, FileText, Bell, QrCode, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { ar as arLocale, enUS } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
+import { supabase } from '@/integrations/supabase/client';
+import { getOrCreateDeviceId } from '@/lib/device';
+import QrScanner from '@/components/attendance/QrScanner';
 
 export const PortalDashboard = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
@@ -20,13 +24,27 @@ export const PortalDashboard = () => {
   const employee = getEmployeeById(PORTAL_EMPLOYEE_ID);
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
+  const { session } = useAuth();
   const { getEmployeePayroll } = usePayrollData();
-  const { records, checkIn, checkOut, getMonthlyStats } = useAttendanceData();
+  const { records, getMonthlyStats } = useAttendanceData();
   const { getLeaveBalances, getEvaluations, getLeaveRequests, getMissions, getRequests } = usePortalData();
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const todayRecord = records.find(r => r.employeeId === PORTAL_EMPLOYEE_ID && r.date === today);
-  const isCheckedIn = todayRecord?.checkIn && !todayRecord?.checkOut;
+  const hasCheckedIn = !!todayRecord?.checkIn;
+  const hasCheckedOut = !!todayRecord?.checkOut;
+
+  // QR Scanner state
+  const [qrMode, setQrMode] = useState(false);
+  const [qrEventType, setQrEventType] = useState<'check_in' | 'check_out'>('check_in');
+  const [qrStatus, setQrStatus] = useState<'idle' | 'scanning' | 'validating' | 'success' | 'error'>('idle');
+  const [qrMessage, setQrMessage] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const monthlyStats = useMemo(() => getMonthlyStats(PORTAL_EMPLOYEE_ID, new Date().getFullYear(), new Date().getMonth()), [getMonthlyStats]);
   const latestPayroll = useMemo(() => {
@@ -34,31 +52,75 @@ export const PortalDashboard = () => {
     return p[0];
   }, [getEmployeePayroll]);
 
-  // Get real leave balance
   const leaveBalances = useMemo(() => getLeaveBalances(PORTAL_EMPLOYEE_ID), [getLeaveBalances]);
-  const annualBalance = leaveBalances.find(b => b.typeEn === 'Annual');
   const totalLeaveRemaining = leaveBalances.reduce((sum, b) => sum + b.remaining, 0);
 
-  // Get real latest evaluation
   const evaluations = useMemo(() => getEvaluations(PORTAL_EMPLOYEE_ID), [getEvaluations]);
   const latestEval = evaluations.length > 0 ? evaluations[0] : null;
 
-  // Pending requests count
   const pendingLeaves = useMemo(() => getLeaveRequests(PORTAL_EMPLOYEE_ID).filter(r => r.status === 'pending').length, [getLeaveRequests]);
   const pendingMissions = useMemo(() => getMissions(PORTAL_EMPLOYEE_ID).filter(r => r.status === 'pending').length, [getMissions]);
   const pendingRequests = useMemo(() => getRequests(PORTAL_EMPLOYEE_ID).filter(r => r.status === 'pending').length, [getRequests]);
   const totalPending = pendingLeaves + pendingMissions + pendingRequests;
 
-  const handleCheckIn = () => {
-    checkIn(PORTAL_EMPLOYEE_ID, employee?.nameEn || '', employee?.nameAr || '', employee?.department || '');
-    toast({ title: ar ? 'تم تسجيل الحضور' : 'Checked In', description: format(new Date(), 'HH:mm') });
-  };
+  // QR Scan handler
+  const onQrScan = useCallback(async (token: string) => {
+    if (qrStatus === 'validating') return;
+    setQrStatus('validating');
 
-  const handleCheckOut = () => {
-    if (todayRecord) {
-      checkOut(todayRecord.id);
-      toast({ title: ar ? 'تم تسجيل الانصراف' : 'Checked Out', description: format(new Date(), 'HH:mm') });
+    try {
+      const gps = await new Promise<{ lat?: number; lng?: number; accuracy?: number }>((resolve) => {
+        if (!navigator.geolocation) return resolve({});
+        navigator.geolocation.getCurrentPosition(
+          (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }),
+          () => resolve({}),
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      });
+
+      if (!session?.access_token) {
+        setQrStatus('error');
+        setQrMessage(ar ? 'يرجى تسجيل الدخول أولاً' : 'Please sign in first.');
+        return;
+      }
+
+      const device_id = getOrCreateDeviceId();
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/submit-scan`,
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ token, event_type: qrEventType, device_id, gps }),
+        }
+      );
+
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        setQrStatus('error');
+        setQrMessage(e.error ?? res.statusText);
+      } else {
+        setQrStatus('success');
+        setQrMessage(
+          qrEventType === 'check_in'
+            ? ar ? 'تم تسجيل الحضور بنجاح ✔' : 'Check-in recorded ✔'
+            : ar ? 'تم تسجيل الانصراف بنجاح ✔' : 'Check-out recorded ✔'
+        );
+      }
+    } catch (e: any) {
+      setQrStatus('error');
+      setQrMessage(e.message);
     }
+  }, [qrStatus, session, qrEventType, ar]);
+
+  const formatTimeClock = (date: Date) => {
+    return date.toLocaleTimeString(ar ? 'ar-EG' : 'en-US', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+    });
   };
 
   const stats = [
@@ -71,45 +133,122 @@ export const PortalDashboard = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className={cn("text-2xl font-bold", isRTL && "text-right")}>
+        <h1 className={cn("text-xl md:text-2xl font-bold", isRTL && "text-right")}>
           {ar ? 'لوحة التحكم' : 'Dashboard'}
         </h1>
-        <p className={cn("text-muted-foreground", isRTL && "text-right")}>
+        <p className={cn("text-muted-foreground text-sm", isRTL && "text-right")}>
           {format(new Date(), 'EEEE, d MMMM yyyy', { locale: ar ? arLocale : enUS })}
         </p>
       </div>
 
-      {/* Check-in/out */}
-      <Card>
-        <CardContent className="p-6">
-          <div className={cn("flex flex-col sm:flex-row items-center justify-center gap-6", isRTL && "sm:flex-row-reverse")}>
-            <div className="flex flex-col items-center gap-2">
-              <Button size="lg" className="h-20 w-44 text-lg font-bold bg-success hover:bg-success/90 text-white" onClick={handleCheckIn} disabled={!!isCheckedIn}>
-                <LogIn className="w-6 h-6 ml-2" />
-                {ar ? 'تسجيل حضور' : 'Check In'}
-              </Button>
-              {todayRecord?.checkIn && <Badge variant="outline" className="bg-success/10 text-success">{todayRecord.checkIn}</Badge>}
+      {/* QR Check-in/out Card */}
+      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+        <CardContent className="p-4 md:p-6">
+          <div className="text-center space-y-4">
+            <div className="text-3xl md:text-5xl font-bold text-primary font-mono">
+              {formatTimeClock(currentTime)}
             </div>
-            <div className="hidden sm:block w-px h-16 bg-border" />
-            <div className="flex flex-col items-center gap-2">
-              <Button size="lg" variant="destructive" className="h-20 w-44 text-lg font-bold" onClick={handleCheckOut} disabled={!isCheckedIn}>
-                <LogOut className="w-6 h-6 ml-2" />
-                {ar ? 'تسجيل انصراف' : 'Check Out'}
+
+            {/* Status indicator */}
+            {hasCheckedIn && !hasCheckedOut && (
+              <div className="inline-flex items-center gap-2 px-3 py-2 bg-success/10 border border-success/20 rounded-lg">
+                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                <span className="text-success font-medium text-sm md:text-base">
+                  {ar ? `تم الحضور في ${todayRecord?.checkIn}` : `Checked in at ${todayRecord?.checkIn}`}
+                </span>
+              </div>
+            )}
+            {hasCheckedIn && hasCheckedOut && (
+              <div className="inline-flex items-center gap-2 px-3 py-2 bg-muted border border-border rounded-lg">
+                <span className="text-muted-foreground font-medium text-sm md:text-base">
+                  {ar ? `حضور: ${todayRecord?.checkIn} — انصراف: ${todayRecord?.checkOut}` : `In: ${todayRecord?.checkIn} — Out: ${todayRecord?.checkOut}`}
+                </span>
+              </div>
+            )}
+
+            {/* Event type toggle */}
+            <div className="flex gap-2 justify-center">
+              <Button
+                variant={qrEventType === 'check_in' ? 'default' : 'outline'}
+                onClick={() => setQrEventType('check_in')}
+                className="flex-1 max-w-[160px]"
+                size="lg"
+              >
+                <LogIn className="h-4 w-4 me-2" />
+                {ar ? 'حضور' : 'Check In'}
               </Button>
-              {todayRecord?.checkOut && <Badge variant="outline" className="bg-destructive/10 text-destructive">{todayRecord.checkOut}</Badge>}
+              <Button
+                variant={qrEventType === 'check_out' ? 'default' : 'outline'}
+                onClick={() => setQrEventType('check_out')}
+                className="flex-1 max-w-[160px]"
+                size="lg"
+              >
+                <LogOut className="h-4 w-4 me-2" />
+                {ar ? 'انصراف' : 'Check Out'}
+              </Button>
             </div>
+
+            {/* Scanner area - centered */}
+            {qrMode && qrStatus !== 'success' && qrStatus !== 'error' && qrStatus !== 'validating' && (
+              <div className="flex justify-center">
+                <div className="w-full max-w-[300px]">
+                  <QrScanner onScan={onQrScan} />
+                </div>
+              </div>
+            )}
+
+            {/* Status messages */}
+            {qrStatus === 'validating' && (
+              <div className="flex items-center justify-center gap-2 text-muted-foreground py-4">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                {ar ? 'جاري التحقق...' : 'Validating...'}
+              </div>
+            )}
+            {qrStatus === 'success' && (
+              <div className="flex items-center justify-center gap-2 text-success py-4">
+                <CheckCircle className="h-6 w-6" />
+                <span className="font-semibold text-lg">{qrMessage}</span>
+              </div>
+            )}
+            {qrStatus === 'error' && (
+              <div className="flex items-center justify-center gap-2 text-destructive py-4">
+                <XCircle className="h-6 w-6" />
+                <span className="font-semibold">{qrMessage}</span>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            {!qrMode && qrStatus === 'idle' && (
+              <Button
+                onClick={() => { setQrMode(true); setQrStatus('scanning'); setQrMessage(''); }}
+                className="w-full max-w-[320px] mx-auto"
+                size="lg"
+              >
+                <QrCode className="h-5 w-5 me-2" />
+                {ar ? 'مسح رمز QR للتسجيل' : 'Scan QR Code'}
+              </Button>
+            )}
+            {(qrStatus === 'success' || qrStatus === 'error') && (
+              <Button
+                variant="outline"
+                onClick={() => { setQrStatus('idle'); setQrMessage(''); setQrMode(false); }}
+                className="w-full max-w-[320px] mx-auto"
+              >
+                {ar ? 'مسح آخر' : 'Scan Again'}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {stats.map((s, i) => (
           <Card key={i}>
-            <CardContent className="p-5 text-center">
-              <s.icon className={cn("w-8 h-8 mx-auto mb-2", s.color)} />
-              <p className="text-2xl font-bold">{s.value}</p>
-              <p className="text-sm text-muted-foreground">{ar ? s.labelAr : s.labelEn}</p>
+            <CardContent className="p-4 md:p-5 text-center">
+              <s.icon className={cn("w-7 h-7 md:w-8 md:h-8 mx-auto mb-2", s.color)} />
+              <p className="text-xl md:text-2xl font-bold">{s.value}</p>
+              <p className="text-xs md:text-sm text-muted-foreground">{ar ? s.labelAr : s.labelEn}</p>
             </CardContent>
           </Card>
         ))}

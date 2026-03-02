@@ -180,140 +180,109 @@ export const PortalAttendance = () => {
     <div className="space-y-6">
       <h1 className={cn("text-2xl font-bold", isRTL && "text-right")}>{ar ? 'الحضور والانصراف' : 'Attendance'}</h1>
 
-      {/* Check-in / Check-out Card */}
+      {/* QR Scanner Card - Centered */}
       <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-        <CardContent className="p-6">
+        <CardContent className="p-4 md:p-6">
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
-              <span className="text-muted-foreground">
+              <span className="text-muted-foreground text-sm md:text-base">
                 {currentTime.toLocaleDateString(ar ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
               </span>
             </div>
-            <div className="text-5xl font-bold text-primary font-mono">
+            <div className="text-3xl md:text-5xl font-bold text-primary font-mono">
               {formatTimeClock(currentTime)}
             </div>
 
             {/* Status indicator */}
             {hasCheckedIn && !hasCheckedOut && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-success/10 border border-success/20 rounded-lg">
+              <div className="inline-flex items-center gap-2 px-3 py-2 bg-success/10 border border-success/20 rounded-lg">
                 <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                <span className="text-success font-medium">
+                <span className="text-success font-medium text-sm md:text-base">
                   {ar ? `تم الحضور في ${todayRecord?.checkIn}` : `Checked in at ${todayRecord?.checkIn}`}
                 </span>
               </div>
             )}
             {hasCheckedIn && hasCheckedOut && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted border border-border rounded-lg">
-                <span className="text-muted-foreground font-medium">
+              <div className="inline-flex items-center gap-2 px-3 py-2 bg-muted border border-border rounded-lg">
+                <span className="text-muted-foreground font-medium text-sm md:text-base">
                   {ar ? `حضور: ${todayRecord?.checkIn} — انصراف: ${todayRecord?.checkOut}` : `In: ${todayRecord?.checkIn} — Out: ${todayRecord?.checkOut}`}
                 </span>
               </div>
             )}
 
-            <div className={cn("flex justify-center gap-4 flex-wrap", isRTL && "flex-row-reverse")}>
+            {/* Event type toggle */}
+            <div className="flex gap-2 justify-center">
               <Button
+                variant={qrEventType === 'check_in' ? 'default' : 'outline'}
+                onClick={() => setQrEventType('check_in')}
+                className="flex-1 max-w-[160px]"
                 size="lg"
-                className="bg-success hover:bg-success/90 min-w-[180px] h-14 text-lg gap-2 shadow-lg"
-                onClick={handleCheckIn}
-                disabled={hasCheckedIn}
               >
-                <LogIn className="w-5 h-5" />
-                {ar ? 'تسجيل حضور' : 'Check In'}
+                <LogIn className="h-4 w-4 me-2" />
+                {ar ? 'حضور' : 'Check In'}
               </Button>
               <Button
+                variant={qrEventType === 'check_out' ? 'default' : 'outline'}
+                onClick={() => setQrEventType('check_out')}
+                className="flex-1 max-w-[160px]"
                 size="lg"
-                variant="destructive"
-                className="min-w-[180px] h-14 text-lg gap-2 shadow-lg"
-                onClick={handleCheckOut}
-                disabled={!hasCheckedIn || hasCheckedOut}
               >
-                <LogOut className="w-5 h-5" />
-                {ar ? 'تسجيل انصراف' : 'Check Out'}
+                <LogOut className="h-4 w-4 me-2" />
+                {ar ? 'انصراف' : 'Check Out'}
               </Button>
             </div>
+
+            {/* Scanner area - centered */}
+            {qrMode && qrStatus !== 'success' && qrStatus !== 'error' && qrStatus !== 'validating' && (
+              <div className="flex justify-center">
+                <div className="w-full max-w-[300px]">
+                  <QrScanner onScan={onQrScan} />
+                </div>
+              </div>
+            )}
+
+            {/* Status messages */}
+            {qrStatus === 'validating' && (
+              <div className="flex items-center justify-center gap-2 text-muted-foreground py-4">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                {ar ? 'جاري التحقق...' : 'Validating...'}
+              </div>
+            )}
+            {qrStatus === 'success' && (
+              <div className="flex items-center justify-center gap-2 text-success py-4">
+                <CheckCircle className="h-6 w-6" />
+                <span className="font-semibold text-lg">{qrMessage}</span>
+              </div>
+            )}
+            {qrStatus === 'error' && (
+              <div className="flex items-center justify-center gap-2 text-destructive py-4">
+                <XCircle className="h-6 w-6" />
+                <span className="font-semibold">{qrMessage}</span>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            {!qrMode && qrStatus === 'idle' && (
+              <Button
+                onClick={() => { setQrMode(true); setQrStatus('scanning'); setQrMessage(''); }}
+                className="w-full max-w-[320px] mx-auto"
+                size="lg"
+              >
+                <QrCode className="h-5 w-5 me-2" />
+                {ar ? 'مسح رمز QR للتسجيل' : 'Scan QR Code'}
+              </Button>
+            )}
+            {(qrStatus === 'success' || qrStatus === 'error') && (
+              <Button
+                variant="outline"
+                onClick={() => { setQrStatus('idle'); setQrMessage(''); setQrMode(false); }}
+                className="w-full max-w-[320px] mx-auto"
+              >
+                {ar ? 'مسح آخر' : 'Scan Again'}
+              </Button>
+            )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* QR Scanner Card */}
-      <Card className="border-primary/20">
-        <CardHeader className="pb-3">
-          <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
-            <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
-              <QrCode className="w-5 h-5 text-primary" />
-              {ar ? 'تسجيل حضور بـ QR' : 'QR Attendance'}
-            </CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Event type toggle */}
-          <div className="flex gap-2 justify-center">
-            <Button
-              variant={qrEventType === 'check_in' ? 'default' : 'outline'}
-              onClick={() => setQrEventType('check_in')}
-              className="flex-1 max-w-[160px]"
-            >
-              <LogIn className="h-4 w-4 me-2" />
-              {ar ? 'حضور' : 'Check In'}
-            </Button>
-            <Button
-              variant={qrEventType === 'check_out' ? 'default' : 'outline'}
-              onClick={() => setQrEventType('check_out')}
-              className="flex-1 max-w-[160px]"
-            >
-              <LogOut className="h-4 w-4 me-2" />
-              {ar ? 'انصراف' : 'Check Out'}
-            </Button>
-          </div>
-
-          {/* Scanner area */}
-          {qrMode && qrStatus !== 'success' && qrStatus !== 'error' && qrStatus !== 'validating' && (
-            <div className="flex justify-center">
-              <QrScanner onScan={onQrScan} />
-            </div>
-          )}
-
-          {/* Status messages */}
-          {qrStatus === 'validating' && (
-            <div className="flex items-center justify-center gap-2 text-muted-foreground py-4">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              {ar ? 'جاري التحقق...' : 'Validating...'}
-            </div>
-          )}
-          {qrStatus === 'success' && (
-            <div className="flex items-center justify-center gap-2 text-success py-4">
-              <CheckCircle className="h-5 w-5" />
-              <span className="font-medium">{qrMessage}</span>
-            </div>
-          )}
-          {qrStatus === 'error' && (
-            <div className="flex items-center justify-center gap-2 text-destructive py-4">
-              <XCircle className="h-5 w-5" />
-              <span className="font-medium">{qrMessage}</span>
-            </div>
-          )}
-
-          {/* Action buttons */}
-          {!qrMode && qrStatus === 'idle' && (
-            <Button
-              onClick={() => { setQrMode(true); setQrStatus('scanning'); setQrMessage(''); }}
-              className="w-full"
-              size="lg"
-            >
-              <QrCode className="h-5 w-5 me-2" />
-              {ar ? 'مسح رمز QR' : 'Scan QR Code'}
-            </Button>
-          )}
-          {(qrStatus === 'success' || qrStatus === 'error') && (
-            <Button
-              variant="outline"
-              onClick={() => { setQrStatus('idle'); setQrMessage(''); setQrMode(false); }}
-              className="w-full"
-            >
-              {ar ? 'مسح آخر' : 'Scan Again'}
-            </Button>
-          )}
         </CardContent>
       </Card>
 
