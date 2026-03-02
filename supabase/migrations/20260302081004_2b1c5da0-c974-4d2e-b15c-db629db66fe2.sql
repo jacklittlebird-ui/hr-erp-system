@@ -1,0 +1,1 @@
+ALTER TABLE public.training_courses ADD COLUMN validity_years integer DEFAULT 1;
