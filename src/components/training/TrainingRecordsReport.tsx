@@ -5,7 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Printer, FileText, FileSpreadsheet, Users, BookOpen, Award, TrendingUp, Star } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Printer, FileText, FileSpreadsheet, Users, BookOpen, Award, TrendingUp, Star, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useReportExport } from '@/hooks/useReportExport';
@@ -44,11 +47,11 @@ export const TrainingRecordsReport = () => {
   const [stations, setStations] = useState<{ id: string; nameAr: string; nameEn: string }[]>([]);
   const [courseOptions, setCourseOptions] = useState<{ id: string; nameAr: string; nameEn: string; provider: string }[]>([]);
 
-  const [filterStation, setFilterStation] = useState('all');
-  const [filterCourse, setFilterCourse] = useState('all');
+  const [filterStations, setFilterStations] = useState<string[]>([]);
+  const [filterCourses, setFilterCourses] = useState<string[]>([]);
   const [filterEmployee, setFilterEmployee] = useState('all');
-  const [filterDepartment, setFilterDepartment] = useState('all');
-  const [filterProvider, setFilterProvider] = useState('all');
+  const [filterDepartments, setFilterDepartments] = useState<string[]>([]);
+  const [filterProviders, setFilterProviders] = useState<string[]>([]);
   const [filterYear, setFilterYear] = useState('all');
   const [filterFavorite, setFilterFavorite] = useState('all');
 
@@ -106,19 +109,29 @@ export const TrainingRecordsReport = () => {
     return years.sort().reverse();
   }, [allRecords]);
 
+  const toggleMulti = (arr: string[], val: string, setter: (v: string[]) => void) => {
+    setter(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]);
+  };
+
   const filtered = useMemo(() => {
     return allRecords.filter(r => {
-      if (filterStation !== 'all') {
-        const stObj = stations.find(s => s.id === filterStation);
-        if (stObj && r.station !== (ar ? stObj.nameAr : stObj.nameEn)) return false;
+      if (filterStations.length > 0) {
+        const stNames = filterStations.map(id => {
+          const s = stations.find(s => s.id === id);
+          return s ? (ar ? s.nameAr : s.nameEn) : '';
+        });
+        if (!stNames.includes(r.station)) return false;
       }
-      if (filterCourse !== 'all' && r.courseId !== filterCourse) return false;
+      if (filterCourses.length > 0 && !filterCourses.includes(r.courseId)) return false;
       if (filterEmployee !== 'all' && r.employeeId !== filterEmployee) return false;
-      if (filterDepartment !== 'all') {
-        const dObj = departments.find(d => d.id === filterDepartment);
-        if (dObj && r.department !== (ar ? dObj.nameAr : dObj.nameEn)) return false;
+      if (filterDepartments.length > 0) {
+        const dNames = filterDepartments.map(id => {
+          const d = departments.find(d => d.id === id);
+          return d ? (ar ? d.nameAr : d.nameEn) : '';
+        });
+        if (!dNames.includes(r.department)) return false;
       }
-      if (filterProvider !== 'all' && r.provider !== filterProvider) return false;
+      if (filterProviders.length > 0 && !filterProviders.includes(r.provider)) return false;
       if (filterYear !== 'all') {
         const year = r.endDate ? r.endDate.substring(0, 4) : '';
         if (year !== filterYear) return false;
@@ -129,7 +142,7 @@ export const TrainingRecordsReport = () => {
       }
       return true;
     });
-  }, [allRecords, filterStation, filterCourse, filterEmployee, filterDepartment, filterProvider, filterYear, filterFavorite, stations, departments, ar]);
+  }, [allRecords, filterStations, filterCourses, filterEmployee, filterDepartments, filterProviders, filterYear, filterFavorite, stations, departments, ar]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -207,33 +220,63 @@ export const TrainingRecordsReport = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{ar ? 'المحطة' : 'Station'}</label>
-              <Select value={filterStation} onValueChange={setFilterStation}>
-                <SelectTrigger><SelectValue placeholder={ar ? 'المحطة' : 'Station'} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{ar ? 'الكل' : 'All'}</SelectItem>
-                  {stations.map(s => (<SelectItem key={s.id} value={s.id}>{ar ? s.nameAr : s.nameEn}</SelectItem>))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between text-xs font-normal h-10">
+                    {filterStations.length === 0 ? (ar ? 'الكل' : 'All') : `${filterStations.length} ${ar ? 'محدد' : 'selected'}`}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2 max-h-60 overflow-y-auto" align="start">
+                  {stations.map(s => (
+                    <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted rounded cursor-pointer">
+                      <Checkbox checked={filterStations.includes(s.id)} onCheckedChange={() => toggleMulti(filterStations, s.id, setFilterStations)} />
+                      {ar ? s.nameAr : s.nameEn}
+                    </label>
+                  ))}
+                  {filterStations.length > 0 && <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={() => setFilterStations([])}>{ar ? 'مسح' : 'Clear'}</Button>}
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{ar ? 'القسم' : 'Department'}</label>
-              <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-                <SelectTrigger><SelectValue placeholder={ar ? 'القسم' : 'Department'} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{ar ? 'الكل' : 'All'}</SelectItem>
-                  {departments.map(d => (<SelectItem key={d.id} value={d.id}>{ar ? d.nameAr : d.nameEn}</SelectItem>))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between text-xs font-normal h-10">
+                    {filterDepartments.length === 0 ? (ar ? 'الكل' : 'All') : `${filterDepartments.length} ${ar ? 'محدد' : 'selected'}`}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2 max-h-60 overflow-y-auto" align="start">
+                  {departments.map(d => (
+                    <label key={d.id} className="flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted rounded cursor-pointer">
+                      <Checkbox checked={filterDepartments.includes(d.id)} onCheckedChange={() => toggleMulti(filterDepartments, d.id, setFilterDepartments)} />
+                      {ar ? d.nameAr : d.nameEn}
+                    </label>
+                  ))}
+                  {filterDepartments.length > 0 && <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={() => setFilterDepartments([])}>{ar ? 'مسح' : 'Clear'}</Button>}
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{ar ? 'الدورة' : 'Course'}</label>
-              <Select value={filterCourse} onValueChange={setFilterCourse}>
-                <SelectTrigger><SelectValue placeholder={ar ? 'الدورة' : 'Course'} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{ar ? 'الكل' : 'All'}</SelectItem>
-                  {courseOptions.map(c => (<SelectItem key={c.id} value={c.id}>{ar ? c.nameAr : c.nameEn}</SelectItem>))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between text-xs font-normal h-10">
+                    {filterCourses.length === 0 ? (ar ? 'الكل' : 'All') : `${filterCourses.length} ${ar ? 'محدد' : 'selected'}`}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-2 max-h-60 overflow-y-auto" align="start">
+                  {courseOptions.map(c => (
+                    <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted rounded cursor-pointer">
+                      <Checkbox checked={filterCourses.includes(c.id)} onCheckedChange={() => toggleMulti(filterCourses, c.id, setFilterCourses)} />
+                      {ar ? c.nameAr : c.nameEn}
+                    </label>
+                  ))}
+                  {filterCourses.length > 0 && <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={() => setFilterCourses([])}>{ar ? 'مسح' : 'Clear'}</Button>}
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{ar ? 'الموظف' : 'Employee'}</label>
@@ -247,13 +290,23 @@ export const TrainingRecordsReport = () => {
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{ar ? 'الجهة المقدمة' : 'Provider'}</label>
-              <Select value={filterProvider} onValueChange={setFilterProvider}>
-                <SelectTrigger><SelectValue placeholder={ar ? 'الجهة المقدمة' : 'Provider'} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{ar ? 'الكل' : 'All'}</SelectItem>
-                  {providerOptions.map(p => (<SelectItem key={p} value={p}>{p}</SelectItem>))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between text-xs font-normal h-10">
+                    {filterProviders.length === 0 ? (ar ? 'الكل' : 'All') : `${filterProviders.length} ${ar ? 'محدد' : 'selected'}`}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-52 p-2 max-h-60 overflow-y-auto" align="start">
+                  {providerOptions.map(p => (
+                    <label key={p} className="flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted rounded cursor-pointer">
+                      <Checkbox checked={filterProviders.includes(p)} onCheckedChange={() => toggleMulti(filterProviders, p, setFilterProviders)} />
+                      {p}
+                    </label>
+                  ))}
+                  {filterProviders.length > 0 && <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={() => setFilterProviders([])}>{ar ? 'مسح' : 'Clear'}</Button>}
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{ar ? 'السنة' : 'Year'}</label>
