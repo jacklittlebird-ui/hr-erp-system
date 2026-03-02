@@ -59,10 +59,11 @@ export const PortalAttendance = () => {
   const stats = useMemo(() => getMonthlyStats(PORTAL_EMPLOYEE_ID, year, month), [year, month, getMonthlyStats, PORTAL_EMPLOYEE_ID]);
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayRecord = useMemo(() => records.find(r => r.employeeId === PORTAL_EMPLOYEE_ID && r.date === todayStr), [records, PORTAL_EMPLOYEE_ID, todayStr]);
+  const todayRecords = useMemo(() => records.filter(r => r.employeeId === PORTAL_EMPLOYEE_ID && r.date === todayStr).sort((a, b) => (a.checkIn || '').localeCompare(b.checkIn || '')), [records, PORTAL_EMPLOYEE_ID, todayStr]);
+  const lastOpenRecord = useMemo(() => records.find(r => r.employeeId === PORTAL_EMPLOYEE_ID && r.checkIn && !r.checkOut), [records, PORTAL_EMPLOYEE_ID]);
 
-  const hasCheckedIn = !!todayRecord?.checkIn;
-  const hasCheckedOut = !!todayRecord?.checkOut;
+  const hasCheckedIn = todayRecords.length > 0;
+  const allCheckedOut = todayRecords.length > 0 && todayRecords.every(r => !!r.checkOut);
 
   const handleCheckIn = () => {
     if (!PORTAL_EMPLOYEE_ID) {
@@ -74,8 +75,8 @@ export const PortalAttendance = () => {
   };
 
   const handleCheckOut = () => {
-    if (!todayRecord) return;
-    checkOut(todayRecord.id);
+    if (!lastOpenRecord) return;
+    checkOut(lastOpenRecord.id);
     toast.success(ar ? 'تم تسجيل الانصراف بنجاح' : 'Check-out recorded successfully');
   };
 
@@ -194,20 +195,21 @@ export const PortalAttendance = () => {
               {formatTimeClock(currentTime)}
             </div>
 
-            {/* Status indicator */}
-            {hasCheckedIn && !hasCheckedOut && (
-              <div className="inline-flex items-center gap-2 px-3 py-2 bg-success/10 border border-success/20 rounded-lg">
-                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                <span className="text-success font-medium text-sm md:text-base">
-                  {ar ? `تم الحضور في ${todayRecord?.checkIn}` : `Checked in at ${todayRecord?.checkIn}`}
-                </span>
-              </div>
-            )}
-            {hasCheckedIn && hasCheckedOut && (
-              <div className="inline-flex items-center gap-2 px-3 py-2 bg-muted border border-border rounded-lg">
-                <span className="text-muted-foreground font-medium text-sm md:text-base">
-                  {ar ? `حضور: ${todayRecord?.checkIn} — انصراف: ${todayRecord?.checkOut}` : `In: ${todayRecord?.checkIn} — Out: ${todayRecord?.checkOut}`}
-                </span>
+            {/* Status indicator - show all today's stamps */}
+            {todayRecords.length > 0 && (
+              <div className="space-y-1">
+                {todayRecords.map((rec, idx) => (
+                  <div key={rec.id} className={cn(
+                    "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm",
+                    rec.checkOut ? "bg-muted border border-border" : "bg-success/10 border border-success/20"
+                  )}>
+                    {!rec.checkOut && <div className="w-2 h-2 rounded-full bg-success animate-pulse" />}
+                    <span className={cn("font-medium", rec.checkOut ? "text-muted-foreground" : "text-success")}>
+                      {ar ? `حضور: ${rec.checkIn}` : `In: ${rec.checkIn}`}
+                      {rec.checkOut ? (ar ? ` — انصراف: ${rec.checkOut}` : ` — Out: ${rec.checkOut}`) : ''}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
 

@@ -232,35 +232,36 @@ Deno.serve(async (req) => {
 
       if (event_type === "check_in") {
         const isLate = nowDate.getHours() >= 9;
-        // Check if record already exists for today
-        const { data: existing } = await admin
+        // Always insert a new record - allow multiple stamps per day
+        await admin.from("attendance_records").insert({
+          employee_id: empId,
+          date: dateStr,
+          check_in: nowIso,
+          status: isLate ? "late" : "present",
+          is_late: isLate,
+        });
+      } else if (event_type === "check_out") {
+        // Find the most recent open record (no check_out) for this employee
+        // This handles overnight shifts - check_in may be from previous day
+        const { data: openRecord } = await admin
           .from("attendance_records")
-          .select("id")
+          .select("id, date")
           .eq("employee_id", empId)
-          .eq("date", dateStr)
+          .is("check_out", null)
+          .order("check_in", { ascending: false })
+          .limit(1)
           .maybeSingle();
 
-        if (!existing) {
-          await admin.from("attendance_records").insert({
-            employee_id: empId,
-            date: dateStr,
-            check_in: nowIso,
-            status: isLate ? "late" : "present",
-            is_late: isLate,
-          });
+        if (openRecord) {
+          const isEarly = nowDate.getHours() < 17;
+          await admin
+            .from("attendance_records")
+            .update({
+              check_out: nowIso,
+              ...(isEarly ? { status: "early-leave" } : {}),
+            })
+            .eq("id", openRecord.id);
         }
-      } else if (event_type === "check_out") {
-        // Update today's record with check_out
-        const isEarly = nowDate.getHours() < 17;
-        await admin
-          .from("attendance_records")
-          .update({
-            check_out: nowIso,
-            ...(isEarly ? { status: "early-leave" } : {}),
-          })
-          .eq("employee_id", empId)
-          .eq("date", dateStr)
-          .is("check_out", null);
       }
     }
 
