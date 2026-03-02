@@ -31,6 +31,7 @@ interface BilingualExportOptions {
 export const useReportExport = () => {
   const { t, isRTL } = useLanguage();
   const reportRef = useRef<HTMLDivElement>(null);
+  const logoUrl = `${window.location.origin}/images/company-logo.png`;
 
   const handlePrint = useCallback((title: string) => {
     const printContent = reportRef.current;
@@ -196,9 +197,12 @@ export const useReportExport = () => {
       </head>
       <body>
         <table>
-          <tr><td colspan="${columns.length}" style="text-align:center;font-size:22px;font-weight:700;color:#1e40af;padding:12px;direction:rtl;">${titleAr}</td></tr>
-          <tr><td colspan="${columns.length}" style="text-align:center;font-size:18px;font-weight:600;color:#374151;padding:8px;">${titleEn}</td></tr>
-          <tr><td colspan="${columns.length}" style="text-align:center;color:#6b7280;font-size:13px;padding:8px;">${new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })} — ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td></tr>
+          <tr>
+            <td style="text-align:left;padding:8px;vertical-align:middle;" rowspan="3"><img src="${logoUrl}" style="height:60px;width:auto;" /></td>
+            <td colspan="${columns.length - 1}" style="text-align:center;font-size:22px;font-weight:700;color:#1e40af;padding:12px;direction:rtl;">${titleAr}</td>
+          </tr>
+          <tr><td colspan="${columns.length - 1}" style="text-align:center;font-size:18px;font-weight:600;color:#374151;padding:8px;">${titleEn}</td></tr>
+          <tr><td colspan="${columns.length - 1}" style="text-align:center;color:#6b7280;font-size:13px;padding:8px;">${new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })} — ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td></tr>
           <tr><td colspan="${columns.length}"></td></tr>
           <thead>
             <tr>${columns.map(c => `<th style="background-color:#1e40af;color:white;font-weight:600;font-size:11px;padding:6px 8px;border:1px solid #1e3a8a;text-align:center;"><div style="direction:rtl;">${c.headerAr}</div><div style="font-weight:400;font-size:10px;color:#dbeafe;">${c.headerEn}</div></th>`).join('')}</tr>
@@ -266,9 +270,12 @@ export const useReportExport = () => {
         </style>
       </head>
       <body>
-        <div class="title-block">
-          <div class="title-ar">${titleAr}</div>
-          <div class="title-en">${titleEn}</div>
+        <div class="title-block" style="display:flex;align-items:center;gap:16px;">
+          <img src="${logoUrl}" style="height:60px;width:auto;" />
+          <div style="flex:1;">
+            <div class="title-ar">${titleAr}</div>
+            <div class="title-en">${titleEn}</div>
+          </div>
         </div>
         <p class="subtitle">${new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })} — ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         <table>
