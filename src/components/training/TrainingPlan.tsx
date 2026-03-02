@@ -1,13 +1,15 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarDays, Users, BookOpen } from 'lucide-react';
+import { CalendarDays, Users, BookOpen, FileText, FileSpreadsheet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useReportExport } from '@/hooks/useReportExport';
 
 export interface TrainingDebt {
   id: string;
@@ -160,8 +162,64 @@ export const TrainingPlan = () => {
   const uniqueCourses = new Set(filtered.map(r => r.courseId)).size;
   const overdueCount = filtered.filter(r => isOverdue(r.plannedDate) && r.status !== 'completed').length;
 
+  const { exportBilingualPDF, exportBilingualCSV } = useReportExport();
+
+  const exportColumns = [
+    { headerAr: 'كود الموظف', headerEn: 'Emp Code', key: 'employeeCode' },
+    { headerAr: 'اسم الموظف', headerEn: 'Employee', key: 'employeeName' },
+    { headerAr: 'القسم', headerEn: 'Dept Code', key: 'deptCode' },
+    { headerAr: 'المحطة', headerEn: 'Station', key: 'stationName' },
+    { headerAr: 'كود الدورة', headerEn: 'Course Code', key: 'courseCode' },
+    { headerAr: 'اسم الدورة', headerEn: 'Course', key: 'courseName' },
+    { headerAr: 'تاريخ الانتهاء', headerEn: 'End Date', key: 'endDate' },
+    { headerAr: 'الصلاحية', headerEn: 'Validity', key: 'validity' },
+    { headerAr: 'تاريخ التخطيط', headerEn: 'Planned Date', key: 'plannedDate' },
+    { headerAr: 'الحالة', headerEn: 'Status', key: 'statusLabel' },
+  ];
+
+  const getExportData = useCallback(() => {
+    return filtered.map(r => ({
+      ...r,
+      stationName: stations.find(s => s.id === r.station)?.[ar ? 'nameAr' : 'nameEn'] || '-',
+      validity: `${r.validityYears} ${ar ? 'سنة' : 'yr'}`,
+      statusLabel: r.status === 'completed' ? (ar ? 'مكتمل' : 'Completed') : r.status === 'failed' ? (ar ? 'راسب' : 'Failed') : (ar ? 'مسجل' : 'Enrolled'),
+    }));
+  }, [filtered, stations, ar]);
+
+  const handleExportPDF = () => {
+    exportBilingualPDF({
+      titleAr: 'خطة التدريب',
+      titleEn: 'Training Plan',
+      data: getExportData(),
+      columns: exportColumns,
+      fileName: 'Training_Plan',
+    });
+  };
+
+  const handleExportExcel = () => {
+    exportBilingualCSV({
+      titleAr: 'خطة التدريب',
+      titleEn: 'Training Plan',
+      data: getExportData(),
+      columns: exportColumns,
+      fileName: 'Training_Plan',
+    });
+  };
+
   return (
     <div className="space-y-6">
+      {/* Export Buttons */}
+      <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
+        <Button variant="outline" size="sm" onClick={handleExportPDF}>
+          <FileText className="h-4 w-4 me-1" />
+          {ar ? 'تصدير PDF' : 'Export PDF'}
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleExportExcel}>
+          <FileSpreadsheet className="h-4 w-4 me-1" />
+          {ar ? 'تصدير Excel' : 'Export Excel'}
+        </Button>
+      </div>
+
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
