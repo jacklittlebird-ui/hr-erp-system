@@ -19,7 +19,7 @@ type FilterStatus = 'all' | 'active' | 'inactive' | 'suspended';
 const Employees = () => {
   const { t, isRTL } = useLanguage();
   const { employees, refreshEmployees } = useEmployeeData();
-  const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
+  const { reportRef, handlePrint, exportBilingualCSV, exportToPDF } = useReportExport();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -35,44 +35,47 @@ const Employees = () => {
     return s ? (ar ? s.labelAr : s.labelEn) : val;
   };
 
-  // Full export columns with all employee data
-  const exportColumns = [
-    { header: ar ? 'كود الموظف' : 'Employee ID', key: 'employeeId' },
-    { header: ar ? 'الاسم (عربي)' : 'Name (AR)', key: 'nameAr' },
-    { header: ar ? 'الاسم (انجليزي)' : 'Name (EN)', key: 'nameEn' },
-    { header: ar ? 'الاسم الأول' : 'First Name', key: 'firstName' },
-    { header: ar ? 'اسم الأب' : 'Father Name', key: 'fatherName' },
-    { header: ar ? 'اسم العائلة' : 'Family Name', key: 'familyName' },
-    { header: ar ? 'المحطة' : 'Station', key: 'station' },
-    { header: ar ? 'القسم' : 'Department', key: 'department' },
-    { header: ar ? 'الوظيفة' : 'Job Title', key: 'jobTitle' },
-    { header: ar ? 'الهاتف' : 'Phone', key: 'phone' },
-    { header: ar ? 'البريد الإلكتروني' : 'Email', key: 'email' },
-    { header: ar ? 'هاتف المنزل' : 'Home Phone', key: 'homePhone' },
-    { header: ar ? 'الرقم القومي' : 'National ID', key: 'nationalId' },
-    { header: ar ? 'تاريخ الميلاد' : 'Birth Date', key: 'birthDate' },
-    { header: ar ? 'محل الميلاد' : 'Birth Place', key: 'birthPlace' },
-    { header: ar ? 'الجنس' : 'Gender', key: 'gender' },
-    { header: ar ? 'الديانة' : 'Religion', key: 'religion' },
-    { header: ar ? 'الجنسية' : 'Nationality', key: 'nationality' },
-    { header: ar ? 'الحالة الاجتماعية' : 'Marital Status', key: 'maritalStatus' },
-    { header: ar ? 'عدد الأطفال' : 'Children', key: 'childrenCount' },
-    { header: ar ? 'المؤهل' : 'Education', key: 'educationAr' },
-    { header: ar ? 'سنة التخرج' : 'Graduation Year', key: 'graduationYear' },
-    { header: ar ? 'العنوان' : 'Address', key: 'address' },
-    { header: ar ? 'المدينة' : 'City', key: 'city' },
-    { header: ar ? 'المحافظة' : 'Governorate', key: 'governorate' },
-    { header: ar ? 'الموقف من التجنيد' : 'Military Status', key: 'militaryStatus' },
-    { header: ar ? 'نوع العقد' : 'Contract Type', key: 'contractType' },
-    { header: ar ? 'تاريخ التعيين' : 'Hire Date', key: 'hireDate' },
-    { header: ar ? 'الراتب الأساسي' : 'Basic Salary', key: 'basicSalary' },
-    { header: ar ? 'رقم التأمين الاجتماعي' : 'Social Insurance No', key: 'socialInsuranceNo' },
-    { header: ar ? 'رقم بطاقة التأمين الصحي' : 'Health Insurance Card', key: 'healthInsuranceCardNo' },
-    { header: ar ? 'اسم البنك' : 'Bank Name', key: 'bankName' },
-    { header: ar ? 'رقم الحساب البنكي' : 'Bank Account', key: 'bankAccountNumber' },
-    { header: ar ? 'الحالة' : 'Status', key: 'status' },
-    { header: ar ? 'ملاحظات' : 'Notes', key: 'notes' },
+  // Bilingual export columns for Excel and PDF
+  const bilingualExportColumns = [
+    { headerAr: 'كود الموظف', headerEn: 'Employee ID', key: 'employeeId' },
+    { headerAr: 'الاسم (عربي)', headerEn: 'Name (AR)', key: 'nameAr' },
+    { headerAr: 'الاسم (انجليزي)', headerEn: 'Name (EN)', key: 'nameEn' },
+    { headerAr: 'الاسم الأول', headerEn: 'First Name', key: 'firstName' },
+    { headerAr: 'اسم الأب', headerEn: 'Father Name', key: 'fatherName' },
+    { headerAr: 'اسم العائلة', headerEn: 'Family Name', key: 'familyName' },
+    { headerAr: 'المحطة', headerEn: 'Station', key: 'station' },
+    { headerAr: 'القسم', headerEn: 'Department', key: 'department' },
+    { headerAr: 'الوظيفة', headerEn: 'Job Title', key: 'jobTitle' },
+    { headerAr: 'الهاتف', headerEn: 'Phone', key: 'phone' },
+    { headerAr: 'البريد الإلكتروني', headerEn: 'Email', key: 'email' },
+    { headerAr: 'هاتف المنزل', headerEn: 'Home Phone', key: 'homePhone' },
+    { headerAr: 'الرقم القومي', headerEn: 'National ID', key: 'nationalId' },
+    { headerAr: 'تاريخ الميلاد', headerEn: 'Birth Date', key: 'birthDate' },
+    { headerAr: 'محل الميلاد', headerEn: 'Birth Place', key: 'birthPlace' },
+    { headerAr: 'الجنس', headerEn: 'Gender', key: 'gender' },
+    { headerAr: 'الديانة', headerEn: 'Religion', key: 'religion' },
+    { headerAr: 'الجنسية', headerEn: 'Nationality', key: 'nationality' },
+    { headerAr: 'الحالة الاجتماعية', headerEn: 'Marital Status', key: 'maritalStatus' },
+    { headerAr: 'عدد الأطفال', headerEn: 'Children', key: 'childrenCount' },
+    { headerAr: 'المؤهل', headerEn: 'Education', key: 'educationAr' },
+    { headerAr: 'سنة التخرج', headerEn: 'Graduation Year', key: 'graduationYear' },
+    { headerAr: 'العنوان', headerEn: 'Address', key: 'address' },
+    { headerAr: 'المدينة', headerEn: 'City', key: 'city' },
+    { headerAr: 'المحافظة', headerEn: 'Governorate', key: 'governorate' },
+    { headerAr: 'الموقف من التجنيد', headerEn: 'Military Status', key: 'militaryStatus' },
+    { headerAr: 'نوع العقد', headerEn: 'Contract Type', key: 'contractType' },
+    { headerAr: 'تاريخ التعيين', headerEn: 'Hire Date', key: 'hireDate' },
+    { headerAr: 'الراتب الأساسي', headerEn: 'Basic Salary', key: 'basicSalary' },
+    { headerAr: 'رقم التأمين الاجتماعي', headerEn: 'Social Insurance No', key: 'socialInsuranceNo' },
+    { headerAr: 'رقم بطاقة التأمين الصحي', headerEn: 'Health Insurance Card', key: 'healthInsuranceCardNo' },
+    { headerAr: 'اسم البنك', headerEn: 'Bank Name', key: 'bankName' },
+    { headerAr: 'رقم الحساب البنكي', headerEn: 'Bank Account', key: 'bankAccountNumber' },
+    { headerAr: 'الحالة', headerEn: 'Status', key: 'status' },
+    { headerAr: 'ملاحظات', headerEn: 'Notes', key: 'notes' },
   ];
+
+  // Single-language columns for PDF fallback
+  const exportColumns = bilingualExportColumns.map(c => ({ header: ar ? c.headerAr : c.headerEn, key: c.key }));
 
   const getExportData = () => filteredEmployees.map(e => ({
     employeeId: e.employeeId,
@@ -139,9 +142,9 @@ const Employees = () => {
     });
   }, [employees, searchQuery, activeFilter]);
 
-  // Export all employees data to Excel/CSV
+  // Export all employees data to Excel
   const handleExportAll = () => {
-    exportToCSV({ title: reportTitle, data: getExportData(), columns: exportColumns });
+    exportBilingualCSV({ titleAr: 'تقرير الموظفين', titleEn: 'Employee Report', data: getExportData(), columns: bilingualExportColumns, fileName: 'Employees_Report' });
   };
 
   // Import from CSV
@@ -298,7 +301,7 @@ const Employees = () => {
               <Button variant="secondary" size="sm" className="gap-2" onClick={() => refreshEmployees()}><RefreshCw className="w-4 h-4" />{t('employees.refresh')}</Button>
               <Button variant="secondary" size="sm" className="gap-2" onClick={() => handlePrint(reportTitle)}><Printer className="w-4 h-4" />{ar ? 'طباعة' : 'Print'}</Button>
               <Button variant="secondary" size="sm" className="gap-2" onClick={() => exportToPDF({ title: reportTitle, data: getExportData(), columns: exportColumns })}><Download className="w-4 h-4" />PDF</Button>
-              <Button variant="secondary" size="sm" className="gap-2" onClick={handleExportAll}><FileText className="w-4 h-4" />CSV</Button>
+              <Button variant="secondary" size="sm" className="gap-2" onClick={handleExportAll}><FileText className="w-4 h-4" />Excel</Button>
               <Button variant="secondary" size="sm" className="gap-2" onClick={handleImportClick} disabled={importing}>
                 <Upload className="w-4 h-4" />{importing ? (ar ? 'جاري الاستيراد...' : 'Importing...') : t('employees.importExcel')}
               </Button>
