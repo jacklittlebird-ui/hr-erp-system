@@ -1,0 +1,1 @@
+ALTER TABLE public.training_records ADD COLUMN planned_date date DEFAULT NULL;
