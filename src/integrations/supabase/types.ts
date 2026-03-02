@@ -1354,6 +1354,7 @@ export type Database = {
           name_en: string
           provider: string | null
           reference_material: string | null
+          validity_years: number | null
         }
         Insert: {
           advanced_topics?: string | null
@@ -1375,6 +1376,7 @@ export type Database = {
           name_en: string
           provider?: string | null
           reference_material?: string | null
+          validity_years?: number | null
         }
         Update: {
           advanced_topics?: string | null
@@ -1396,6 +1398,7 @@ export type Database = {
           name_en?: string
           provider?: string | null
           reference_material?: string | null
+          validity_years?: number | null
         }
         Relationships: []
       }

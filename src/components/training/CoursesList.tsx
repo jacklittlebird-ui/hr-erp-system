@@ -24,6 +24,7 @@ interface Course {
   status: 'active' | 'inactive';
   description: string;
   durationHours: number;
+  validityYears: number;
 }
 
 export const CoursesList = () => {
@@ -49,6 +50,7 @@ export const CoursesList = () => {
       durationHours: c.duration_hours || 0,
       description: c.description || '',
       status: c.is_active ? 'active' as const : 'inactive' as const,
+      validityYears: c.validity_years || 1,
     })));
   };
 
@@ -62,7 +64,7 @@ export const CoursesList = () => {
 
   const handleNew = () => {
     setSelectedCourse(null); setIsViewMode(false);
-    setFormData({ code: '', nameEn: '', nameAr: '', provider: '', durationHours: 0, status: 'active', description: '' });
+    setFormData({ code: '', nameEn: '', nameAr: '', provider: '', durationHours: 0, status: 'active', description: '', validityYears: 1 });
     setIsDialogOpen(true);
   };
 
@@ -80,6 +82,7 @@ export const CoursesList = () => {
         provider: formData.provider || '',
         course_code: formData.code || '',
         duration_hours: formData.durationHours || 0,
+        validity_years: formData.validityYears || 1,
       } as any).eq('id', selectedCourse.id);
       toast({ title: t('common.success'), description: t('training.courses.updated') });
     } else {
@@ -90,6 +93,7 @@ export const CoursesList = () => {
         provider: formData.provider || '',
         course_code: formData.code || '',
         duration_hours: formData.durationHours || 0,
+        validity_years: formData.validityYears || 1,
       } as any);
       toast({ title: t('common.success'), description: t('training.courses.added') });
     }
@@ -130,6 +134,7 @@ export const CoursesList = () => {
             <TableHead>{t('training.courses.name')}</TableHead>
             <TableHead>{language === 'ar' ? 'الجهة' : 'Provider'}</TableHead>
             <TableHead>{t('training.courses.duration')}</TableHead>
+            <TableHead>{language === 'ar' ? 'الصلاحية' : 'Validity'}</TableHead>
             <TableHead>{t('training.courses.status')}</TableHead>
             <TableHead>{t('common.actions')}</TableHead>
           </TableRow></TableHeader>
@@ -140,6 +145,7 @@ export const CoursesList = () => {
                 <TableCell className="font-medium">{language === 'ar' ? course.nameAr : course.nameEn}</TableCell>
                 <TableCell>{course.provider}</TableCell>
                 <TableCell>{course.duration}</TableCell>
+                <TableCell>{course.validityYears} {language === 'ar' ? (course.validityYears === 1 ? 'سنة' : 'سنوات') : (course.validityYears === 1 ? 'Year' : 'Years')}</TableCell>
                 <TableCell><Badge variant={course.status === 'active' ? 'default' : 'secondary'}>{course.status === 'active' ? t('training.status.active') : t('training.status.inactive')}</Badge></TableCell>
                 <TableCell>
                   <div className="flex gap-1">
@@ -150,7 +156,7 @@ export const CoursesList = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {filteredCourses.length === 0 && (<TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{t('training.courses.noResults')}</TableCell></TableRow>)}
+            {filteredCourses.length === 0 && (<TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t('training.courses.noResults')}</TableCell></TableRow>)}
           </TableBody>
         </Table>
       </CardContent></Card>
@@ -164,6 +170,14 @@ export const CoursesList = () => {
             <div><Label>{t('training.courses.nameAr')}</Label><Input value={formData.nameAr} onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })} disabled={isViewMode} dir="rtl" /></div>
             <div><Label>{language === 'ar' ? 'الجهة المقدمة' : 'Provider'}</Label><Input value={formData.provider || ''} onChange={(e) => setFormData({ ...formData, provider: e.target.value })} disabled={isViewMode} /></div>
             <div><Label>{language === 'ar' ? 'المدة (ساعات)' : 'Duration (hours)'}</Label><Input type="number" value={formData.durationHours || ''} onChange={(e) => setFormData({ ...formData, durationHours: parseInt(e.target.value) || 0 })} disabled={isViewMode} /></div>
+            <div><Label>{language === 'ar' ? 'مدة الصلاحية (سنوات)' : 'Validity (years)'}</Label>
+              <Select value={String(formData.validityYears || 1)} onValueChange={(v) => setFormData({ ...formData, validityYears: parseInt(v) })} disabled={isViewMode}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[1,2,3,4,5].map(y => <SelectItem key={y} value={String(y)}>{y} {language === 'ar' ? (y === 1 ? 'سنة' : 'سنوات') : (y === 1 ? 'Year' : 'Years')}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>{t('training.courses.status')}</Label>
               <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v as any })} disabled={isViewMode}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
