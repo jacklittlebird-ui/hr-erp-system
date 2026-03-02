@@ -43,7 +43,6 @@ export const TrainingRecordsReport = () => {
   const [stations, setStations] = useState<{ id: string; nameAr: string; nameEn: string }[]>([]);
   const [courseOptions, setCourseOptions] = useState<{ id: string; nameAr: string; nameEn: string; provider: string }[]>([]);
 
-  // Filters
   const [filterStation, setFilterStation] = useState('all');
   const [filterCourse, setFilterCourse] = useState('all');
   const [filterEmployee, setFilterEmployee] = useState('all');
@@ -51,7 +50,6 @@ export const TrainingRecordsReport = () => {
   const [filterProvider, setFilterProvider] = useState('all');
   const [filterYear, setFilterYear] = useState('all');
 
-  // Fetch data
   useEffect(() => {
     const fetchAll = async () => {
       const [{ data: depts }, { data: stns }, { data: courses }, { data: records }] = await Promise.all([
@@ -64,7 +62,6 @@ export const TrainingRecordsReport = () => {
       setStations((stns || []).map((s: any) => ({ id: s.id, nameAr: s.name_ar, nameEn: s.name_en })));
       setCourseOptions((courses || []).map((c: any) => ({ id: c.id, nameAr: c.name_ar, nameEn: c.name_en, provider: c.provider || '' })));
 
-      // Build records with employee data
       const mapped: ReportRecord[] = (records || []).map((r: any) => {
         const emp = contextEmployees.find(e => e.id === r.employee_id);
         const stationObj = stns?.find((s: any) => s.id === emp?.stationId);
@@ -96,19 +93,16 @@ export const TrainingRecordsReport = () => {
     fetchAll();
   }, [contextEmployees, ar]);
 
-  // Provider options from courses
   const providerOptions = useMemo(() => {
     const providers = [...new Set(courseOptions.map(c => c.provider).filter(Boolean))];
     return providers;
   }, [courseOptions]);
 
-  // Year options from end dates
   const yearOptions = useMemo(() => {
     const years = [...new Set(allRecords.map(r => r.endDate ? r.endDate.substring(0, 4) : '').filter(Boolean))];
     return years.sort().reverse();
   }, [allRecords]);
 
-  // Filtered
   const filtered = useMemo(() => {
     return allRecords.filter(r => {
       if (filterStation !== 'all') {
@@ -211,7 +205,6 @@ export const TrainingRecordsReport = () => {
                 {stations.map(s => (<SelectItem key={s.id} value={s.id}>{ar ? s.nameAr : s.nameEn}</SelectItem>))}
               </SelectContent>
             </Select>
-
             <Select value={filterDepartment} onValueChange={setFilterDepartment}>
               <SelectTrigger><SelectValue placeholder={ar ? 'القسم' : 'Department'} /></SelectTrigger>
               <SelectContent>
@@ -219,7 +212,6 @@ export const TrainingRecordsReport = () => {
                 {departments.map(d => (<SelectItem key={d.id} value={d.id}>{ar ? d.nameAr : d.nameEn}</SelectItem>))}
               </SelectContent>
             </Select>
-
             <Select value={filterCourse} onValueChange={setFilterCourse}>
               <SelectTrigger><SelectValue placeholder={ar ? 'الدورة' : 'Course'} /></SelectTrigger>
               <SelectContent>
@@ -227,7 +219,6 @@ export const TrainingRecordsReport = () => {
                 {courseOptions.map(c => (<SelectItem key={c.id} value={c.id}>{ar ? c.nameAr : c.nameEn}</SelectItem>))}
               </SelectContent>
             </Select>
-
             <Select value={filterEmployee} onValueChange={setFilterEmployee}>
               <SelectTrigger><SelectValue placeholder={ar ? 'الموظف' : 'Employee'} /></SelectTrigger>
               <SelectContent>
@@ -235,7 +226,6 @@ export const TrainingRecordsReport = () => {
                 {contextEmployees.map(e => (<SelectItem key={e.id} value={e.id}>{ar ? e.nameAr : e.nameEn}</SelectItem>))}
               </SelectContent>
             </Select>
-
             <Select value={filterProvider} onValueChange={setFilterProvider}>
               <SelectTrigger><SelectValue placeholder={ar ? 'الجهة المقدمة' : 'Provider'} /></SelectTrigger>
               <SelectContent>
@@ -243,7 +233,6 @@ export const TrainingRecordsReport = () => {
                 {providerOptions.map(p => (<SelectItem key={p} value={p}>{p}</SelectItem>))}
               </SelectContent>
             </Select>
-
             <Select value={filterYear} onValueChange={setFilterYear}>
               <SelectTrigger><SelectValue placeholder={ar ? 'السنة' : 'Year'} /></SelectTrigger>
               <SelectContent>
@@ -255,7 +244,53 @@ export const TrainingRecordsReport = () => {
         </CardContent>
       </Card>
 
-      {/* Enhanced Stats Cards */}
+      {/* Table FIRST */}
+      <div ref={reportRef}>
+        <Card>
+          <CardContent className="p-4 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>#</TableHead>
+                  <TableHead>{ar ? 'كود الموظف' : 'Code'}</TableHead>
+                  <TableHead>{ar ? 'اسم الموظف' : 'Employee'}</TableHead>
+                  <TableHead>{ar ? 'القسم' : 'Dept'}</TableHead>
+                  <TableHead>{ar ? 'المحطة' : 'Station'}</TableHead>
+                  <TableHead>{ar ? 'الدورة' : 'Course'}</TableHead>
+                  <TableHead>{ar ? 'الجهة' : 'Provider'}</TableHead>
+                  <TableHead>{ar ? 'تاريخ البداية' : 'Start'}</TableHead>
+                  <TableHead>{ar ? 'تاريخ النهاية' : 'End'}</TableHead>
+                  <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
+                  <TableHead>{ar ? 'الدرجة' : 'Score'}</TableHead>
+                  <TableHead>{ar ? 'شهادة' : 'Cert'}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">{ar ? 'لا توجد سجلات' : 'No records found'}</TableCell></TableRow>
+                ) : filtered.map((r, i) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                    <TableCell className="font-mono text-xs">{r.employeeCode}</TableCell>
+                    <TableCell className="font-medium">{r.employeeName}</TableCell>
+                    <TableCell>{r.department}</TableCell>
+                    <TableCell>{r.station}</TableCell>
+                    <TableCell>{r.courseName}</TableCell>
+                    <TableCell>{r.provider}</TableCell>
+                    <TableCell>{r.startDate}</TableCell>
+                    <TableCell>{r.endDate}</TableCell>
+                    <TableCell>{getStatusBadge(r.status)}</TableCell>
+                    <TableCell>{r.score != null ? `${r.score}%` : '-'}</TableCell>
+                    <TableCell>{r.hasCert ? '✓' : '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Stats Cards AFTER table */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10"><BookOpen className="h-5 w-5 text-primary" /></div>
@@ -300,7 +335,6 @@ export const TrainingRecordsReport = () => {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Status Pie Chart */}
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">{ar ? 'توزيع الحالات' : 'Status Distribution'}</CardTitle></CardHeader>
           <CardContent>
@@ -325,7 +359,6 @@ export const TrainingRecordsReport = () => {
           </CardContent>
         </Card>
 
-        {/* Provider Distribution */}
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">{ar ? 'توزيع الجهات المقدمة' : 'Provider Distribution'}</CardTitle></CardHeader>
           <CardContent>
@@ -348,7 +381,6 @@ export const TrainingRecordsReport = () => {
           </CardContent>
         </Card>
 
-        {/* Station Distribution */}
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">{ar ? 'توزيع المحطات' : 'Station Distribution'}</CardTitle></CardHeader>
           <CardContent>
@@ -375,7 +407,6 @@ export const TrainingRecordsReport = () => {
           </CardContent>
         </Card>
 
-        {/* Top Courses */}
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">{ar ? 'أكثر الدورات' : 'Top Courses'}</CardTitle></CardHeader>
           <CardContent>
@@ -395,52 +426,6 @@ export const TrainingRecordsReport = () => {
                 <Bar dataKey="count" name={ar ? 'العدد' : 'Count'} fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Table */}
-      <div ref={reportRef}>
-        <Card>
-          <CardContent className="p-4 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>{ar ? 'كود الموظف' : 'Code'}</TableHead>
-                  <TableHead>{ar ? 'اسم الموظف' : 'Employee'}</TableHead>
-                  <TableHead>{ar ? 'القسم' : 'Dept'}</TableHead>
-                  <TableHead>{ar ? 'المحطة' : 'Station'}</TableHead>
-                  <TableHead>{ar ? 'الدورة' : 'Course'}</TableHead>
-                  <TableHead>{ar ? 'الجهة' : 'Provider'}</TableHead>
-                  <TableHead>{ar ? 'تاريخ البداية' : 'Start'}</TableHead>
-                  <TableHead>{ar ? 'تاريخ النهاية' : 'End'}</TableHead>
-                  <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
-                  <TableHead>{ar ? 'الدرجة' : 'Score'}</TableHead>
-                  <TableHead>{ar ? 'شهادة' : 'Cert'}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">{ar ? 'لا توجد سجلات' : 'No records found'}</TableCell></TableRow>
-                ) : filtered.map((r, i) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                    <TableCell className="font-mono text-xs">{r.employeeCode}</TableCell>
-                    <TableCell className="font-medium">{r.employeeName}</TableCell>
-                    <TableCell>{r.department}</TableCell>
-                    <TableCell>{r.station}</TableCell>
-                    <TableCell>{r.courseName}</TableCell>
-                    <TableCell>{r.provider}</TableCell>
-                    <TableCell>{r.startDate}</TableCell>
-                    <TableCell>{r.endDate}</TableCell>
-                    <TableCell>{getStatusBadge(r.status)}</TableCell>
-                    <TableCell>{r.score != null ? `${r.score}%` : '-'}</TableCell>
-                    <TableCell>{r.hasCert ? '✓' : '-'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           </CardContent>
         </Card>
       </div>
