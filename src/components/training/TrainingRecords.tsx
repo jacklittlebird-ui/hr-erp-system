@@ -42,12 +42,14 @@ interface TrainingRecord {
   location?: string;
   hasCert?: boolean;
   hasCr?: boolean;
+  plannedDate?: string;
 }
 
 interface CourseOption {
   id: string;
   nameEn: string;
   nameAr: string;
+  validityYears: number;
 }
 
 const jobFunctionLabels: Record<string, { en: string; ar: string }> = {
@@ -77,7 +79,7 @@ export const TrainingRecords = () => {
   const [trainingRecords, setTrainingRecords] = useState<TrainingRecord[]>([]);
   const [courseOptions, setCourseOptions] = useState<CourseOption[]>([]);
   const [newRecord, setNewRecord] = useState({
-    courseId: '', startDate: '', endDate: '', result: 'pending' as 'passed' | 'failed' | 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false,
+    courseId: '', startDate: '', endDate: '', result: 'pending' as 'passed' | 'failed' | 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, plannedDate: '',
   });
   const [providerOptions, setProviderOptions] = useState<string[]>([]);
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
@@ -87,8 +89,8 @@ export const TrainingRecords = () => {
   // Fetch available courses and providers from DB
   useEffect(() => {
     const fetchCourses = async () => {
-      const { data } = await supabase.from('training_courses').select('id, name_en, name_ar, provider').eq('is_active', true);
-      setCourseOptions((data || []).map((c: any) => ({ id: c.id, nameEn: c.name_en, nameAr: c.name_ar })));
+      const { data } = await supabase.from('training_courses').select('id, name_en, name_ar, provider, validity_years').eq('is_active', true);
+      setCourseOptions((data || []).map((c: any) => ({ id: c.id, nameEn: c.name_en, nameAr: c.name_ar, validityYears: c.validity_years || 1 })));
       // Extract unique providers
       const providers = [...new Set((data || []).map((c: any) => c.provider).filter(Boolean))] as string[];
       setProviderOptions(providers);
@@ -135,6 +137,7 @@ export const TrainingRecords = () => {
         location: r.location || '',
         hasCert: r.has_cert || false,
         hasCr: r.has_cr || false,
+        plannedDate: r.planned_date || '',
       })));
     };
     fetch();
@@ -164,10 +167,11 @@ export const TrainingRecords = () => {
       location: newRecord.location || null,
       has_cert: newRecord.hasCert,
       has_cr: newRecord.hasCr,
-    });
+      planned_date: newRecord.plannedDate || null,
+    } as any);
     toast({ title: ar ? 'تمت الإضافة' : 'Added' });
     setIsAddRecordOpen(false);
-    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false });
+    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, plannedDate: '' });
     // Refresh
     const { data } = await supabase
       .from('training_records')
@@ -183,6 +187,7 @@ export const TrainingRecords = () => {
       location: r.location || '',
       hasCert: r.has_cert || false,
       hasCr: r.has_cr || false,
+      plannedDate: r.planned_date || '',
     })));
   };
 
@@ -204,6 +209,7 @@ export const TrainingRecords = () => {
       location: record.location || '',
       hasCert: record.hasCert || false,
       hasCr: record.hasCr || false,
+      plannedDate: record.plannedDate || '',
     });
     setIsAddRecordOpen(true);
   };
@@ -221,11 +227,12 @@ export const TrainingRecords = () => {
       location: newRecord.location || null,
       has_cert: newRecord.hasCert,
       has_cr: newRecord.hasCr,
-    }).eq('id', editingRecordId);
+      planned_date: newRecord.plannedDate || null,
+    } as any).eq('id', editingRecordId);
     toast({ title: ar ? 'تم التعديل' : 'Updated' });
     setIsAddRecordOpen(false);
     setEditingRecordId(null);
-    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false });
+    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, plannedDate: '' });
     // Refresh
     const { data } = await supabase
       .from('training_records')
@@ -241,6 +248,7 @@ export const TrainingRecords = () => {
       location: r.location || '',
       hasCert: r.has_cert || false,
       hasCr: r.has_cr || false,
+      plannedDate: r.planned_date || '',
     })));
   };
 
@@ -344,8 +352,9 @@ export const TrainingRecords = () => {
                       <TableHead>{t('training.endDate')}</TableHead>
                       <TableHead>{t('training.result')}</TableHead>
                       <TableHead>{t('training.percentage')}</TableHead>
-                      <TableHead>Cert</TableHead>
-                      <TableHead>CR</TableHead>
+                       <TableHead>Cert</TableHead>
+                       <TableHead>CR</TableHead>
+                       <TableHead>{ar ? 'تاريخ التخطيط' : 'Planned Date'}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -366,10 +375,11 @@ export const TrainingRecords = () => {
                         <TableCell>{record.percentage ? `${record.percentage}%` : '-'}</TableCell>
                         <TableCell><Checkbox checked={record.hasCert} disabled /></TableCell>
                         <TableCell><Checkbox checked={record.hasCr} disabled /></TableCell>
+                        <TableCell>{record.plannedDate || '-'}</TableCell>
                       </TableRow>
                     ))}
                     {trainingRecords.length === 0 && (
-                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">{t('training.noRecords')}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">{t('training.noRecords')}</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
@@ -381,13 +391,23 @@ export const TrainingRecords = () => {
         )}
       </div>
 
-      <Dialog open={isAddRecordOpen} onOpenChange={(open) => { setIsAddRecordOpen(open); if (!open) { setEditingRecordId(null); setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false }); } }}>
+      <Dialog open={isAddRecordOpen} onOpenChange={(open) => { setIsAddRecordOpen(open); if (!open) { setEditingRecordId(null); setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, plannedDate: '' }); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editingRecordId ? (ar ? 'تعديل سجل التدريب' : 'Edit Training Record') : t('training.records.add')}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <Label>{t('training.courseName')}</Label>
-              <Select value={newRecord.courseId} onValueChange={(v) => setNewRecord({ ...newRecord, courseId: v })}>
+              <Select value={newRecord.courseId} onValueChange={(v) => {
+                const selectedCourse = courseOptions.find(c => c.id === v);
+                let plannedDate = newRecord.plannedDate;
+                if (newRecord.endDate && selectedCourse) {
+                  const d = new Date(newRecord.endDate);
+                  d.setFullYear(d.getFullYear() + selectedCourse.validityYears);
+                  d.setMonth(d.getMonth() - 1);
+                  plannedDate = d.toISOString().split('T')[0];
+                }
+                setNewRecord({ ...newRecord, courseId: v, plannedDate });
+              }}>
                 <SelectTrigger><SelectValue placeholder={ar ? '-- اختر الدورة --' : '-- Select Course --'} /></SelectTrigger>
                 <SelectContent>
                   {courseOptions.map(c => (
@@ -432,7 +452,19 @@ export const TrainingRecords = () => {
               </div>
             </div>
             <div><Label>{t('training.startDate')}</Label><Input type="date" value={newRecord.startDate} onChange={(e) => setNewRecord({ ...newRecord, startDate: e.target.value })} /></div>
-            <div><Label>{t('training.endDate')}</Label><Input type="date" value={newRecord.endDate} onChange={(e) => setNewRecord({ ...newRecord, endDate: e.target.value })} /></div>
+            <div><Label>{t('training.endDate')}</Label><Input type="date" value={newRecord.endDate} onChange={(e) => {
+              const endDate = e.target.value;
+              // Auto-calculate planned date
+              const selectedCourse = courseOptions.find(c => c.id === newRecord.courseId);
+              let plannedDate = '';
+              if (endDate && selectedCourse) {
+                const d = new Date(endDate);
+                d.setFullYear(d.getFullYear() + selectedCourse.validityYears);
+                d.setMonth(d.getMonth() - 1);
+                plannedDate = d.toISOString().split('T')[0];
+              }
+              setNewRecord({ ...newRecord, endDate, plannedDate });
+            }} /></div>
             <div>
               <Label>{t('training.result')}</Label>
               <Select value={newRecord.result} onValueChange={(v) => setNewRecord({ ...newRecord, result: v as any })}>
@@ -445,6 +477,11 @@ export const TrainingRecords = () => {
               </Select>
             </div>
             <div><Label>{t('training.percentage')}</Label><Input type="number" value={newRecord.score} onChange={(e) => setNewRecord({ ...newRecord, score: e.target.value })} /></div>
+            <div>
+              <Label>{ar ? 'تاريخ التخطيط' : 'Planned Date'}</Label>
+              <Input type="date" value={newRecord.plannedDate} readOnly className="bg-muted" />
+              <p className="text-xs text-muted-foreground mt-1">{ar ? 'يُحسب تلقائياً: تاريخ الانتهاء + سنوات الصلاحية - شهر' : 'Auto-calculated: End Date + Validity Years - 1 Month'}</p>
+            </div>
             <div className="col-span-2 flex gap-6 items-center pt-2">
               <label className="flex items-center gap-2 text-sm"><Checkbox checked={newRecord.hasCert} onCheckedChange={(v) => setNewRecord({ ...newRecord, hasCert: !!v })} /><span>Cert</span></label>
               <label className="flex items-center gap-2 text-sm"><Checkbox checked={newRecord.hasCr} onCheckedChange={(v) => setNewRecord({ ...newRecord, hasCr: !!v })} /><span>CR</span></label>

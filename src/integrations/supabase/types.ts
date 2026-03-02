@@ -1450,6 +1450,7 @@ export type Database = {
           has_cr: boolean | null
           id: string
           location: string | null
+          planned_date: string | null
           provider: string | null
           score: number | null
           start_date: string | null
@@ -1464,6 +1465,7 @@ export type Database = {
           has_cr?: boolean | null
           id?: string
           location?: string | null
+          planned_date?: string | null
           provider?: string | null
           score?: number | null
           start_date?: string | null
@@ -1478,6 +1480,7 @@ export type Database = {
           has_cr?: boolean | null
           id?: string
           location?: string | null
+          planned_date?: string | null
           provider?: string | null
           score?: number | null
           start_date?: string | null
