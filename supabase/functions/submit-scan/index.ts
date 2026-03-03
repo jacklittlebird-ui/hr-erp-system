@@ -171,36 +171,49 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Device binding & alerts
-    const { data: devById } = await admin
+    // Device binding & enforcement
+    // A user can only check in/out from ONE mobile device.
+    // First scan binds the device; subsequent scans from a different device are rejected.
+    const { data: devByUser } = await admin
       .from("user_devices")
-      .select("user_id, device_id")
-      .eq("device_id", device_id)
+      .select("device_id")
+      .eq("user_id", user_id)
       .maybeSingle();
 
-    if (!devById) {
-      const { data: devByUser } = await admin
-        .from("user_devices")
-        .select("device_id")
-        .eq("user_id", user_id)
-        .maybeSingle();
-      if (!devByUser) {
-        await admin.from("user_devices").insert({ user_id, device_id });
-      } else if (devByUser.device_id !== device_id) {
-        await admin.from("device_alerts").insert({
-          device_id,
-          user_id,
-          reason: "user_has_different_device",
-          meta: { existing_device: devByUser.device_id },
-        });
-      }
-    } else if (devById.user_id !== user_id) {
+    if (!devByUser) {
+      // First time — bind this device to the user
+      await admin.from("user_devices").insert({ user_id, device_id });
+    } else if (devByUser.device_id !== device_id) {
+      // User already has a bound device and is using a different one → BLOCK
+      await admin.from("device_alerts").insert({
+        device_id,
+        user_id,
+        reason: "blocked_different_device",
+        meta: { bound_device: devByUser.device_id, attempted_device: device_id },
+      });
+      return new Response(
+        JSON.stringify({ error: "يجب استخدام نفس الجهاز المسجل للحضور والانصراف / You must use your registered mobile device for check-in/out" }),
+        { status: 403, headers: { ...corsHeaders, "content-type": "application/json" } }
+      );
+    }
+
+    // Also check if this device_id is bound to a DIFFERENT user
+    const { data: devById } = await admin
+      .from("user_devices")
+      .select("user_id")
+      .eq("device_id", device_id)
+      .maybeSingle();
+    if (devById && devById.user_id !== user_id) {
       await admin.from("device_alerts").insert({
         device_id,
         user_id,
         reason: "shared_device_detected",
         meta: { first_user: devById.user_id },
       });
+      return new Response(
+        JSON.stringify({ error: "هذا الجهاز مسجل لموظف آخر / This device is registered to another employee" }),
+        { status: 403, headers: { ...corsHeaders, "content-type": "application/json" } }
+      );
     }
 
     // Resolve employee_id from user_roles
