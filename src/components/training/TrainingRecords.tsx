@@ -166,6 +166,8 @@ export const TrainingRecords = () => {
       return;
     }
     const statusMap = { passed: 'completed', failed: 'failed', pending: 'enrolled' };
+    const costVal = newRecord.cost ? parseFloat(newRecord.cost) : 0;
+    const totalCostVal = Math.round(costVal * 1.3 * 100) / 100;
     await supabase.from('training_records').insert({
       employee_id: selectedEmployee.id,
       course_id: newRecord.courseId,
@@ -178,10 +180,12 @@ export const TrainingRecords = () => {
       has_cert: newRecord.hasCert,
       has_cr: newRecord.hasCr,
       planned_date: newRecord.plannedDate || null,
+      cost: costVal,
+      total_cost: totalCostVal,
     } as any);
     toast({ title: ar ? 'تمت الإضافة' : 'Added' });
     setIsAddRecordOpen(false);
-    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, plannedDate: '' });
+    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, plannedDate: '', cost: '' });
     // Refresh
     const { data } = await supabase
       .from('training_records')
@@ -193,12 +197,10 @@ export const TrainingRecords = () => {
       startDate: r.start_date || '', endDate: r.end_date || '',
       result: r.status === 'completed' ? 'passed' : r.status === 'failed' ? 'failed' : 'pending',
       percentage: r.score || undefined,
-      provider: r.provider || '',
-      location: r.location || '',
-      hasCert: r.has_cert || false,
-      hasCr: r.has_cr || false,
-      plannedDate: r.planned_date || '',
-      isFavorite: r.is_favorite || false,
+      provider: r.provider || '', location: r.location || '',
+      hasCert: r.has_cert || false, hasCr: r.has_cr || false,
+      plannedDate: r.planned_date || '', isFavorite: r.is_favorite || false,
+      cost: r.cost || 0, totalCost: r.total_cost || 0,
     })));
   };
 
@@ -227,6 +229,7 @@ export const TrainingRecords = () => {
       hasCert: record.hasCert || false,
       hasCr: record.hasCr || false,
       plannedDate: record.plannedDate || '',
+      cost: record.cost ? String(record.cost) : '',
     });
     setIsAddRecordOpen(true);
   };
@@ -234,6 +237,8 @@ export const TrainingRecords = () => {
   const handleUpdateRecord = async () => {
     if (!selectedEmployee || !editingRecordId || !newRecord.courseId) return;
     const statusMap = { passed: 'completed', failed: 'failed', pending: 'enrolled' } as const;
+    const costVal = newRecord.cost ? parseFloat(newRecord.cost) : 0;
+    const totalCostVal = Math.round(costVal * 1.3 * 100) / 100;
     await supabase.from('training_records').update({
       course_id: newRecord.courseId,
       start_date: newRecord.startDate || null,
@@ -245,11 +250,13 @@ export const TrainingRecords = () => {
       has_cert: newRecord.hasCert,
       has_cr: newRecord.hasCr,
       planned_date: newRecord.plannedDate || null,
+      cost: costVal,
+      total_cost: totalCostVal,
     } as any).eq('id', editingRecordId);
     toast({ title: ar ? 'تم التعديل' : 'Updated' });
     setIsAddRecordOpen(false);
     setEditingRecordId(null);
-    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, plannedDate: '' });
+    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, plannedDate: '', cost: '' });
     // Refresh
     const { data } = await supabase
       .from('training_records')
@@ -261,12 +268,10 @@ export const TrainingRecords = () => {
       startDate: r.start_date || '', endDate: r.end_date || '',
       result: r.status === 'completed' ? 'passed' : r.status === 'failed' ? 'failed' : 'pending',
       percentage: r.score || undefined,
-      provider: r.provider || '',
-      location: r.location || '',
-      hasCert: r.has_cert || false,
-      hasCr: r.has_cr || false,
-      plannedDate: r.planned_date || '',
-      isFavorite: r.is_favorite || false,
+      provider: r.provider || '', location: r.location || '',
+      hasCert: r.has_cert || false, hasCr: r.has_cr || false,
+      plannedDate: r.planned_date || '', isFavorite: r.is_favorite || false,
+      cost: r.cost || 0, totalCost: r.total_cost || 0,
     })));
   };
 
