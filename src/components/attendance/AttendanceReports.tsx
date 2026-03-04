@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart3, Users, Clock, TrendingUp, PieChart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AttendanceRecord } from '@/pages/Attendance';
@@ -12,35 +13,39 @@ interface AttendanceReportsProps {
 
 export const AttendanceReports = ({ records }: AttendanceReportsProps) => {
   const { t, isRTL, language } = useLanguage();
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1));
+  const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
 
-  // Calculate statistics
+  const filteredRecords = useMemo(() => {
+    return records.filter(r => {
+      const d = new Date(r.date);
+      return d.getMonth() + 1 === Number(selectedMonth) && d.getFullYear() === Number(selectedYear);
+    });
+  }, [records, selectedMonth, selectedYear]);
+
+  const monthNames = language === 'ar'
+    ? ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+    : ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const stats = useMemo(() => {
-    const totalRecords = records.length;
-    const present = records.filter(r => r.status === 'present').length;
-    const late = records.filter(r => r.status === 'late').length;
-    const absent = records.filter(r => r.status === 'absent').length;
-    const onLeave = records.filter(r => r.status === 'on-leave').length;
-    const earlyLeave = records.filter(r => r.status === 'early-leave').length;
+    const totalRecords = filteredRecords.length;
+    const present = filteredRecords.filter(r => r.status === 'present').length;
+    const late = filteredRecords.filter(r => r.status === 'late').length;
+    const absent = filteredRecords.filter(r => r.status === 'absent').length;
+    const onLeave = filteredRecords.filter(r => r.status === 'on-leave').length;
+    const earlyLeave = filteredRecords.filter(r => r.status === 'early-leave').length;
     
-    const totalWorkHours = records.reduce((sum, r) => sum + r.workHours, 0);
-    const totalOvertime = records.reduce((sum, r) => sum + r.overtime, 0);
+    const totalWorkHours = filteredRecords.reduce((sum, r) => sum + r.workHours, 0);
+    const totalOvertime = filteredRecords.reduce((sum, r) => sum + r.overtime, 0);
     
     const attendanceRate = totalRecords > 0 ? ((present + late) / totalRecords * 100).toFixed(1) : 0;
     const punctualityRate = totalRecords > 0 ? (present / (present + late) * 100).toFixed(1) : 0;
 
     return {
-      totalRecords,
-      present,
-      late,
-      absent,
-      onLeave,
-      earlyLeave,
-      totalWorkHours,
-      totalOvertime,
-      attendanceRate,
-      punctualityRate,
+      totalRecords, present, late, absent, onLeave, earlyLeave,
+      totalWorkHours, totalOvertime, attendanceRate, punctualityRate,
     };
-  }, [records]);
+  }, [filteredRecords]);
 
   // Status distribution for pie chart
   const statusData = [
@@ -54,7 +59,7 @@ export const AttendanceReports = ({ records }: AttendanceReportsProps) => {
   // Department-wise attendance
   const departmentData = useMemo(() => {
     const depts: Record<string, { present: number; late: number; absent: number }> = {};
-    records.forEach(r => {
+    filteredRecords.forEach(r => {
       if (!depts[r.department]) {
         depts[r.department] = { present: 0, late: 0, absent: 0 };
       }
@@ -68,12 +73,12 @@ export const AttendanceReports = ({ records }: AttendanceReportsProps) => {
       [t('attendance.status.late')]: data.late,
       [t('attendance.status.absent')]: data.absent,
     }));
-  }, [records, t]);
+  }, [filteredRecords, t]);
 
   // Weekly trend
   const weeklyTrend = useMemo(() => {
     const days: Record<string, { date: string; attendance: number; late: number }> = {};
-    records.forEach(r => {
+    filteredRecords.forEach(r => {
       if (!days[r.date]) {
         days[r.date] = { date: r.date, attendance: 0, late: 0 };
       }
@@ -85,10 +90,38 @@ export const AttendanceReports = ({ records }: AttendanceReportsProps) => {
       }
     });
     return Object.values(days).sort((a, b) => a.date.localeCompare(b.date)).slice(-7);
-  }, [records]);
+  }, [filteredRecords]);
 
   return (
     <div className="space-y-6">
+      {/* Month/Year Filter */}
+      <Card>
+        <CardContent className="p-4">
+          <div className={cn("flex flex-wrap gap-4 items-center", isRTL && "flex-row-reverse")}>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder={language === 'ar' ? 'الشهر' : 'Month'} />
+              </SelectTrigger>
+              <SelectContent>
+                {monthNames.map((name, i) => (
+                  <SelectItem key={i + 1} value={String(i + 1)}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder={language === 'ar' ? 'السنة' : 'Year'} />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i).map(y => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
