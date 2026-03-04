@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -53,6 +53,24 @@ const EmployeePortal = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Pull-to-refresh
+  const mainRef = useRef<HTMLElement>(null);
+  const touchStartY = useRef(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const onTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!mainRef.current || refreshing) return;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    if (dy > 100 && mainRef.current.scrollTop <= 0) {
+      setRefreshing(true);
+      window.location.reload();
+    }
+  }, [refreshing]);
+
   const ActiveComponent = sectionComponents[activeSection];
 
   return (
@@ -79,7 +97,17 @@ const EmployeePortal = () => {
             setSidebarCollapsed(!sidebarCollapsed);
           }
         }} />
-        <main className="flex-1 p-3 md:p-6 overflow-auto min-w-0">
+        <main
+          ref={mainRef}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+          className="flex-1 p-3 md:p-6 overflow-auto min-w-0"
+        >
+          {refreshing && (
+            <div className="flex justify-center py-3">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
           <ActiveComponent />
         </main>
       </div>
