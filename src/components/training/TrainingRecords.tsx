@@ -377,6 +377,8 @@ export const TrainingRecords = () => {
                       <TableHead>{t('training.percentage')}</TableHead>
                        <TableHead>Cert</TableHead>
                        <TableHead>CR</TableHead>
+                       <TableHead>{ar ? 'قيمة الدورة' : 'Course Value'}</TableHead>
+                       <TableHead>{ar ? 'تكاليف الدورة' : 'Course Costs'}</TableHead>
                        <TableHead>{ar ? 'تاريخ التخطيط' : 'Planned Date'}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -401,11 +403,13 @@ export const TrainingRecords = () => {
                         <TableCell>{record.percentage ? `${record.percentage}%` : '-'}</TableCell>
                         <TableCell><Checkbox checked={record.hasCert} disabled /></TableCell>
                         <TableCell><Checkbox checked={record.hasCr} disabled /></TableCell>
+                        <TableCell>{record.cost ? record.cost.toLocaleString() : '-'}</TableCell>
+                        <TableCell>{record.totalCost ? record.totalCost.toLocaleString() : '-'}</TableCell>
                         <TableCell>{record.plannedDate || '-'}</TableCell>
                       </TableRow>
                     ))}
                     {trainingRecords.length === 0 && (
-                      <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">{t('training.noRecords')}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-8">{t('training.noRecords')}</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
@@ -507,6 +511,15 @@ export const TrainingRecords = () => {
               <Label>{ar ? 'تاريخ التخطيط' : 'Planned Date'}</Label>
               <Input type="date" value={newRecord.plannedDate} readOnly className="bg-muted" />
               <p className="text-xs text-muted-foreground mt-1">{ar ? 'يُحسب تلقائياً: تاريخ الانتهاء + سنوات الصلاحية - شهر' : 'Auto-calculated: End Date + Validity Years - 1 Month'}</p>
+            </div>
+            <div>
+              <Label>{ar ? 'قيمة الدورة' : 'Course Value'}</Label>
+              <Input type="number" value={newRecord.cost} onChange={(e) => setNewRecord({ ...newRecord, cost: e.target.value })} placeholder="0" />
+            </div>
+            <div>
+              <Label>{ar ? 'تكاليف الدورة (قيمة + 30%)' : 'Course Costs (Value + 30%)'}</Label>
+              <Input type="number" value={newRecord.cost ? String(Math.round(parseFloat(newRecord.cost) * 1.3 * 100) / 100) : ''} readOnly className="bg-muted" />
+              <p className="text-xs text-muted-foreground mt-1">{ar ? 'تُحسب تلقائياً: القيمة × 1.30' : 'Auto-calculated: Value × 1.30'}</p>
             </div>
             <div className="col-span-2 flex gap-6 items-center pt-2">
               <label className="flex items-center gap-2 text-sm"><Checkbox checked={newRecord.hasCert} onCheckedChange={(v) => setNewRecord({ ...newRecord, hasCert: !!v })} /><span>Cert</span></label>
