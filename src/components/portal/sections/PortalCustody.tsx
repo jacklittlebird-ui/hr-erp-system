@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Package, CheckCircle, Laptop, GraduationCap } from 'lucide-react';
+import { Package, CheckCircle, Laptop, GraduationCap, FileText } from 'lucide-react';
 import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -41,6 +41,7 @@ export const PortalCustody = () => {
   const ar = language === 'ar';
   const [assets, setAssets] = useState<AssignedAsset[]>([]);
   const [trainingDebts, setTrainingDebts] = useState<TrainingDebt[]>([]);
+  const [employeeName, setEmployeeName] = useState('');
 
   useEffect(() => {
     if (!PORTAL_EMPLOYEE_ID) return;
@@ -86,8 +87,14 @@ export const PortalCustody = () => {
       }
     };
 
+    const fetchEmployeeName = async () => {
+      const { data } = await supabase.from('employees').select('name_ar, name_en').eq('id', PORTAL_EMPLOYEE_ID).single();
+      if (data) setEmployeeName(ar ? data.name_ar : data.name_en);
+    };
+
     fetchAssets();
     fetchTraining();
+    fetchEmployeeName();
   }, [PORTAL_EMPLOYEE_ID]);
 
   const assigned = assets.filter(a => a.status === 'assigned').length;
@@ -185,32 +192,67 @@ export const PortalCustody = () => {
               {trainingDebts.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">{ar ? 'لا توجد مستحقات تدريب' : 'No training dues'}</p>
               ) : (
-                <div className="overflow-x-auto">
-                <Table className="min-w-[450px]">
-                  <TableHeader><TableRow>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الدورة' : 'Course'}</TableHead>
-                     <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ البداية' : 'Start'}</TableHead>
-                     <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ النهاية' : 'End'}</TableHead>
-                     <TableHead className={cn(isRTL && "text-right")}>{ar ? 'قيمة الدورة' : 'Value'}</TableHead>
-                     <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تكاليف الدورة' : 'Costs'}</TableHead>
-                     <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
-                  </TableRow></TableHeader>
-                  <TableBody>
-                    {trainingDebts.map(t => {
-                      const s = statusMap[t.status] || { ar: t.status, cls: '' };
-                      return (
-                        <TableRow key={t.id}>
-                          <TableCell className="font-medium">{ar ? t.courseNameAr : t.courseNameEn}</TableCell>
-                          <TableCell>{t.startDate || '—'}</TableCell>
-                          <TableCell>{t.endDate || '—'}</TableCell>
-                          <TableCell>{t.cost ? t.cost.toLocaleString() : '—'}</TableCell>
-                          <TableCell className="font-semibold">{t.totalCost ? t.totalCost.toLocaleString() : '—'}</TableCell>
-                          <TableCell><Badge variant="outline" className={s.cls}>{ar ? s.ar : t.status}</Badge></TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <div className="space-y-6">
+                  {trainingDebts.map(t => {
+                    const s = statusMap[t.status] || { ar: t.status, cls: '' };
+                    const courseName = ar ? t.courseNameAr : t.courseNameEn;
+                    const yearsLabel = ar
+                      ? `${t.validityYears} ${t.validityYears === 1 ? 'سنة' : t.validityYears <= 10 ? 'سنوات' : 'سنة'}`
+                      : `${t.validityYears} year(s)`;
+
+                    return (
+                      <Card key={t.id} className="border border-border/50">
+                        <CardContent className="p-4 space-y-4">
+                          {/* Course info row */}
+                          <div className="overflow-x-auto">
+                            <Table className="min-w-[450px]">
+                              <TableHeader><TableRow>
+                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الدورة' : 'Course'}</TableHead>
+                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ البداية' : 'Start'}</TableHead>
+                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ النهاية' : 'End'}</TableHead>
+                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'قيمة الدورة' : 'Value'}</TableHead>
+                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تكاليف الدورة' : 'Costs'}</TableHead>
+                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+                              </TableRow></TableHeader>
+                              <TableBody>
+                                <TableRow>
+                                  <TableCell className="font-medium">{courseName}</TableCell>
+                                  <TableCell>{t.startDate || '—'}</TableCell>
+                                  <TableCell>{t.endDate || '—'}</TableCell>
+                                  <TableCell>{t.cost ? t.cost.toLocaleString() : '—'}</TableCell>
+                                  <TableCell className="font-semibold">{t.totalCost ? t.totalCost.toLocaleString() : '—'}</TableCell>
+                                  <TableCell><Badge variant="outline" className={s.cls}>{ar ? s.ar : t.status}</Badge></TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </div>
+
+                          {/* Acknowledgment message */}
+                          <div className={cn("bg-muted/50 border border-border rounded-lg p-4", isRTL && "text-right")}>
+                            <div className={cn("flex items-center gap-2 mb-3", isRTL && "flex-row-reverse")}>
+                              <FileText className="w-4 h-4 text-primary" />
+                              <h4 className="font-bold text-sm text-foreground">{ar ? 'إيصال استلام نقدية' : 'Cash Receipt Acknowledgment'}</h4>
+                            </div>
+                            <p className="text-sm leading-7 text-muted-foreground whitespace-pre-wrap">
+                              {ar ? (
+                                <>
+                                  أقر وأتعهد أنا <strong className="text-foreground">{employeeName}</strong> أنني استلمت مبلغ <strong className="text-primary">{t.totalCost.toLocaleString()}</strong> جنيه وذلك لرغبتي في الحصول على دورة تدريبية <strong className="text-primary">{courseName}</strong> والمقامة في الفترة من <strong>{t.startDate}</strong> وحتى <strong>{t.endDate}</strong> والمقامة في <strong>{t.provider}</strong>
+
+وهذا المبلغ يمثل قيمة مصروفات الدورة المذكورة، وأقر بأنني قد تسلمت المبلغ المذكور من شركة لينك أيرو تريدنج إجنسي على سبيل الأمانة، ومستعد لرده فوراً حين طلب الشركة له وذلك في حالة تركي للعمل بالشركة قبل انقضاء <strong className="text-primary">{yearsLabel}</strong> من تاريخ انتهاء الدورة. وهذا إقرار مني باستلام المبلغ. مع كامل علمي بأحكام القوانين المنظمة لخيانة الأمانة وهذا إقرار مني بذلك.
+                                </>
+                              ) : (
+                                <>
+                                  I, <strong className="text-foreground">{employeeName}</strong>, acknowledge that I have received the amount of <strong className="text-primary">{t.totalCost.toLocaleString()}</strong> EGP for the purpose of attending the training course <strong className="text-primary">{courseName}</strong> held from <strong>{t.startDate}</strong> to <strong>{t.endDate}</strong> at <strong>{t.provider}</strong>.
+
+This amount represents the expenses of the aforementioned course. I acknowledge that I have received the said amount from Link Aero Trading Agency in trust, and I am ready to return it immediately upon the company's request, in the event of my leaving the company before the expiration of <strong className="text-primary">{yearsLabel}</strong> from the end date of the course. This is my acknowledgment of receiving the amount, with full knowledge of the laws governing breach of trust.
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
