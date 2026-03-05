@@ -28,7 +28,7 @@ export const Header = ({ onToggleSidebar }: HeaderProps) => {
             variant="ghost"
             size="icon"
             onClick={onToggleSidebar}
-            className="text-primary-foreground hover:bg-primary-foreground/10 shrink-0"
+            className="text-primary-foreground hover:bg-primary-foreground/10 shrink-0 md:hidden"
           >
             <Menu className="w-5 h-5" />
           </Button>
