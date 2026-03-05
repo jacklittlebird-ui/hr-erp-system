@@ -91,9 +91,7 @@ const LoginPage = () => {
 
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-            <Building2 className="h-8 w-8" />
-          </div>
+          <img src="/images/company-logo.png" alt="Company Logo" className="h-20 w-20 rounded-2xl object-contain mb-4" />
           <h1 className="text-2xl font-bold text-foreground">{t('نظام إدارة الموارد البشرية', 'HR Management System')}</h1>
           <p className="text-muted-foreground mt-1">{t('سجّل دخولك للمتابعة', 'Sign in to continue')}</p>
         </div>
