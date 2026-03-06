@@ -166,7 +166,7 @@ const NavButton: React.FC<NavButtonProps> = ({ item, t, isRTL, isActive, collaps
         isActive
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
           : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-        isRTL && !collapsed && "flex-row-reverse text-right"
+        isRTL && !collapsed && "text-right"
       )}
     >
       <Icon className="w-5 h-5 shrink-0" />
