@@ -13,6 +13,7 @@ import { PerformanceChart } from '@/components/dashboard/PerformanceChart';
 import { SalaryOverviewChart } from '@/components/dashboard/SalaryOverviewChart';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, UserCheck, Building2, CalendarCheck, FileText, Monitor,
   GraduationCap, Star, DollarSign, Banknote, RefreshCw, BarChart3, Loader2
