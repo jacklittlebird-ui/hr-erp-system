@@ -130,7 +130,7 @@ const Index = () => {
       </div>
 
       <SectionHeader title={t('chart.reportsStats')} icon={BarChart3}>
-        <Button variant="default" className="gap-2 rounded-xl shadow-sm">
+        <Button variant="default" className="gap-2 rounded-xl shadow-sm" onClick={() => navigate('/reports')}>
           <BarChart3 className="w-4 h-4" />{t('chart.advancedReports')}
         </Button>
         <Button variant="outline" className="gap-2 rounded-xl" onClick={fetchStats} disabled={loading}>
