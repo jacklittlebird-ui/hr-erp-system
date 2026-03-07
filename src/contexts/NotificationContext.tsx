@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+export type PortalFilter = 'admin' | 'employee' | 'station_manager' | 'training' | 'kiosk' | 'all';
+
 export interface AppNotification {
   id: string;
   titleAr: string;
@@ -8,8 +10,10 @@ export interface AppNotification {
   descAr?: string;
   descEn?: string;
   type: 'success' | 'warning' | 'info' | 'error';
-  module: 'employee' | 'salary' | 'payroll' | 'attendance' | 'leave' | 'loan' | 'training' | 'performance' | 'portal' | 'asset' | 'recruitment' | 'general';
+  module: string;
   employeeId?: string;
+  targetType?: string;
+  senderName?: string;
   read: boolean;
   timestamp: string;
 }
@@ -21,6 +25,8 @@ interface NotificationContextType {
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearAll: () => void;
+  getFilteredNotifications: (portal: PortalFilter, employeeId?: string) => AppNotification[];
+  refreshNotifications: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -32,11 +38,23 @@ const mapRow = (r: any): AppNotification => ({
   descAr: r.desc_ar || undefined,
   descEn: r.desc_en || undefined,
   type: r.type as AppNotification['type'],
-  module: r.module as AppNotification['module'],
+  module: r.module,
   employeeId: r.employee_id || undefined,
+  targetType: r.target_type || 'general',
+  senderName: r.sender_name || undefined,
   read: r.is_read,
   timestamp: r.created_at,
 });
+
+// Module mappings per portal
+const PORTAL_MODULES: Record<PortalFilter, string[] | null> = {
+  admin: null, // sees everything
+  employee: ['general', 'employee', 'salary', 'payroll', 'attendance', 'leave', 'loan', 'training', 'performance', 'portal', 'asset'],
+  station_manager: ['general', 'attendance', 'performance', 'employee'],
+  training: ['general', 'training'],
+  kiosk: ['general', 'attendance'],
+  all: null,
+};
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -52,7 +70,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   useEffect(() => {
-    // Get initial user
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         setUserId(data.user.id);
@@ -71,10 +88,44 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => subscription.unsubscribe();
   }, [fetchNotifications]);
 
+  const getFilteredNotifications = useCallback((portal: PortalFilter, employeeId?: string): AppNotification[] => {
+    let filtered = notifications;
+
+    // For employee portal, only show notifications for that specific employee
+    if (portal === 'employee' && employeeId) {
+      filtered = filtered.filter(n => n.employeeId === employeeId);
+    }
+
+    // For station_manager, show relevant modules
+    if (portal === 'station_manager') {
+      const modules = PORTAL_MODULES.station_manager;
+      if (modules) {
+        filtered = filtered.filter(n => modules.includes(n.module));
+      }
+    }
+
+    // For training portal
+    if (portal === 'training') {
+      const modules = PORTAL_MODULES.training;
+      if (modules) {
+        filtered = filtered.filter(n => modules.includes(n.module));
+      }
+    }
+
+    // For kiosk
+    if (portal === 'kiosk') {
+      const modules = PORTAL_MODULES.kiosk;
+      if (modules) {
+        filtered = filtered.filter(n => modules.includes(n.module));
+      }
+    }
+
+    return filtered;
+  }, [notifications]);
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const addNotification = useCallback(async (n: Omit<AppNotification, 'id' | 'read' | 'timestamp'>) => {
-    // Optimistic local update
     const tempId = `temp_${Date.now()}`;
     const localNotif: AppNotification = {
       ...n,
@@ -84,7 +135,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
     setNotifications(prev => [localNotif, ...prev]);
 
-    // Persist to DB
     const payload: any = {
       title_ar: n.titleAr,
       title_en: n.titleEn,
@@ -94,9 +144,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       module: n.module,
       employee_id: n.employeeId || null,
       user_id: userId,
+      target_type: n.targetType || 'general',
     };
     await supabase.from('notifications').insert(payload);
-    // Re-fetch for correct IDs
     fetchNotifications();
   }, [userId, fetchNotifications]);
 
@@ -120,7 +170,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [userId]);
 
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, addNotification, markAsRead, markAllAsRead, clearAll }}>
+    <NotificationContext.Provider value={{
+      notifications,
+      unreadCount,
+      addNotification,
+      markAsRead,
+      markAllAsRead,
+      clearAll,
+      getFilteredNotifications,
+      refreshNotifications: fetchNotifications,
+    }}>
       {children}
     </NotificationContext.Provider>
   );

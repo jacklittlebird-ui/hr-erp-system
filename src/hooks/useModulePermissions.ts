@@ -7,7 +7,7 @@ export const ALL_MODULES = [
   'dashboard', 'employee-portal', 'employees', 'departments', 'attendance',
   'leaves', 'salaries', 'salary-reports', 'loans', 'recruitment',
   'performance', 'assets', 'uniforms', 'documents', 'reports',
-  'training', 'users', 'settings',
+  'training', 'notifications', 'users', 'settings',
 ] as const;
 
 export type ModuleKey = typeof ALL_MODULES[number];
@@ -29,6 +29,7 @@ export const MODULE_LABELS: Record<ModuleKey, { ar: string; en: string }> = {
   'documents': { ar: 'المستندات', en: 'Documents' },
   'reports': { ar: 'التقارير', en: 'Reports' },
   'training': { ar: 'التدريب', en: 'Training' },
+  'notifications': { ar: 'الإشعارات', en: 'Notifications' },
   'users': { ar: 'المستخدمين', en: 'Users' },
   'settings': { ar: 'الإعدادات', en: 'Settings' },
 };
@@ -51,6 +52,7 @@ export const PATH_TO_MODULE: Record<string, ModuleKey> = {
   '/documents': 'documents',
   '/reports': 'reports',
   '/training': 'training',
+  '/notifications': 'notifications',
   '/users': 'users',
   '/groups': 'users',
   '/roles': 'users',

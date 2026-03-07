@@ -1,5 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useNotifications } from '@/contexts/NotificationContext';
+import { useNotifications, PortalFilter } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
 import { Bell, CheckCircle, AlertCircle, Info, AlertTriangle, Check, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,22 +7,20 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 
-const typeIcons = { success: CheckCircle, warning: AlertTriangle, info: Info, error: AlertCircle };
-const typeColors = { success: 'text-green-500', warning: 'text-yellow-500', info: 'text-blue-500', error: 'text-red-500' };
+const typeIcons: Record<string, any> = { success: CheckCircle, warning: AlertTriangle, info: Info, error: AlertCircle };
+const typeColors: Record<string, string> = { success: 'text-green-500', warning: 'text-yellow-500', info: 'text-blue-500', error: 'text-red-500' };
 
 interface NotificationDropdownProps {
   variant?: 'header' | 'portal';
   employeeId?: string;
+  portalFilter?: PortalFilter;
 }
 
-export const NotificationDropdown = ({ variant = 'header', employeeId }: NotificationDropdownProps) => {
+export const NotificationDropdown = ({ variant = 'header', employeeId, portalFilter = 'admin' }: NotificationDropdownProps) => {
   const { language, isRTL } = useLanguage();
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+  const { getFilteredNotifications, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
-  // Filter notifications by employeeId if provided (portal mode)
-  const filteredNotifications = employeeId
-    ? notifications.filter(n => !n.employeeId || n.employeeId === employeeId)
-    : notifications;
+  const filteredNotifications = getFilteredNotifications(portalFilter, employeeId);
   const filteredUnreadCount = filteredNotifications.filter(n => !n.read).length;
 
   const formatTime = (ts: string) => {
@@ -85,7 +83,7 @@ export const NotificationDropdown = ({ variant = 'header', employeeId }: Notific
             </div>
           ) : (
             filteredNotifications.slice(0, 20).map(n => {
-              const Icon = typeIcons[n.type];
+              const Icon = typeIcons[n.type] || Info;
               return (
                 <div
                   key={n.id}
@@ -96,7 +94,7 @@ export const NotificationDropdown = ({ variant = 'header', employeeId }: Notific
                   )}
                   onClick={() => markAsRead(n.id)}
                 >
-                  <Icon className={cn("w-4 h-4 mt-0.5 shrink-0", typeColors[n.type])} />
+                  <Icon className={cn("w-4 h-4 mt-0.5 shrink-0", typeColors[n.type] || 'text-blue-500')} />
                   <div className={cn("flex-1 min-w-0", isRTL && "text-right")}>
                     <p className={cn("text-sm leading-tight", !n.read && "font-semibold")}>
                       {language === 'ar' ? n.titleAr : n.titleEn}
@@ -105,6 +103,9 @@ export const NotificationDropdown = ({ variant = 'header', employeeId }: Notific
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">
                         {language === 'ar' ? n.descAr : n.descEn}
                       </p>
+                    )}
+                    {n.senderName && (
+                      <p className="text-[10px] text-primary/70 mt-0.5">{n.senderName}</p>
                     )}
                     <p className="text-[10px] text-muted-foreground mt-1">{formatTime(n.timestamp)}</p>
                   </div>
