@@ -96,7 +96,7 @@ const SalaryReports = () => {
     { label: ar ? 'إجمالي الصافي' : 'Total Net', value: totalNet.toLocaleString(), icon: Wallet, color: 'text-primary', bg: 'bg-primary/10' },
     { label: ar ? 'إجمالي الإجمالي' : 'Total Gross', value: totalGross.toLocaleString(), icon: DollarSign, color: 'text-green-600', bg: 'bg-green-100' },
     { label: ar ? 'إجمالي الخصومات' : 'Total Deductions', value: totalDeductions.toLocaleString(), icon: TrendingDown, color: 'text-destructive', bg: 'bg-destructive/10' },
-    { label: ar ? 'مساهمات صاحب العمل' : 'Employer Cost', value: totalEmployer.toLocaleString(), icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-100' },
+    { label: ar ? 'مساهمات الشركة' : 'Company Cost', value: totalEmployer.toLocaleString(), icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-100' },
     { label: ar ? 'متوسط الراتب' : 'Avg Salary', value: avgSalary.toLocaleString(), icon: DollarSign, color: 'text-amber-600', bg: 'bg-amber-100' },
     { label: ar ? 'عدد الموظفين' : 'Employees', value: String(uniqueEmps), icon: Building2, color: 'text-purple-600', bg: 'bg-purple-100' },
   ];
@@ -301,7 +301,7 @@ const SalaryReports = () => {
         <div class="summary-card"><div class="val">${overallTotals.gross.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الإجمالي' : 'Total Gross'}</div></div>
         <div class="summary-card"><div class="val">${overallTotals.totalDeductions.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الخصومات' : 'Total Deductions'}</div></div>
         <div class="summary-card"><div class="val">${overallTotals.net.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الصافي' : 'Total Net'}</div></div>
-        <div class="summary-card"><div class="val">${(overallTotals.empIns + overallTotals.health + overallTotals.tax).toLocaleString()}</div><div class="lbl">${ar ? 'مساهمات صاحب العمل' : 'Employer Cost'}</div></div>
+        <div class="summary-card"><div class="val">${(overallTotals.empIns + overallTotals.health + overallTotals.tax).toLocaleString()}</div><div class="lbl">${ar ? 'مساهمات الشركة' : 'Company Cost'}</div></div>
         <div class="summary-card"><div class="val">${overallTotals.count}</div><div class="lbl">${ar ? 'عدد السجلات' : 'Records'}</div></div>
         <div class="summary-card"><div class="val">${stationCount}</div><div class="lbl">${ar ? 'عدد المحطات' : 'Stations'}</div></div>
       </div>
@@ -413,7 +413,7 @@ const SalaryReports = () => {
       </tr>`;
 
     const headerLabels = ar
-      ? ['الكود','الاسم','القسم','المحطة','الأساسي','مواصلات','حوافز','بدل محطة','بدل محمول','بدل معيشة','أجر إضافي','مكافآت','الإجمالي','تأمينات','قروض','سلف','فاتورة محمول','خصم إجازات','جزاءات','إجمالي الخصومات','الصافي','تأمينات صاحب العمل','تأمين صحي','ضريبة دخل','إجمالي مساهمات ص.ع']
+      ? ['الكود','الاسم','القسم','المحطة','الأساسي','مواصلات','حوافز','بدل محطة','بدل محمول','بدل معيشة','أجر إضافي','مكافآت','الإجمالي','تأمينات','قروض','سلف','فاتورة محمول','خصم إجازات','جزاءات','إجمالي الخصومات','الصافي','تأمينات الشركة','تأمين صحي','ضريبة دخل','إجمالي مساهمات الشركة']
       : ['ID','Name','Dept','Station','Basic','Transport','Incentives','Station All.','Mobile All.','Living All.','Overtime','Bonus','Gross','Insurance','Loans','Advances','Mobile Bill','Leave Ded.','Penalty','Total Ded.','Net','Emp. Ins.','Health Ins.','Income Tax','Total Employer'];
 
     const w = window.open('', '_blank');
@@ -441,7 +441,7 @@ const SalaryReports = () => {
         <div class="summary-card"><div class="val">${totals.gross.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الإجمالي' : 'Total Gross'}</div></div>
         <div class="summary-card"><div class="val">${totals.totalDed.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الخصومات' : 'Total Deductions'}</div></div>
         <div class="summary-card"><div class="val">${totals.net.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الصافي' : 'Total Net'}</div></div>
-        <div class="summary-card"><div class="val">${(totals.empIns + totals.health + totals.tax).toLocaleString()}</div><div class="lbl">${ar ? 'مساهمات صاحب العمل' : 'Employer Cost'}</div></div>
+        <div class="summary-card"><div class="val">${(totals.empIns + totals.health + totals.tax).toLocaleString()}</div><div class="lbl">${ar ? 'مساهمات الشركة' : 'Company Cost'}</div></div>
         <div class="summary-card"><div class="val">${filtered.length}</div><div class="lbl">${ar ? 'عدد السجلات' : 'Records'}</div></div>
         <div class="summary-card"><div class="val">${uniqueEmps}</div><div class="lbl">${ar ? 'عدد الموظفين' : 'Employees'}</div></div>
       </div>
@@ -458,7 +458,7 @@ const SalaryReports = () => {
     const months = activeMonths;
 
     const headerLabels = ar
-      ? ['الشهر','عدد الموظفين','الأساسي','مواصلات','حوافز','بدل محطة','بدل محمول','بدل معيشة','أجر إضافي','مكافآت','الإجمالي','تأمينات','قروض','سلف','فاتورة محمول','خصم إجازات','جزاءات','إجمالي الخصومات','الصافي','تأمينات صاحب العمل','تأمين صحي','ضريبة دخل','إجمالي مساهمات ص.ع']
+      ? ['الشهر','عدد الموظفين','الأساسي','مواصلات','حوافز','بدل محطة','بدل محمول','بدل معيشة','أجر إضافي','مكافآت','الإجمالي','تأمينات','قروض','سلف','فاتورة محمول','خصم إجازات','جزاءات','إجمالي الخصومات','الصافي','تأمينات الشركة','تأمين صحي','ضريبة دخل','إجمالي مساهمات الشركة']
       : ['Month','Employees','Basic','Transport','Incentives','Station','Mobile','Living','Overtime','Bonus','Gross','Insurance','Loans','Advances','Mobile Bill','Leave Ded.','Penalty','Total Ded.','Net','Emp. Ins.','Health Ins.','Income Tax','Total Employer'];
 
     const rows = months.map(m => `<tr>
@@ -513,7 +513,7 @@ const SalaryReports = () => {
         <div class="summary-card"><div class="val">${monthTotals.gross.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الإجمالي' : 'Total Gross'}</div></div>
         <div class="summary-card"><div class="val">${monthTotals.totalDed.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الخصومات' : 'Total Deductions'}</div></div>
         <div class="summary-card"><div class="val">${monthTotals.net.toLocaleString()}</div><div class="lbl">${ar ? 'إجمالي الصافي' : 'Total Net'}</div></div>
-        <div class="summary-card"><div class="val">${(monthTotals.empIns + monthTotals.health + monthTotals.tax).toLocaleString()}</div><div class="lbl">${ar ? 'مساهمات صاحب العمل' : 'Employer Cost'}</div></div>
+        <div class="summary-card"><div class="val">${(monthTotals.empIns + monthTotals.health + monthTotals.tax).toLocaleString()}</div><div class="lbl">${ar ? 'مساهمات الشركة' : 'Company Cost'}</div></div>
         <div class="summary-card"><div class="val">${monthTotals.count}</div><div class="lbl">${ar ? 'عدد السجلات' : 'Records'}</div></div>
         <div class="summary-card"><div class="val">${months.length}</div><div class="lbl">${ar ? 'عدد الأشهر' : 'Months'}</div></div>
       </div>
@@ -561,7 +561,7 @@ const SalaryReports = () => {
     { header: ar ? 'جزاءات' : 'Penalty', key: 'penalty' },
     { header: ar ? 'إجمالي الخصومات' : 'Total Ded.', key: 'totalDed' },
     { header: ar ? 'الصافي' : 'Net', key: 'net' },
-    { header: ar ? 'تأمينات صاحب العمل' : 'Emp. Ins.', key: 'empIns' },
+    { header: ar ? 'تأمينات الشركة' : 'Emp. Ins.', key: 'empIns' },
     { header: ar ? 'تأمين صحي' : 'Health Ins.', key: 'health' },
     { header: ar ? 'ضريبة دخل' : 'Income Tax', key: 'tax' },
     { header: ar ? 'إجمالي مساهمات ص.ع' : 'Total Employer', key: 'totalEmployer' },
@@ -603,7 +603,7 @@ const SalaryReports = () => {
     { header: ar ? 'جزاءات' : 'Penalty', key: 'penalty' },
     { header: ar ? 'إجمالي خصومات' : 'Tot.Ded', key: 'totalDeductions' },
     { header: ar ? 'الصافي' : 'Net', key: 'net' },
-    { header: ar ? 'تأمينات صاحب العمل' : 'Emp. Ins.', key: 'employerInsurance' },
+    { header: ar ? 'تأمينات الشركة' : 'Emp. Ins.', key: 'employerInsurance' },
     { header: ar ? 'تأمين صحي' : 'Health', key: 'healthInsurance' },
     { header: ar ? 'ضريبة دخل' : 'Tax', key: 'incomeTax' },
     { header: ar ? 'إجمالي مساهمات ص.ع' : 'Total Employer', key: 'totalEmployer' },
@@ -631,7 +631,7 @@ const SalaryReports = () => {
     { header: ar ? 'قروض' : 'Loans', key: 'loans' },
     { header: ar ? 'إجمالي خصومات' : 'Tot.Ded', key: 'totalDeductions' },
     { header: ar ? 'الصافي' : 'Net', key: 'net' },
-    { header: ar ? 'تأمينات صاحب العمل' : 'Emp. Ins.', key: 'employerInsurance' },
+    { header: ar ? 'تأمينات الشركة' : 'Emp. Ins.', key: 'employerInsurance' },
     { header: ar ? 'تأمين صحي' : 'Health', key: 'healthInsurance' },
     { header: ar ? 'ضريبة دخل' : 'Tax', key: 'incomeTax' },
     { header: ar ? 'إجمالي مساهمات ص.ع' : 'Total Employer', key: 'totalEmployer' },
@@ -811,7 +811,7 @@ const SalaryReports = () => {
                     <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الإجمالي' : 'Gross'}</TableHead>
                     <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الخصومات' : 'Deductions'}</TableHead>
                     <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الصافي' : 'Net'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'صاحب العمل' : 'Employer'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'مساهمات الشركة' : 'Company'}</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
                     {stationData.map(s => (
@@ -1144,13 +1144,13 @@ const SalaryReports = () => {
 
             {/* Employer contributions */}
             <Card className="lg:col-span-2">
-              <CardHeader><CardTitle>{ar ? 'مساهمات صاحب العمل الشهرية' : 'Monthly Employer Contributions'}</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{ar ? 'مساهمات الشركة الشهرية' : 'Monthly Company Contributions'}</CardTitle></CardHeader>
               <CardContent><div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={activeMonths}>
                     <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" fontSize={12} /><YAxis fontSize={12} />
                     <Tooltip formatter={(v: number) => v.toLocaleString()} /><Legend />
-                    <Bar dataKey="employerInsurance" name={ar ? 'تأمينات صاحب العمل' : 'Employer Insurance'} fill="#3b82f6" radius={[4,4,0,0]} />
+                    <Bar dataKey="employerInsurance" name={ar ? 'تأمينات الشركة' : 'Company Insurance'} fill="#3b82f6" radius={[4,4,0,0]} />
                     <Bar dataKey="healthInsurance" name={ar ? 'تأمين صحي' : 'Health Insurance'} fill="#22c55e" radius={[4,4,0,0]} />
                     <Bar dataKey="incomeTax" name={ar ? 'ضريبة دخل' : 'Income Tax'} fill="#f59e0b" radius={[4,4,0,0]} />
                   </BarChart>

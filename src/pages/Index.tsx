@@ -32,7 +32,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [dashStats, setDashStats] = useState({
     totalEmployees: 0,
-    activeEmployees: 0,
+    inactiveEmployees: 0,
     departments: 0,
     todayAttendance: 0,
     pendingLeaves: 0,
@@ -40,16 +40,15 @@ const Index = () => {
     activeCourses: 0,
     performanceReviews: 0,
     activeLoans: 0,
-    payrollThisMonth: 0,
+    absentToday: 0,
   });
 
   const fetchStats = async () => {
     setLoading(true);
     const today = new Date().toISOString().split('T')[0];
-    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
     const currentYear = new Date().getFullYear().toString();
 
-    const [empRes, deptRes, attRes, leaveRes, assetRes, courseRes, perfRes, loanRes, payrollRes] = await Promise.all([
+    const [empRes, deptRes, attRes, leaveRes, assetRes, courseRes, perfRes, loanRes] = await Promise.all([
       supabase.from('employees').select('id, status'),
       supabase.from('departments').select('id').eq('is_active', true),
       supabase.from('attendance_records').select('id').eq('date', today),
@@ -58,20 +57,23 @@ const Index = () => {
       supabase.from('planned_courses').select('id').in('status', ['planned', 'in_progress']),
       supabase.from('performance_reviews').select('id').eq('year', currentYear),
       supabase.from('loans').select('id').eq('status', 'active'),
-      supabase.from('payroll_entries').select('net_salary').eq('year', currentYear).eq('month', currentMonth),
     ]);
 
+    const totalActive = empRes.data?.filter(e => e.status === 'active').length || 0;
+    const totalEmps = empRes.data?.length || 0;
+    const todayAtt = attRes.data?.length || 0;
+
     setDashStats({
-      totalEmployees: empRes.data?.length || 0,
-      activeEmployees: empRes.data?.filter(e => e.status === 'active').length || 0,
+      totalEmployees: totalEmps,
+      inactiveEmployees: totalEmps - totalActive,
       departments: deptRes.data?.length || 0,
-      todayAttendance: attRes.data?.length || 0,
+      todayAttendance: todayAtt,
       pendingLeaves: leaveRes.data?.length || 0,
       assignedAssets: assetRes.data?.length || 0,
       activeCourses: courseRes.data?.length || 0,
       performanceReviews: perfRes.data?.length || 0,
       activeLoans: loanRes.data?.length || 0,
-      payrollThisMonth: payrollRes.data?.reduce((s, e) => s + (e.net_salary || 0), 0) || 0,
+      absentToday: Math.max(0, totalActive - todayAtt),
     });
     setLoading(false);
   };
@@ -80,7 +82,7 @@ const Index = () => {
 
   const stats = [
     { key: 'dashboard.totalEmployees', value: dashStats.totalEmployees, icon: Users, variant: 'coral' as const, trend: 'up' as const, trendValue: '+3%' },
-    { key: 'dashboard.activeEmployees', value: dashStats.activeEmployees, icon: UserCheck, variant: 'purple' as const, trend: 'up' as const, trendValue: '+2%' },
+    { key: 'dashboard.inactiveEmployees', value: dashStats.inactiveEmployees, icon: UserCheck, variant: 'purple' as const },
     { key: 'dashboard.departments', value: dashStats.departments, icon: Building2, variant: 'blue' as const, trend: 'neutral' as const, trendValue: '0%' },
     { key: 'dashboard.todayAttendance', value: dashStats.todayAttendance, icon: CalendarCheck, variant: 'teal' as const },
     { key: 'dashboard.pendingLeaves', value: dashStats.pendingLeaves, icon: FileText, variant: 'yellow' as const },
@@ -91,7 +93,7 @@ const Index = () => {
     { label: ar ? 'دورات تدريبية نشطة' : 'Active Courses', value: dashStats.activeCourses, icon: GraduationCap, variant: 'green' as const },
     { label: ar ? 'تقييمات الأداء' : 'Performance Reviews', value: dashStats.performanceReviews, icon: Star, variant: 'yellow' as const },
     { label: ar ? 'سلف نشطة' : 'Active Loans', value: dashStats.activeLoans, icon: Banknote, variant: 'coral' as const },
-    { label: ar ? 'رواتب الشهر الحالي' : 'This Month Payroll', value: dashStats.payrollThisMonth.toLocaleString(), icon: DollarSign, variant: 'teal' as const },
+    { label: ar ? 'غائبون اليوم' : 'Absent Today', value: dashStats.absentToday, icon: DollarSign, variant: 'teal' as const },
   ];
 
   const ChartCard = ({ children }: { children: React.ReactNode }) => (
