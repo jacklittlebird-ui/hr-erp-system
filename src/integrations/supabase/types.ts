@@ -368,6 +368,10 @@ export type Database = {
           dept_code: string | null
           education_ar: string | null
           email: string | null
+          emergency_contact_mobile1: string | null
+          emergency_contact_mobile2: string | null
+          emergency_contact_name1: string | null
+          emergency_contact_name2: string | null
           employee_code: string
           employment_status: string | null
           family_name: string | null
@@ -452,6 +456,10 @@ export type Database = {
           dept_code?: string | null
           education_ar?: string | null
           email?: string | null
+          emergency_contact_mobile1?: string | null
+          emergency_contact_mobile2?: string | null
+          emergency_contact_name1?: string | null
+          emergency_contact_name2?: string | null
           employee_code: string
           employment_status?: string | null
           family_name?: string | null
@@ -536,6 +544,10 @@ export type Database = {
           dept_code?: string | null
           education_ar?: string | null
           email?: string | null
+          emergency_contact_mobile1?: string | null
+          emergency_contact_mobile2?: string | null
+          emergency_contact_name1?: string | null
+          emergency_contact_name2?: string | null
           employee_code?: string
           employment_status?: string | null
           family_name?: string | null
