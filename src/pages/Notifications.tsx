@@ -66,7 +66,7 @@ const NotificationsPage = () => {
   const filteredEmployees = employees.filter(e => {
     if (!employeeSearch) return true;
     const s = employeeSearch.toLowerCase();
-    return e.nameAr.toLowerCase().includes(s) || e.nameEn.toLowerCase().includes(s) || e.employeeCode.toLowerCase().includes(s);
+    return e.nameAr.toLowerCase().includes(s) || e.nameEn.toLowerCase().includes(s) || e.employeeId.toLowerCase().includes(s);
   });
 
   const toggleEmployee = (id: string) => {
@@ -325,7 +325,7 @@ const NotificationsPage = () => {
                             <Checkbox checked={selectedEmployees.includes(emp.id)} />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{ar ? emp.nameAr : emp.nameEn}</p>
-                              <p className="text-xs text-muted-foreground">{emp.employeeCode}</p>
+                              <p className="text-xs text-muted-foreground">{emp.employeeId}</p>
                             </div>
                           </div>
                         ))}
