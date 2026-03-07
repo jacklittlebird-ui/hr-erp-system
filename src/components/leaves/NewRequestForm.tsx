@@ -37,7 +37,7 @@ export const NewRequestForm = ({ onSubmitLeave, onSubmitPermission, onSubmitMiss
       </CardHeader>
       <CardContent>
         <Tabs value={requestType} onValueChange={setRequestType}>
-          <TabsList className={cn("grid w-full grid-cols-4 mb-6", isRTL && "direction-rtl")}>
+          <TabsList className={cn("grid w-full grid-cols-4 mb-6")} dir="rtl">
             <TabsTrigger value="leave" className="flex items-center gap-1.5">
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">{t('leaves.newRequest.leaveTab')}</span>
