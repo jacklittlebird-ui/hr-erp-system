@@ -81,10 +81,9 @@ export const PortalLeaves = () => {
   }, [hasAnnualBalance, hasCasualBalance]);
 
   const permTypes = [
+    { value: 'late_arrival', ar: 'تأخير صباحًا', en: 'Late Arrival' },
     { value: 'early_leave', ar: 'انصراف مبكر', en: 'Early Leave' },
-    { value: 'late_arrival', ar: 'تأخر صباحي', en: 'Late Arrival' },
-    { value: 'personal', ar: 'شخصي', en: 'Personal' },
-    { value: 'medical', ar: 'طبي', en: 'Medical' },
+    { value: 'midday', ar: 'في منتصف اليوم', en: 'Midday' },
   ];
 
   const calculateDays = () => (leaveStartDate && leaveEndDate ? differenceInDays(leaveEndDate, leaveStartDate) + 1 : 0);
