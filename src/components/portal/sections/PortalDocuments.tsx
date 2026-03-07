@@ -8,14 +8,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import { FileText, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalDocuments = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const ar = language === 'ar';
   const { getDocuments, addDocument } = usePortalData();
   const documents = useMemo(() => getDocuments(PORTAL_EMPLOYEE_ID), [getDocuments]);
@@ -46,7 +45,7 @@ export const PortalDocuments = () => {
 
   return (
     <div className="space-y-6">
-      <div className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3", isRTL && "sm:flex-row-reverse")}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h1 className="text-xl md:text-2xl font-bold">{ar ? 'المستندات' : 'Documents'}</h1>
         <Button onClick={() => setShowDialog(true)} size="sm"><Upload className="w-4 h-4 me-1" />{ar ? 'رفع مستند' : 'Upload'}</Button>
       </div>
@@ -55,15 +54,15 @@ export const PortalDocuments = () => {
         {documents.map((d) => (
           <Card key={d.id}>
             <CardContent className="p-4">
-              <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
-                <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
                   <FileText className="w-8 h-8 text-primary" />
-                  <div className={cn(isRTL && "text-right")}>
+                  <div>
                     <p className="font-medium">{ar ? d.nameAr : d.nameEn}</p>
                     <p className="text-xs text-muted-foreground">{d.date}</p>
                   </div>
                 </div>
-                <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                <div className="flex items-center gap-2">
                   <Badge variant="secondary">{ar ? d.typeAr : d.typeEn}</Badge>
                   <Button variant="ghost" size="icon"><Download className="w-4 h-4" /></Button>
                 </div>

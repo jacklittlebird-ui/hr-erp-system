@@ -22,7 +22,7 @@ export const PortalDashboard = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { getEmployee } = useEmployeeData();
   const employee = getEmployee(PORTAL_EMPLOYEE_ID);
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const ar = language === 'ar';
   const { session } = useAuth();
   const { getEmployeePayroll } = usePayrollData();
@@ -133,10 +133,10 @@ export const PortalDashboard = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className={cn("text-xl md:text-2xl font-bold", isRTL && "text-right")}>
+        <h1 className="text-xl md:text-2xl font-bold">
           {ar ? 'لوحة التحكم' : 'Dashboard'}
         </h1>
-        <p className={cn("text-muted-foreground text-sm", isRTL && "text-right")}>
+        <p className="text-muted-foreground text-sm">
           {format(new Date(), 'EEEE, d MMMM yyyy', { locale: ar ? arLocale : enUS })}
         </p>
       </div>
@@ -256,7 +256,7 @@ export const PortalDashboard = () => {
         {/* Pending Requests */}
         <Card>
           <CardContent className="p-5">
-            <div className={cn("flex items-center gap-3 mb-3", isRTL && "flex-row-reverse")}>
+            <div className="flex items-center gap-3 mb-3">
               <Bell className="w-5 h-5 text-warning" />
               <h3 className="font-semibold">{ar ? 'طلبات معلقة' : 'Pending Requests'}</h3>
             </div>
@@ -273,13 +273,13 @@ export const PortalDashboard = () => {
         {/* Leave Balances */}
         <Card>
           <CardContent className="p-5">
-            <div className={cn("flex items-center gap-3 mb-3", isRTL && "flex-row-reverse")}>
+            <div className="flex items-center gap-3 mb-3">
               <Calendar className="w-5 h-5 text-primary" />
               <h3 className="font-semibold">{ar ? 'أرصدة الإجازات' : 'Leave Balances'}</h3>
             </div>
             <div className="space-y-2">
               {leaveBalances.map((b, i) => (
-                <div key={i} className={cn("flex justify-between text-sm", isRTL && "flex-row-reverse")}>
+                <div key={i} className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{ar ? b.typeAr : b.typeEn}</span>
                   <span className="font-medium">{b.remaining}/{b.total}</span>
                 </div>
@@ -292,7 +292,7 @@ export const PortalDashboard = () => {
         {/* Latest Evaluation */}
         <Card>
           <CardContent className="p-5">
-            <div className={cn("flex items-center gap-3 mb-3", isRTL && "flex-row-reverse")}>
+            <div className="flex items-center gap-3 mb-3">
               <Star className="w-5 h-5 text-warning" />
               <h3 className="font-semibold">{ar ? 'آخر تقييم' : 'Latest Evaluation'}</h3>
             </div>

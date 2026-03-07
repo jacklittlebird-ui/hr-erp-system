@@ -34,7 +34,6 @@ export const PortalSalary = () => {
     ? ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
     : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  // Build earnings from latest payroll or salary record
   const getEarnings = (slip: typeof latest) => {
     if (!slip) return [];
     return [
@@ -96,14 +95,12 @@ export const PortalSalary = () => {
   const totalEmployerContributions = employerContributions.reduce((s, c) => s + c.v, 0);
   const hasData = latest || salaryRecord;
 
-  const stLabel = latest ? stationLocations.find(s => s.value === latest.stationLocation) : null;
-
   const printSlip = (slip: NonNullable<typeof latest>) => {
     const st = stationLocations.find(s => s.value === slip.stationLocation);
     const monthLabel = months[parseInt(slip.month) - 1];
-    const html = `<!DOCTYPE html><html dir="${isRTL ? 'rtl' : 'ltr'}"><head><title>${ar ? 'قسيمة الراتب' : 'Salary Slip'}</title>
+    const html = `<!DOCTYPE html><html dir="rtl"><head><title>${ar ? 'قسيمة الراتب' : 'Salary Slip'}</title>
     <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>body{font-family:'Baloo Bhaijaan 2',sans-serif;padding:30px;direction:${isRTL?'rtl':'ltr'}}h2{text-align:center}table{width:100%;border-collapse:collapse;margin:10px 0}td,th{border:1px solid #ddd;padding:8px;text-align:${isRTL?'right':'left'};font-size:13px}th{background:#f3f4f6}.section{margin:15px 0;font-weight:700;font-size:15px}.total{font-size:18px;font-weight:700;text-align:center;margin:20px 0;padding:12px;background:#f0f9ff;border-radius:8px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
+    <style>body{font-family:'Baloo Bhaijaan 2',sans-serif;padding:30px;direction:rtl}h2{text-align:center}table{width:100%;border-collapse:collapse;margin:10px 0}td,th{border:1px solid #ddd;padding:8px;text-align:right;font-size:13px}th{background:#f3f4f6}.section{margin:15px 0;font-weight:700;font-size:15px}.total{font-size:18px;font-weight:700;text-align:center;margin:20px 0;padding:12px;background:#f0f9ff;border-radius:8px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
     <h2>${ar ? 'قسيمة الراتب' : 'Salary Slip'} - ${monthLabel} ${slip.year}</h2>
     <table><tr><td><strong>${ar?'الموظف':'Employee'}</strong>: ${ar?slip.employeeName:slip.employeeNameEn}</td><td><strong>${ar?'الكود':'ID'}</strong>: ${slip.employeeId}</td></tr>
     <tr><td><strong>${ar?'القسم':'Dept'}</strong>: ${slip.department}</td><td><strong>${ar?'المحطة':'Station'}</strong>: ${st?(ar?st.labelAr:st.labelEn):'-'}</td></tr></table>
@@ -123,7 +120,7 @@ export const PortalSalary = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className={cn("text-xl md:text-2xl font-bold", isRTL && "text-right")}>{ar ? 'الراتب' : 'Salary'}</h1>
+      <h1 className="text-xl md:text-2xl font-bold">{ar ? 'الراتب' : 'Salary'}</h1>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3 md:gap-4">
@@ -156,40 +153,37 @@ export const PortalSalary = () => {
             <TabsTrigger value="payslips" className="text-xs sm:text-sm">{ar ? 'كشوف الرواتب' : 'Payslips'}</TabsTrigger>
           </TabsList>
 
-          {/* Tab 1: Detailed Breakdown */}
           <TabsContent value="breakdown" className="mt-4 space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Earnings */}
               <Card>
                 <CardHeader>
-                  <CardTitle className={cn("flex items-center gap-2 text-success", isRTL && "flex-row-reverse")}>
+                  <CardTitle className="flex items-center gap-2 text-success">
                     <TrendingUp className="w-5 h-5" />{ar ? 'المستحقات' : 'Earnings'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {earnings.filter(x => x.v > 0).map((item, i) => (
-                    <div key={i} className={cn("flex justify-between py-2.5 border-b last:border-0", isRTL && "flex-row-reverse")}>
+                    <div key={i} className="flex justify-between py-2.5 border-b last:border-0">
                       <span className="text-sm">{item.l}</span>
                       <span className="font-mono font-medium text-success">{item.v.toLocaleString()}</span>
                     </div>
                   ))}
-                  <div className={cn("flex justify-between py-3 font-bold bg-success/10 px-3 rounded mt-2", isRTL && "flex-row-reverse")}>
+                  <div className="flex justify-between py-3 font-bold bg-success/10 px-3 rounded mt-2">
                     <span>{ar ? 'إجمالي المستحقات' : 'Total Earnings'}</span>
                     <span className="text-success">{totalEarnings.toLocaleString()}</span>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Deductions */}
               <Card>
                 <CardHeader>
-                  <CardTitle className={cn("flex items-center gap-2 text-destructive", isRTL && "flex-row-reverse")}>
+                  <CardTitle className="flex items-center gap-2 text-destructive">
                     <TrendingDown className="w-5 h-5" />{ar ? 'الخصومات' : 'Deductions'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {deductions.filter(x => x.v > 0).map((item, i) => (
-                    <div key={i} className={cn("flex justify-between py-2.5 border-b last:border-0", isRTL && "flex-row-reverse")}>
+                    <div key={i} className="flex justify-between py-2.5 border-b last:border-0">
                       <span className="text-sm">{item.l}</span>
                       <span className="font-mono font-medium text-destructive">{item.v.toLocaleString()}</span>
                     </div>
@@ -197,7 +191,7 @@ export const PortalSalary = () => {
                   {deductions.filter(x => x.v > 0).length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-4">{ar ? 'لا توجد خصومات' : 'No deductions'}</p>
                   )}
-                  <div className={cn("flex justify-between py-3 font-bold bg-destructive/10 px-3 rounded mt-2", isRTL && "flex-row-reverse")}>
+                  <div className="flex justify-between py-3 font-bold bg-destructive/10 px-3 rounded mt-2">
                     <span>{ar ? 'إجمالي الخصومات' : 'Total Deductions'}</span>
                     <span className="text-destructive">{totalDeductions.toLocaleString()}</span>
                   </div>
@@ -205,10 +199,9 @@ export const PortalSalary = () => {
               </Card>
             </div>
 
-            {/* Employer Contributions */}
             <Card>
               <CardHeader>
-                <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                <CardTitle className="flex items-center gap-2">
                   <Building2 className="w-5 h-5" />{ar ? 'مساهمات الشركة' : 'Company Contributions'}
                 </CardTitle>
               </CardHeader>
@@ -221,36 +214,34 @@ export const PortalSalary = () => {
                     </div>
                   ))}
                 </div>
-                <div className={cn("flex justify-between py-3 font-bold bg-muted px-3 rounded mt-4", isRTL && "flex-row-reverse")}>
+                <div className="flex justify-between py-3 font-bold bg-muted px-3 rounded mt-4">
                   <span>{ar ? 'إجمالي مساهمات الشركة' : 'Total Company Contributions'}</span>
                   <span>{totalEmployerContributions.toLocaleString()}</span>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Net Salary */}
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="p-4 md:p-6">
-                <div className={cn("flex flex-col sm:flex-row justify-between items-center gap-3", isRTL && "sm:flex-row-reverse")}>
-                  <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+                  <div className="flex items-center gap-3">
                     <Wallet className="w-6 h-6 md:w-8 md:h-8 text-primary" />
                     <span className="text-lg md:text-xl font-bold">{ar ? 'صافي الراتب' : 'Net Salary'}</span>
                   </div>
                   <span className="text-2xl md:text-3xl font-bold text-primary">{netSalary.toLocaleString()} <span className="text-sm md:text-base">{ar ? 'ج.م' : 'EGP'}</span></span>
                 </div>
                 {latest && (
-                  <p className={cn("text-sm text-muted-foreground mt-2", isRTL && "text-right")}>
+                  <p className="text-sm text-muted-foreground mt-2">
                     {ar ? `آخر معالجة: ${months[parseInt(latest.month) - 1]} ${latest.year}` : `Last processed: ${months[parseInt(latest.month) - 1]} ${latest.year}`}
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            {/* Active Loans Summary */}
             {activeLoans.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                  <CardTitle className="flex items-center gap-2">
                     <Wallet className="w-5 h-5" />{ar ? 'القروض النشطة المرتبطة بالراتب' : 'Active Loans Linked to Salary'}
                   </CardTitle>
                 </CardHeader>
@@ -258,11 +249,11 @@ export const PortalSalary = () => {
                   <div className="overflow-x-auto">
                   <Table className="min-w-[450px]">
                     <TableHeader><TableRow>
-                      <TableHead className={cn(isRTL && "text-right")}>{ar ? 'رقم القرض' : 'Loan ID'}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المبلغ' : 'Amount'}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{ar ? 'القسط الشهري' : 'Monthly'}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المتبقي' : 'Remaining'}</TableHead>
-                      <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الأقساط' : 'Progress'}</TableHead>
+                      <TableHead>{ar ? 'رقم القرض' : 'Loan ID'}</TableHead>
+                      <TableHead>{ar ? 'المبلغ' : 'Amount'}</TableHead>
+                      <TableHead>{ar ? 'القسط الشهري' : 'Monthly'}</TableHead>
+                      <TableHead>{ar ? 'المتبقي' : 'Remaining'}</TableHead>
+                      <TableHead>{ar ? 'الأقساط' : 'Progress'}</TableHead>
                     </TableRow></TableHeader>
                     <TableBody>
                       {activeLoans.map(l => (
@@ -289,42 +280,46 @@ export const PortalSalary = () => {
             )}
           </TabsContent>
 
-          {/* Tab 2: Payslips */}
           <TabsContent value="payslips" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
-                  <Wallet className="w-5 h-5" />{ar ? 'كشوف الرواتب المعالجة' : 'Processed Payslips'}
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="w-5 h-5" />{ar ? 'كشوف الرواتب السابقة' : 'Previous Payslips'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                 <Table className="min-w-[500px]">
                   <TableHeader><TableRow>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الشهر' : 'Month'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الأساسي' : 'Basic'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'البدلات' : 'Allowances'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الإجمالي' : 'Gross'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الخصومات' : 'Deductions'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الصافي' : 'Net'}</TableHead>
-                   </TableRow></TableHeader>
+                    <TableHead>{ar ? 'الشهر' : 'Month'}</TableHead>
+                    <TableHead>{ar ? 'السنة' : 'Year'}</TableHead>
+                    <TableHead>{ar ? 'الإجمالي' : 'Gross'}</TableHead>
+                    <TableHead>{ar ? 'الخصومات' : 'Deductions'}</TableHead>
+                    <TableHead>{ar ? 'الصافي' : 'Net'}</TableHead>
+                    <TableHead>{ar ? 'الإجراءات' : 'Actions'}</TableHead>
+                  </TableRow></TableHeader>
                   <TableBody>
-                    {payroll.map((p, i) => {
-                      const pGross = p.basicSalary + p.transportAllowance + p.incentives + p.stationAllowance + p.mobileAllowance + p.livingAllowance + p.overtimePay + p.bonusAmount;
-                      const allowances = p.transportAllowance + p.incentives + p.stationAllowance + p.mobileAllowance + p.livingAllowance;
-                      return (
-                        <TableRow key={i} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedSlip(p)}>
-                          <TableCell className="font-medium">{months[parseInt(p.month) - 1]} {p.year}</TableCell>
-                          <TableCell>{p.basicSalary.toLocaleString()}</TableCell>
-                          <TableCell className="text-success">{allowances.toLocaleString()}</TableCell>
-                          <TableCell className="font-medium">{pGross.toLocaleString()}</TableCell>
-                          <TableCell className="text-destructive">{p.totalDeductions.toLocaleString()}</TableCell>
-                          <TableCell className="font-bold text-primary">{p.netSalary.toLocaleString()}</TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {payroll.map(p => (
+                      <TableRow key={p.id}>
+                        <TableCell>{months[parseInt(p.month) - 1]}</TableCell>
+                        <TableCell>{p.year}</TableCell>
+                        <TableCell className="text-success">{p.gross.toLocaleString()}</TableCell>
+                        <TableCell className="text-destructive">{p.totalDeductions.toLocaleString()}</TableCell>
+                        <TableCell className="font-bold text-primary">{p.netSalary.toLocaleString()}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => setSelectedSlip(p)}>
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => printSlip(p)}>
+                              <Printer className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                     {payroll.length === 0 && (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-4">{ar ? 'لا توجد كشوف رواتب معالجة' : 'No processed payslips'}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-4">{ar ? 'لا توجد كشوف' : 'No payslips'}</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
@@ -336,76 +331,45 @@ export const PortalSalary = () => {
       )}
 
       {!hasData && (
-        <Card><CardContent className="p-8 text-center text-muted-foreground">
-          {ar ? 'لا توجد بيانات رواتب بعد' : 'No salary data yet'}
-        </CardContent></Card>
+        <Card><CardContent className="p-10 text-center text-muted-foreground">{ar ? 'لا توجد بيانات رواتب' : 'No salary data available'}</CardContent></Card>
       )}
 
       {/* Slip Detail Dialog */}
       <Dialog open={!!selectedSlip} onOpenChange={() => setSelectedSlip(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className={cn(isRTL && "text-right")}>{ar ? 'تفاصيل القسيمة' : 'Slip Detail'}</DialogTitle>
+            <DialogTitle>{ar ? 'قسيمة الراتب' : 'Salary Slip'} - {selectedSlip && months[parseInt(selectedSlip.month) - 1]} {selectedSlip?.year}</DialogTitle>
           </DialogHeader>
-          {selectedSlip && (() => {
-            const slip = selectedSlip;
-            const st = stationLocations.find(s => s.value === slip.stationLocation);
-            const slipEarnings = getEarnings(slip);
-            const slipDeductions = getDeductions(slip);
-            const slipEmployer = getEmployerContributions(slip);
-            const slipTotalEarnings = slipEarnings.reduce((s, e) => s + e.v, 0);
-            return (
-              <div className="space-y-4">
-                <div className={cn("flex justify-between items-center", isRTL && "flex-row-reverse")}>
-                  <div>
-                    <p className="font-bold text-lg">{ar ? slip.employeeName : slip.employeeNameEn}</p>
-                    <p className="text-sm text-muted-foreground">{slip.department && slip.department.length < 36 ? slip.department : ''} {slip.employeeCode ? `- ${slip.employeeCode}` : ''}</p>
-                    <p className="text-sm text-muted-foreground">{st ? (ar ? st.labelAr : st.labelEn) : ''}</p>
-                  </div>
-                  <Badge variant="outline" className="text-base px-3 py-1">{months[parseInt(slip.month) - 1]} {slip.year}</Badge>
-                </div>
-                <Separator />
-
-                <h4 className={cn("font-semibold text-success", isRTL && "text-right")}>{ar ? 'المستحقات' : 'Earnings'}</h4>
-                {slipEarnings.filter(x => x.v > 0).map((item, i) => (
-                  <div key={i} className={cn("flex justify-between text-sm", isRTL && "flex-row-reverse")}>
-                    <span>{item.l}</span><span className="text-success font-mono">{item.v.toLocaleString()}</span>
+          {selectedSlip && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h4 className="font-semibold text-success">{ar ? 'المستحقات' : 'Earnings'}</h4>
+                {getEarnings(selectedSlip).filter(x => x.v > 0).map((item, i) => (
+                  <div key={i} className="flex justify-between text-sm py-1 border-b">
+                    <span>{item.l}</span>
+                    <span className="font-mono text-success">{item.v.toLocaleString()}</span>
                   </div>
                 ))}
-                <div className={cn("flex justify-between font-bold pt-1 border-t", isRTL && "flex-row-reverse")}>
-                  <span>{ar ? 'إجمالي المستحقات' : 'Total Earnings'}</span>
-                  <span className="text-success">{slipTotalEarnings.toLocaleString()}</span>
-                </div>
-
-                <Separator />
-                <h4 className={cn("font-semibold text-destructive", isRTL && "text-right")}>{ar ? 'الخصومات' : 'Deductions'}</h4>
-                {slipDeductions.filter(x => x.v > 0).map((item, i) => (
-                  <div key={i} className={cn("flex justify-between text-sm", isRTL && "flex-row-reverse")}>
-                    <span>{item.l}</span><span className="text-destructive font-mono">{item.v.toLocaleString()}</span>
-                  </div>
-                ))}
-                <div className={cn("flex justify-between font-bold pt-1 border-t", isRTL && "flex-row-reverse")}>
-                  <span>{ar ? 'إجمالي الخصومات' : 'Total Deductions'}</span>
-                  <span className="text-destructive">{slip.totalDeductions.toLocaleString()}</span>
-                </div>
-
-                <Separator />
-                <h4 className={cn("font-semibold", isRTL && "text-right")}>{ar ? 'مساهمات الشركة' : 'Company Contributions'}</h4>
-                {slipEmployer.map((item, i) => (
-                  <div key={i} className={cn("flex justify-between text-sm", isRTL && "flex-row-reverse")}>
-                    <span>{item.l}</span><span className="font-mono">{item.v.toLocaleString()}</span>
-                  </div>
-                ))}
-
-                <Separator />
-                <div className={cn("flex justify-between items-center py-3 px-4 bg-primary/10 rounded-lg", isRTL && "flex-row-reverse")}>
-                  <span className="text-lg font-bold">{ar ? 'صافي الراتب' : 'Net Salary'}</span>
-                  <span className="text-2xl font-bold text-primary">{slip.netSalary.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
-                </div>
-
               </div>
-            );
-          })()}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-destructive">{ar ? 'الخصومات' : 'Deductions'}</h4>
+                {getDeductions(selectedSlip).filter(x => x.v > 0).map((item, i) => (
+                  <div key={i} className="flex justify-between text-sm py-1 border-b">
+                    <span>{item.l}</span>
+                    <span className="font-mono text-destructive">{item.v.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+              <Separator />
+              <div className="flex justify-between font-bold text-lg">
+                <span>{ar ? 'صافي الراتب' : 'Net Salary'}</span>
+                <span className="text-primary">{selectedSlip.netSalary.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
+              </div>
+              <Button onClick={() => printSlip(selectedSlip)} className="w-full gap-2">
+                <Printer className="w-4 h-4" />{ar ? 'طباعة' : 'Print'}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

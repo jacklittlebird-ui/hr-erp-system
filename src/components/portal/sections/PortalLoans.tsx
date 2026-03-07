@@ -10,7 +10,7 @@ import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalLoans = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const ar = language === 'ar';
   const { loans, advances } = useLoanData();
 
@@ -37,7 +37,7 @@ export const PortalLoans = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className={cn("text-xl md:text-2xl font-bold", isRTL && "text-right")}>{ar ? 'قروضي وسلفي' : 'My Loans & Advances'}</h1>
+      <h1 className="text-xl md:text-2xl font-bold">{ar ? 'قروضي وسلفي' : 'My Loans & Advances'}</h1>
 
       <div className="grid grid-cols-2 gap-3 md:gap-4">
         <Card><CardContent className="p-3 md:p-5 text-center">
@@ -58,20 +58,19 @@ export const PortalLoans = () => {
         </CardContent></Card>
       </div>
 
-      {/* Loans Table */}
       <Card>
-        <CardHeader><CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}><HandCoins className="w-5 h-5" />{ar ? 'القروض' : 'Loans'}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><HandCoins className="w-5 h-5" />{ar ? 'القروض' : 'Loans'}</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
           <Table>
             <TableHeader><TableRow>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'رقم القرض' : 'Loan ID'}</TableHead>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المبلغ' : 'Amount'}</TableHead>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'القسط الشهري' : 'Monthly'}</TableHead>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المسدد' : 'Paid'}</TableHead>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المتبقي' : 'Remaining'}</TableHead>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الأقساط' : 'Installments'}</TableHead>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+              <TableHead>{ar ? 'رقم القرض' : 'Loan ID'}</TableHead>
+              <TableHead>{ar ? 'المبلغ' : 'Amount'}</TableHead>
+              <TableHead>{ar ? 'القسط الشهري' : 'Monthly'}</TableHead>
+              <TableHead>{ar ? 'المسدد' : 'Paid'}</TableHead>
+              <TableHead>{ar ? 'المتبقي' : 'Remaining'}</TableHead>
+              <TableHead>{ar ? 'الأقساط' : 'Installments'}</TableHead>
+              <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {myLoans.map(l => (
@@ -94,20 +93,19 @@ export const PortalLoans = () => {
         </CardContent>
       </Card>
 
-      {/* Advances Table */}
       {myAdvances.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}><HandCoins className="w-5 h-5" />{ar ? 'السلف' : 'Advances'}</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><HandCoins className="w-5 h-5" />{ar ? 'السلف' : 'Advances'}</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
             <Table>
               <TableHeader><TableRow>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الرقم' : 'ID'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المبلغ' : 'Amount'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ الطلب' : 'Request Date'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'شهر الخصم' : 'Deduction Month'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'السبب' : 'Reason'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+                <TableHead>{ar ? 'الرقم' : 'ID'}</TableHead>
+                <TableHead>{ar ? 'المبلغ' : 'Amount'}</TableHead>
+                <TableHead>{ar ? 'تاريخ الطلب' : 'Request Date'}</TableHead>
+                <TableHead>{ar ? 'شهر الخصم' : 'Deduction Month'}</TableHead>
+                <TableHead>{ar ? 'السبب' : 'Reason'}</TableHead>
+                <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {myAdvances.map(a => (

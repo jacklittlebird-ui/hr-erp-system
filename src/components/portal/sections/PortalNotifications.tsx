@@ -5,18 +5,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CheckCircle, AlertCircle, Info, AlertTriangle, Check, Trash2 } from 'lucide-react';
+import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 const typeIcons = { success: CheckCircle, warning: AlertTriangle, info: Info, error: AlertCircle };
 const typeColors = { success: 'text-green-500', warning: 'text-yellow-500', info: 'text-blue-500', error: 'text-red-500' };
 
-import { usePortalEmployee } from '@/hooks/usePortalEmployee';
-
 export const PortalNotifications = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const { notifications: allNotifications, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
-  // Filter: show only notifications for this employee or general (no employeeId)
   const notifications = allNotifications.filter(n => !n.employeeId || n.employeeId === PORTAL_EMPLOYEE_ID);
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -33,21 +31,21 @@ export const PortalNotifications = () => {
 
   return (
     <div className="space-y-6">
-      <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
-        <h1 className={cn("text-2xl font-bold", isRTL && "text-right")}>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">
           {language === 'ar' ? 'الإشعارات' : 'Notifications'}
-          {unreadCount > 0 && <Badge className="ml-2 bg-primary">{unreadCount}</Badge>}
+          {unreadCount > 0 && <Badge className="ms-2 bg-primary">{unreadCount}</Badge>}
         </h1>
-        <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
+        <div className="flex gap-2">
           {unreadCount > 0 && (
             <Button variant="outline" size="sm" onClick={markAllAsRead}>
-              <Check className="w-4 h-4 mr-1" />
+              <Check className="w-4 h-4 me-1" />
               {language === 'ar' ? 'قراءة الكل' : 'Mark all read'}
             </Button>
           )}
           {notifications.length > 0 && (
             <Button variant="outline" size="sm" onClick={clearAll} className="text-destructive">
-              <Trash2 className="w-4 h-4 mr-1" />
+              <Trash2 className="w-4 h-4 me-1" />
               {language === 'ar' ? 'مسح الكل' : 'Clear all'}
             </Button>
           )}
@@ -69,9 +67,9 @@ export const PortalNotifications = () => {
                 onClick={() => markAsRead(n.id)}
               >
                 <CardContent className="p-4">
-                  <div className={cn("flex items-start gap-3", isRTL && "flex-row-reverse")}>
+                  <div className="flex items-start gap-3">
                     <Icon className={cn("w-5 h-5 mt-0.5 shrink-0", typeColors[n.type])} />
-                    <div className={cn("flex-1", isRTL && "text-right")}>
+                    <div className="flex-1">
                       <p className={cn("font-medium", !n.read && "font-semibold")}>
                         {language === 'ar' ? n.titleAr : n.titleEn}
                       </p>

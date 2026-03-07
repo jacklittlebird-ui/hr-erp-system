@@ -21,7 +21,7 @@ import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalLeaves = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const ar = language === 'ar';
   const { getLeaveBalances, getLeaveRequests, addLeaveRequest, getPermissions, addPermission } = usePortalData();
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
@@ -98,7 +98,6 @@ export const PortalLeaves = () => {
       toast.error(ar ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
       return;
     }
-    // Validate duration (30min - 2h)
     const [fH, fM] = permFrom.split(':').map(Number);
     const [tH, tM] = permTo.split(':').map(Number);
     const durationHours = Math.max(0, (tH * 60 + tM - fH * 60 - fM) / 60);
@@ -135,7 +134,7 @@ export const PortalLeaves = () => {
 
   return (
     <div className="space-y-6">
-      <div className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3", isRTL && "sm:flex-row-reverse")}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h1 className="text-xl md:text-2xl font-bold">{ar ? 'الإجازات والأذونات' : 'Leaves & Permissions'}</h1>
         <div className="flex gap-2 w-full sm:w-auto">
           <Button onClick={() => setShowPermDialog(true)} variant="outline" size="sm" className="flex-1 sm:flex-none text-xs sm:text-sm"><Clock className="w-4 h-4 me-1" />{ar ? 'طلب إذن' : 'Permission'}</Button>
@@ -163,7 +162,7 @@ export const PortalLeaves = () => {
       </div>
 
       {/* Tables */}
-      <Tabs defaultValue="leaves" dir={isRTL ? 'rtl' : 'ltr'}>
+      <Tabs defaultValue="leaves" dir="rtl">
         <TabsList>
           <TabsTrigger value="leaves">{ar ? 'الإجازات' : 'Leaves'}</TabsTrigger>
           <TabsTrigger value="permissions">{ar ? 'الأذونات' : 'Permissions'}</TabsTrigger>
@@ -171,16 +170,16 @@ export const PortalLeaves = () => {
 
         <TabsContent value="leaves">
           <Card>
-            <CardHeader><CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}><Calendar className="w-5 h-5" />{ar ? 'طلبات الإجازات' : 'Leave Requests'}</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5" />{ar ? 'طلبات الإجازات' : 'Leave Requests'}</CardTitle></CardHeader>
             <CardContent>
              <div className="overflow-x-auto">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead className={cn(isRTL && "text-right")}>{ar ? 'النوع' : 'Type'}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{ar ? 'من' : 'From'}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{ar ? 'إلى' : 'To'}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الأيام' : 'Days'}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+                  <TableHead>{ar ? 'النوع' : 'Type'}</TableHead>
+                  <TableHead>{ar ? 'من' : 'From'}</TableHead>
+                  <TableHead>{ar ? 'إلى' : 'To'}</TableHead>
+                  <TableHead>{ar ? 'الأيام' : 'Days'}</TableHead>
+                  <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {requests.map(r => (
@@ -204,16 +203,16 @@ export const PortalLeaves = () => {
 
         <TabsContent value="permissions">
           <Card>
-            <CardHeader><CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}><Clock className="w-5 h-5" />{ar ? 'طلبات الأذونات' : 'Permission Requests'}</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5" />{ar ? 'طلبات الأذونات' : 'Permission Requests'}</CardTitle></CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead className={cn(isRTL && "text-right")}>{ar ? 'النوع' : 'Type'}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{ar ? 'التاريخ' : 'Date'}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{ar ? 'من' : 'From'}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{ar ? 'إلى' : 'To'}</TableHead>
-                  <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+                  <TableHead>{ar ? 'النوع' : 'Type'}</TableHead>
+                  <TableHead>{ar ? 'التاريخ' : 'Date'}</TableHead>
+                  <TableHead>{ar ? 'من' : 'From'}</TableHead>
+                  <TableHead>{ar ? 'إلى' : 'To'}</TableHead>
+                  <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {permissions.map(p => (
@@ -236,7 +235,7 @@ export const PortalLeaves = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Leave Dialog - matching admin style */}
+      {/* Leave Dialog */}
       <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader><DialogTitle>{ar ? 'طلب إجازة جديدة' : 'New Leave Request'}</DialogTitle></DialogHeader>
@@ -259,8 +258,8 @@ export const PortalLeaves = () => {
                 <Label>{ar ? 'تاريخ البداية' : 'Start Date'} <span className="text-destructive">*</span></Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !leaveStartDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                    <Button variant="outline" className={cn("w-full justify-start font-normal", !leaveStartDate && "text-muted-foreground")}>
+                      <CalendarIcon className="me-2 h-4 w-4" />
                       {leaveStartDate ? format(leaveStartDate, 'yyyy/MM/dd') : (ar ? 'اختر التاريخ' : 'Pick a date')}
                     </Button>
                   </PopoverTrigger>
@@ -273,8 +272,8 @@ export const PortalLeaves = () => {
                 <Label>{ar ? 'تاريخ النهاية' : 'End Date'} <span className="text-destructive">*</span></Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !leaveEndDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                    <Button variant="outline" className={cn("w-full justify-start font-normal", !leaveEndDate && "text-muted-foreground")}>
+                      <CalendarIcon className="me-2 h-4 w-4" />
                       {leaveEndDate ? format(leaveEndDate, 'yyyy/MM/dd') : (ar ? 'اختر التاريخ' : 'Pick a date')}
                     </Button>
                   </PopoverTrigger>
@@ -296,7 +295,7 @@ export const PortalLeaves = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Permission Dialog - matching admin style */}
+      {/* Permission Dialog */}
       <Dialog open={showPermDialog} onOpenChange={setShowPermDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader><DialogTitle>{ar ? 'طلب إذن جديد' : 'New Permission Request'}</DialogTitle></DialogHeader>
@@ -315,8 +314,8 @@ export const PortalLeaves = () => {
                 <Label>{ar ? 'التاريخ' : 'Date'} <span className="text-destructive">*</span></Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !permDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                    <Button variant="outline" className={cn("w-full justify-start font-normal", !permDate && "text-muted-foreground")}>
+                      <CalendarIcon className="me-2 h-4 w-4" />
                       {permDate ? format(permDate, 'yyyy/MM/dd') : (ar ? 'اختر التاريخ' : 'Pick a date')}
                     </Button>
                   </PopoverTrigger>
