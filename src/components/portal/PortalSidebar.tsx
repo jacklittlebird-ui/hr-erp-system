@@ -29,7 +29,7 @@ const sidebarGroups: SidebarGroup[] = [
     labelEn: 'Work',
     items: [
       { key: 'attendance', labelAr: 'الحضور والانصراف', labelEn: 'Attendance', icon: Clock },
-      { key: 'leaves', labelAr: 'الإجازات', labelEn: 'Leaves', icon: Calendar },
+      { key: 'leaves', labelAr: 'الإجازات والأذونات', labelEn: 'Leaves & Permissions', icon: Calendar },
     ],
   },
   {
