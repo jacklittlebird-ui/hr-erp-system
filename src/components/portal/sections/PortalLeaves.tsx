@@ -279,6 +279,7 @@ export const PortalLeaves = () => {
         <TabsList>
           <TabsTrigger value="leaves">{ar ? 'الإجازات' : 'Leaves'}</TabsTrigger>
           <TabsTrigger value="permissions">{ar ? 'الأذونات' : 'Permissions'}</TabsTrigger>
+          <TabsTrigger value="overtime">{ar ? 'أيام العمل الإضافي' : 'Overtime Days'}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leaves">
@@ -339,6 +340,42 @@ export const PortalLeaves = () => {
                   ))}
                   {permissions.length === 0 && (
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">{ar ? 'لا توجد أذونات' : 'No permissions'}</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="overtime">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-2"><CalendarPlus className="w-5 h-5" />{ar ? 'أيام العمل الإضافي' : 'Overtime Days'}</CardTitle>
+                <Button onClick={() => setShowOvertimeDialog(true)} size="sm"><Plus className="w-4 h-4 me-1" />{ar ? 'إضافة يوم' : 'Add Day'}</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead>{ar ? 'النوع' : 'Type'}</TableHead>
+                  <TableHead>{ar ? 'التاريخ' : 'Date'}</TableHead>
+                  <TableHead>{ar ? 'السبب' : 'Reason'}</TableHead>
+                  <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {overtimeDays.map(o => (
+                    <TableRow key={o.id}>
+                      <TableCell>{ar ? o.typeAr : o.typeEn}</TableCell>
+                      <TableCell>{o.date}</TableCell>
+                      <TableCell>{o.reason}</TableCell>
+                      <TableCell><Badge variant="outline" className={statusCls[o.status]}>{ar ? statusLabel[o.status]?.ar : statusLabel[o.status]?.en}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                  {overtimeDays.length === 0 && (
+                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">{ar ? 'لا توجد أيام عمل إضافي' : 'No overtime days'}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
