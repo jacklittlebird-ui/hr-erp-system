@@ -7,15 +7,15 @@ import { cn } from '@/lib/utils';
 import { CheckCircle, AlertCircle, Info, AlertTriangle, Check, Trash2 } from 'lucide-react';
 import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
-const typeIcons = { success: CheckCircle, warning: AlertTriangle, info: Info, error: AlertCircle };
-const typeColors = { success: 'text-green-500', warning: 'text-yellow-500', info: 'text-blue-500', error: 'text-red-500' };
+const typeIcons: Record<string, any> = { success: CheckCircle, warning: AlertTriangle, info: Info, error: AlertCircle };
+const typeColors: Record<string, string> = { success: 'text-green-500', warning: 'text-yellow-500', info: 'text-blue-500', error: 'text-red-500' };
 
 export const PortalNotifications = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language } = useLanguage();
-  const { notifications: allNotifications, markAsRead, markAllAsRead, clearAll } = useNotifications();
+  const { getFilteredNotifications, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
-  const notifications = allNotifications.filter(n => !n.employeeId || n.employeeId === PORTAL_EMPLOYEE_ID);
+  const notifications = getFilteredNotifications('employee', PORTAL_EMPLOYEE_ID);
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const formatTime = (ts: string) => {
@@ -59,7 +59,7 @@ export const PortalNotifications = () => {
       ) : (
         <div className="grid gap-3">
           {notifications.map(n => {
-            const Icon = typeIcons[n.type];
+            const Icon = typeIcons[n.type] || Info;
             return (
               <Card
                 key={n.id}
@@ -68,7 +68,7 @@ export const PortalNotifications = () => {
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <Icon className={cn("w-5 h-5 mt-0.5 shrink-0", typeColors[n.type])} />
+                    <Icon className={cn("w-5 h-5 mt-0.5 shrink-0", typeColors[n.type] || 'text-blue-500')} />
                     <div className="flex-1">
                       <p className={cn("font-medium", !n.read && "font-semibold")}>
                         {language === 'ar' ? n.titleAr : n.titleEn}
@@ -77,6 +77,9 @@ export const PortalNotifications = () => {
                         <p className="text-sm text-muted-foreground mt-1">
                           {language === 'ar' ? n.descAr : n.descEn}
                         </p>
+                      )}
+                      {n.senderName && (
+                        <p className="text-xs text-primary/70 mt-1">{n.senderName}</p>
                       )}
                       <p className="text-xs text-muted-foreground mt-1">{formatTime(n.timestamp)}</p>
                     </div>
