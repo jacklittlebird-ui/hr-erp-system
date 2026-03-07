@@ -1343,14 +1343,14 @@ const StationManagerPortal = () => {
             {/* Comments */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}>
+                <Label className="flex items-center gap-1.5">
                   <TrendingUp className="w-4 h-4 text-[hsl(var(--stat-green))]" />
                   {t('نقاط القوة', 'Strengths')}
                 </Label>
                 <Textarea value={evalStrengths} onChange={e => setEvalStrengths(e.target.value)} className="min-h-[80px]" />
               </div>
               <div className="space-y-2">
-                <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}>
+                <Label className="flex items-center gap-1.5">
                   <Lightbulb className="w-4 h-4 text-[hsl(var(--stat-coral))]" />
                   {t('مجالات التحسين', 'Improvements')}
                 </Label>
@@ -1358,14 +1358,14 @@ const StationManagerPortal = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}>
+              <Label className="flex items-center gap-1.5">
                 <Target className="w-4 h-4 text-primary" />
                 {t('أهداف الربع القادم', 'Next Quarter Goals')}
               </Label>
               <Textarea value={evalGoals} onChange={e => setEvalGoals(e.target.value)} className="min-h-[60px]" />
             </div>
             <div className="space-y-2">
-              <Label className={cn("flex items-center gap-1.5", isRTL && "flex-row-reverse")}>
+              <Label className="flex items-center gap-1.5">
                 <MessageSquare className="w-4 h-4 text-primary" />
                 {t('ملاحظات المدير', 'Manager Comments')}
               </Label>
@@ -1423,7 +1423,7 @@ const StationManagerPortal = () => {
       <Dialog open={editEvalDialog} onOpenChange={setEditEvalDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+            <DialogTitle className="flex items-center gap-2">
               <Pencil className="w-5 h-5 text-primary" />
               {t('تعديل التقييم', 'Edit Evaluation')}
             </DialogTitle>
@@ -1431,7 +1431,7 @@ const StationManagerPortal = () => {
           <div className="space-y-6">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className={cn("flex items-center gap-2 text-base", isRTL && "flex-row-reverse")}>
+                <CardTitle className="flex items-center gap-2 text-base">
                   <Target className="w-4 h-4 text-primary" />
                   {t('معايير التقييم', 'Evaluation Criteria')}
                 </CardTitle>
@@ -1439,12 +1439,12 @@ const StationManagerPortal = () => {
               <CardContent className="space-y-4">
                 {editEvalCriteria.map((criterion) => (
                   <div key={criterion.id} className="space-y-1.5">
-                    <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
-                      <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
                         <Label className="text-sm font-medium">{ar ? criterion.nameAr : criterion.name}</Label>
                         <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{criterion.weight}%</span>
                       </div>
-                      <div className={cn("flex items-center gap-1", isRTL && "flex-row-reverse")}>
+                      <div className="flex items-center gap-1">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star key={star} className={cn("w-5 h-5 cursor-pointer transition-colors hover:scale-110", star <= criterion.score ? "text-[hsl(var(--stat-yellow))] fill-[hsl(var(--stat-yellow))]" : "text-muted-foreground hover:text-[hsl(var(--stat-yellow))]/50")}
                             onClick={() => setEditEvalCriteria(prev => prev.map(c => c.id === criterion.id ? { ...c, score: star } : c))} />
@@ -1455,9 +1455,9 @@ const StationManagerPortal = () => {
                     <Progress value={criterion.score * 20} className="h-1.5" />
                   </div>
                 ))}
-                <div className={cn("flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20", isRTL && "flex-row-reverse")}>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20">
                   <span className="font-semibold">{t('الدرجة الإجمالية', 'Overall Score')}</span>
-                  <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                  <div className="flex items-center gap-2">
                     <span className={cn("font-bold text-xl", getScoreLabel(editEvalOverallScore).color)}>{editEvalOverallScore}</span>
                     <Badge variant="outline" className={cn(getScoreLabel(editEvalOverallScore).color, "border-current")}>{getScoreLabel(editEvalOverallScore).label}</Badge>
                   </div>
