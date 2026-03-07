@@ -151,7 +151,7 @@ export const PortalSalary = () => {
 
       {hasData && (
         <Tabs defaultValue="breakdown" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-auto">
+          <TabsList className="grid w-full grid-cols-2 h-auto" dir="rtl">
             <TabsTrigger value="breakdown" className="text-xs sm:text-sm">{ar ? 'تفاصيل الراتب' : 'Breakdown'}</TabsTrigger>
             <TabsTrigger value="payslips" className="text-xs sm:text-sm">{ar ? 'كشوف الرواتب' : 'Payslips'}</TabsTrigger>
           </TabsList>

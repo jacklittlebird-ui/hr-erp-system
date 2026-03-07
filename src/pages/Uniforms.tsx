@@ -196,7 +196,7 @@ const Uniforms = () => {
         </div>
 
         <Tabs defaultValue="manage" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2" dir="rtl">
             <TabsTrigger value="manage">{language === 'ar' ? 'إدارة اليونيفورم' : 'Manage Uniforms'}</TabsTrigger>
             <TabsTrigger value="report">{language === 'ar' ? 'التقرير الشامل' : 'Full Report'}</TabsTrigger>
           </TabsList>

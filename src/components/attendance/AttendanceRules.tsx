@@ -159,7 +159,7 @@ export const AttendanceRules = () => {
               </DialogTitle>
             </DialogHeader>
             <Tabs value={selectedType} onValueChange={(v) => setSelectedType(v as ScheduleType)}>
-              <TabsList className="grid grid-cols-3 mb-4">
+              <TabsList className="grid grid-cols-3 mb-4" dir="rtl">
                 <TabsTrigger value="fixed" className="gap-2">
                   <Building2 className="w-4 h-4" />
                   {t('attendance.rules.fixed')}

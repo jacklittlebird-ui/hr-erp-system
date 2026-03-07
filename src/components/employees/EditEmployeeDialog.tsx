@@ -67,9 +67,8 @@ export const EditEmployeeDialog = ({ employee, open, onClose }: EditEmployeeDial
           <div className="border-b bg-background">
             <ScrollArea className="w-full">
               <TabsList className={cn(
-                "inline-flex h-12 items-center justify-start bg-transparent p-0 w-max",
-                isRTL && "flex-row-reverse"
-              )}>
+                "inline-flex h-12 items-center justify-start bg-transparent p-0 w-max"
+              )} dir="rtl">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   return (

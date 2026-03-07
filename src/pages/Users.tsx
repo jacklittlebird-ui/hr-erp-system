@@ -373,7 +373,7 @@ const Users = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={cn("grid w-full grid-cols-2 mb-6", isRTL && "direction-rtl")}>
+          <TabsList className={cn("grid w-full grid-cols-2 mb-6")} dir="rtl">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <UsersIcon className="w-4 h-4" />
               <span>{isAr ? 'المستخدمين' : 'Users'}</span>
