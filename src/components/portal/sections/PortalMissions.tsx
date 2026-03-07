@@ -25,7 +25,7 @@ const missionTypeLabels: Record<PortalMissionType, { ar: string; en: string; tim
 
 export const PortalMissions = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const ar = language === 'ar';
   const { getMissions, addMission } = usePortalData();
   const missions = useMemo(() => getMissions(PORTAL_EMPLOYEE_ID), [getMissions, PORTAL_EMPLOYEE_ID]);
@@ -86,18 +86,17 @@ export const PortalMissions = () => {
 
   return (
     <div className="space-y-6">
-      <div className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3", isRTL && "sm:flex-row-reverse")}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h1 className="text-xl md:text-2xl font-bold">{ar ? 'مأمورياتي' : 'My Missions'}</h1>
         <Button onClick={() => setShowForm(!showForm)} size="sm">
           <Plus className="w-4 h-4 me-1" />{ar ? 'طلب مأمورية' : 'New Mission'}
         </Button>
       </div>
 
-      {/* Mission Request Form - matching admin MissionForm style */}
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+            <CardTitle className="flex items-center gap-2">
               <Send className="w-5 h-5 text-primary" />
               {ar ? 'طلب مأمورية جديدة' : 'New Mission Request'}
             </CardTitle>
@@ -106,7 +105,7 @@ export const PortalMissions = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className={cn("flex items-center gap-1", isRTL && "flex-row-reverse")}>
+                  <Label className="flex items-center gap-1">
                     {ar ? 'نوع المأمورية' : 'Mission Type'} <span className="text-destructive">*</span>
                   </Label>
                   <Select value={missionType} onValueChange={setMissionType}>
@@ -127,8 +126,8 @@ export const PortalMissions = () => {
                   <Label>{ar ? 'التاريخ' : 'Date'} <span className="text-destructive">*</span></Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                      <Button variant="outline" className={cn("w-full justify-start font-normal", !date && "text-muted-foreground")}>
+                        <CalendarIcon className="me-2 h-4 w-4" />
                         {date ? format(date, 'yyyy/MM/dd') : (ar ? 'اختر التاريخ' : 'Pick a date')}
                       </Button>
                     </PopoverTrigger>
@@ -149,12 +148,12 @@ export const PortalMissions = () => {
                 <Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder={ar ? 'أدخل سبب المأمورية' : 'Enter mission reason'} rows={4} />
               </div>
 
-              <div className={cn("flex gap-3", isRTL ? "flex-row-reverse" : "justify-end")}>
+              <div className="flex gap-3 justify-end">
                 <Button type="button" variant="outline" onClick={resetForm}>
                   {ar ? 'إلغاء' : 'Cancel'}
                 </Button>
                 <Button type="submit">
-                  <Send className="w-4 h-4 mr-1" />
+                  <Send className="w-4 h-4 me-1" />
                   {ar ? 'تقديم الطلب' : 'Submit Request'}
                 </Button>
               </div>
@@ -165,7 +164,7 @@ export const PortalMissions = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+          <CardTitle className="flex items-center gap-2">
             <MapPin className="w-5 h-5" />{ar ? 'سجل المأموريات' : 'Mission Records'}
           </CardTitle>
         </CardHeader>
@@ -174,11 +173,11 @@ export const PortalMissions = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'النوع' : 'Type'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'التاريخ' : 'Date'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الوجهة' : 'Destination'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'السبب' : 'Reason'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+                <TableHead>{ar ? 'النوع' : 'Type'}</TableHead>
+                <TableHead>{ar ? 'التاريخ' : 'Date'}</TableHead>
+                <TableHead>{ar ? 'الوجهة' : 'Destination'}</TableHead>
+                <TableHead>{ar ? 'السبب' : 'Reason'}</TableHead>
+                <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

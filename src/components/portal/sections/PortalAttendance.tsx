@@ -13,7 +13,7 @@ import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalAttendance = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const ar = language === 'ar';
   const { records, getEmployeeMonthlyRecords, getMonthlyStats } = useAttendanceData();
   const [month, setMonth] = useState(new Date().getMonth());
@@ -56,7 +56,7 @@ export const PortalAttendance = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className={cn("text-xl md:text-2xl font-bold", isRTL && "text-right")}>{ar ? 'الحضور والانصراف' : 'Attendance'}</h1>
+      <h1 className="text-xl md:text-2xl font-bold">{ar ? 'الحضور والانصراف' : 'Attendance'}</h1>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         {[
@@ -75,12 +75,12 @@ export const PortalAttendance = () => {
 
       <Card>
         <CardHeader className="p-3 md:p-6">
-          <div className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2", isRTL && "sm:flex-row-reverse")}>
-            <CardTitle className={cn("flex items-center gap-2 text-base md:text-lg", isRTL && "flex-row-reverse")}>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               <Calendar className="w-4 h-4 md:w-5 md:h-5" />
               {ar ? 'سجل الحضور الشهري' : 'Monthly Record'}
             </CardTitle>
-            <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
+            <div className="flex gap-2">
               <Select value={month.toString()} onValueChange={v => setMonth(+v)}>
                 <SelectTrigger className="w-[100px] md:w-[120px] h-8 text-xs md:text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{months.map((m, i) => <SelectItem key={i} value={i.toString()}>{m}</SelectItem>)}</SelectContent>
@@ -93,7 +93,7 @@ export const PortalAttendance = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className={cn("flex items-center gap-2 mb-4 p-3 bg-muted/50 rounded-lg", isRTL && "flex-row-reverse")}>
+          <div className="flex items-center gap-2 mb-4 p-3 bg-muted/50 rounded-lg">
             <TrendingUp className="w-5 h-5 text-primary" />
             <span className="font-medium">{ar ? 'نسبة الحضور:' : 'Rate:'}</span>
             <Badge variant="outline" className="bg-success/10 text-success text-lg px-3">{rate}%</Badge>
@@ -101,12 +101,12 @@ export const PortalAttendance = () => {
           <div className="overflow-x-auto max-h-[400px]">
             <Table className="min-w-[500px]">
               <TableHeader><TableRow>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'التاريخ' : 'Date'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'اليوم' : 'Day'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحضور' : 'In'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الانصراف' : 'Out'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الساعات' : 'Hours'}</TableHead>
-                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+                <TableHead>{ar ? 'التاريخ' : 'Date'}</TableHead>
+                <TableHead>{ar ? 'اليوم' : 'Day'}</TableHead>
+                <TableHead>{ar ? 'الحضور' : 'In'}</TableHead>
+                <TableHead>{ar ? 'الانصراف' : 'Out'}</TableHead>
+                <TableHead>{ar ? 'الساعات' : 'Hours'}</TableHead>
+                <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {monthlyRecords.map(r => (

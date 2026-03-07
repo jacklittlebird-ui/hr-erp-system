@@ -9,14 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import { ClipboardList, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalRequests = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const ar = language === 'ar';
   const { getRequests, addRequest } = usePortalData();
   const requests = useMemo(() => getRequests(PORTAL_EMPLOYEE_ID), [getRequests]);
@@ -46,19 +45,19 @@ export const PortalRequests = () => {
 
   return (
     <div className="space-y-6">
-      <div className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3", isRTL && "sm:flex-row-reverse")}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h1 className="text-xl md:text-2xl font-bold">{ar ? 'الطلبات' : 'Requests'}</h1>
         <Button onClick={() => setShowDialog(true)} size="sm"><Plus className="w-4 h-4 me-1" />{ar ? 'طلب جديد' : 'New Request'}</Button>
       </div>
 
       <Card>
-        <CardHeader><CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}><ClipboardList className="w-5 h-5" />{ar ? 'جميع الطلبات' : 'All Requests'}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><ClipboardList className="w-5 h-5" />{ar ? 'جميع الطلبات' : 'All Requests'}</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader><TableRow>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'النوع' : 'Type'}</TableHead>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'التاريخ' : 'Date'}</TableHead>
-              <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+              <TableHead>{ar ? 'النوع' : 'Type'}</TableHead>
+              <TableHead>{ar ? 'التاريخ' : 'Date'}</TableHead>
+              <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {requests.map(r => (

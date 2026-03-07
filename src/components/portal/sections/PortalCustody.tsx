@@ -37,7 +37,7 @@ interface TrainingDebt {
 
 export const PortalCustody = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const ar = language === 'ar';
   const [assets, setAssets] = useState<AssignedAsset[]>([]);
   const [trainingDebts, setTrainingDebts] = useState<TrainingDebt[]>([]);
@@ -98,7 +98,6 @@ export const PortalCustody = () => {
   }, [PORTAL_EMPLOYEE_ID]);
 
   const assigned = assets.filter(a => a.status === 'assigned').length;
-  const inMaintenance = assets.filter(a => a.status === 'maintenance').length;
   const conditionMap: Record<string, string> = { good: 'جيدة', fair: 'مقبولة', poor: 'سيئة', new: 'جديدة' };
   const assetStatusMap: Record<string, { ar: string; cls: string }> = {
     assigned: { ar: 'بحوزتي', cls: 'bg-primary/10 text-primary border-primary' },
@@ -112,7 +111,7 @@ export const PortalCustody = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className={cn("text-xl md:text-2xl font-bold", isRTL && "text-right")}>{ar ? 'العهد والتعهدات' : 'Custody & Obligations'}</h1>
+      <h1 className="text-xl md:text-2xl font-bold">{ar ? 'العهد والتعهدات' : 'Custody & Obligations'}</h1>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
         <Card><CardContent className="p-4 text-center">
@@ -132,7 +131,7 @@ export const PortalCustody = () => {
         </CardContent></Card>
       </div>
 
-      <Tabs defaultValue="assets" dir={isRTL ? 'rtl' : 'ltr'}>
+      <Tabs defaultValue="assets" dir="rtl">
         <TabsList>
           <TabsTrigger value="assets">{ar ? 'العهد المسلمة' : 'Assigned Assets'}</TabsTrigger>
           <TabsTrigger value="training">{ar ? 'مستحقات التدريب' : 'Training Dues'}</TabsTrigger>
@@ -141,7 +140,7 @@ export const PortalCustody = () => {
         <TabsContent value="assets">
           <Card>
             <CardHeader>
-              <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+              <CardTitle className="flex items-center gap-2">
                 <Laptop className="w-5 h-5 text-primary" />{ar ? 'الأصول المعيّنة لي' : 'Assets Assigned to Me'}
               </CardTitle>
             </CardHeader>
@@ -152,12 +151,12 @@ export const PortalCustody = () => {
                 <div className="overflow-x-auto">
                 <Table className="min-w-[500px]">
                   <TableHeader><TableRow>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الكود' : 'Code'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الاسم' : 'Name'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الماركة' : 'Brand'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الموديل' : 'Model'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة الفنية' : 'Condition'}</TableHead>
-                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+                    <TableHead>{ar ? 'الكود' : 'Code'}</TableHead>
+                    <TableHead>{ar ? 'الاسم' : 'Name'}</TableHead>
+                    <TableHead>{ar ? 'الماركة' : 'Brand'}</TableHead>
+                    <TableHead>{ar ? 'الموديل' : 'Model'}</TableHead>
+                    <TableHead>{ar ? 'الحالة الفنية' : 'Condition'}</TableHead>
+                    <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
                     {assets.map(a => {
@@ -184,7 +183,7 @@ export const PortalCustody = () => {
         <TabsContent value="training">
           <Card>
             <CardHeader>
-              <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+              <CardTitle className="flex items-center gap-2">
                 <GraduationCap className="w-5 h-5 text-warning" />{ar ? 'مستحقات التدريب' : 'Training Dues'}
               </CardTitle>
             </CardHeader>
@@ -203,16 +202,15 @@ export const PortalCustody = () => {
                     return (
                       <Card key={t.id} className="border border-border/50">
                         <CardContent className="p-4 space-y-4">
-                          {/* Course info row */}
                           <div className="overflow-x-auto">
                             <Table className="min-w-[450px]">
                               <TableHeader><TableRow>
-                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الدورة' : 'Course'}</TableHead>
-                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ البداية' : 'Start'}</TableHead>
-                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تاريخ النهاية' : 'End'}</TableHead>
-                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'قيمة الدورة' : 'Value'}</TableHead>
-                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'تكاليف الدورة' : 'Costs'}</TableHead>
-                                <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الحالة' : 'Status'}</TableHead>
+                                <TableHead>{ar ? 'الدورة' : 'Course'}</TableHead>
+                                <TableHead>{ar ? 'تاريخ البداية' : 'Start'}</TableHead>
+                                <TableHead>{ar ? 'تاريخ النهاية' : 'End'}</TableHead>
+                                <TableHead>{ar ? 'قيمة الدورة' : 'Value'}</TableHead>
+                                <TableHead>{ar ? 'تكاليف الدورة' : 'Costs'}</TableHead>
+                                <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
                               </TableRow></TableHeader>
                               <TableBody>
                                 <TableRow>
@@ -227,9 +225,8 @@ export const PortalCustody = () => {
                             </Table>
                           </div>
 
-                          {/* Acknowledgment message */}
-                          <div className={cn("bg-muted/50 border border-border rounded-lg p-4", isRTL && "text-right")}>
-                            <div className={cn("flex items-center gap-2 mb-3", isRTL && "flex-row-reverse")}>
+                          <div className="bg-muted/50 border border-border rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-3">
                               <FileText className="w-4 h-4 text-primary" />
                               <h4 className="font-bold text-sm text-foreground">{ar ? 'إيصال استلام نقدية' : 'Cash Receipt Acknowledgment'}</h4>
                             </div>

@@ -3,7 +3,7 @@ import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { User, Building2, Briefcase, Mail, Phone, MapPin, CreditCard, Calendar, FileText, Shield, GraduationCap, Landmark } from 'lucide-react';
+import { User, Building2, Briefcase, Mail, Phone, CreditCard, Calendar, FileText, Shield, Landmark } from 'lucide-react';
 import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) => (
@@ -16,9 +16,7 @@ const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType; label
   </div>
 );
 
-const contractTypeMap: Record<string, string> = { permanent: 'دائم', temporary: 'مؤقت', contract: 'عقد', probation: 'فترة اختبار', part_time: 'دوام جزئي', full_time: 'دوام كامل' };
 const maritalStatusMap: Record<string, string> = { single: 'أعزب', married: 'متزوج', divorced: 'مطلق', widowed: 'أرمل' };
-const genderMap: Record<string, string> = { male: 'ذكر', female: 'أنثى' };
 const accountTypeMap: Record<string, string> = { savings: 'توفير', current: 'جاري', salary: 'راتب' };
 
 const tr = (value: string | undefined, map: Record<string, string>, isAr: boolean): string => {
@@ -28,7 +26,7 @@ const tr = (value: string | undefined, map: Record<string, string>, isAr: boolea
 };
 
 export const PortalProfile = () => {
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const ar = language === 'ar';
   const portalEmployeeId = usePortalEmployee();
   const { getEmployee } = useEmployeeData();
@@ -43,18 +41,18 @@ export const PortalProfile = () => {
 
   return (
     <div className="space-y-6">
-      <div className={cn(isRTL && "text-right")}>
+      <div>
         <h1 className="text-xl md:text-2xl font-bold">{ar ? 'ملفي الشخصي' : 'My Profile'}</h1>
         <p className="text-sm text-muted-foreground">{ar ? 'عرض معلوماتك الشخصية' : 'View your personal info'}</p>
       </div>
 
       <Card>
         <CardContent className="p-4 md:p-6">
-          <div className={cn("flex flex-col sm:flex-row items-center gap-4", isRTL && "sm:flex-row-reverse")}>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center text-xl md:text-2xl font-bold text-primary shrink-0">
               {employee.nameAr[0]}
             </div>
-            <div className={cn("text-center sm:text-start", isRTL && "sm:text-right")}>
+            <div className="text-center sm:text-start">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 <h2 className="text-lg md:text-xl font-bold">{ar ? employee.nameAr : employee.nameEn}</h2>
                 <Badge className={statusColor}>{statusLabel}</Badge>
@@ -69,7 +67,7 @@ export const PortalProfile = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><Building2 className="w-5 h-5" />{ar ? 'معلومات الوظيفة' : 'Job Information'}</CardTitle></CardHeader>
+          <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 text-lg"><Building2 className="w-5 h-5" />{ar ? 'معلومات الوظيفة' : 'Job Information'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <InfoItem icon={Building2} label={ar ? 'القسم' : 'Department'} value={employee.department} />
             <InfoItem icon={Briefcase} label={ar ? 'المسمى الوظيفي' : 'Job Title'} value={employee.jobTitle} />
@@ -79,7 +77,7 @@ export const PortalProfile = () => {
         </Card>
 
         <Card>
-          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><User className="w-5 h-5" />{ar ? 'المعلومات الشخصية' : 'Personal Information'}</CardTitle></CardHeader>
+          <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 text-lg"><User className="w-5 h-5" />{ar ? 'المعلومات الشخصية' : 'Personal Information'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <InfoItem icon={Mail} label={ar ? 'البريد الإلكتروني' : 'Email'} value={employee.email || ''} />
             <InfoItem icon={Phone} label={ar ? 'الهاتف' : 'Phone'} value={employee.phone || ''} />
@@ -87,7 +85,7 @@ export const PortalProfile = () => {
         </Card>
 
         <Card>
-          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><Landmark className="w-5 h-5" />{ar ? 'المعلومات البنكية' : 'Bank Information'}</CardTitle></CardHeader>
+          <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 text-lg"><Landmark className="w-5 h-5" />{ar ? 'المعلومات البنكية' : 'Bank Information'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <InfoItem icon={Landmark} label={ar ? 'اسم البنك' : 'Bank Name'} value={employee.bankName || ''} />
             <InfoItem icon={CreditCard} label={ar ? 'رقم الحساب' : 'Account Number'} value={employee.bankAccountNumber || ''} />
@@ -96,9 +94,8 @@ export const PortalProfile = () => {
           </CardContent>
         </Card>
 
-
         <Card>
-          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><Shield className="w-5 h-5" />{ar ? 'التأمينات الاجتماعية' : 'Social Insurance'}</CardTitle></CardHeader>
+          <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 text-lg"><Shield className="w-5 h-5" />{ar ? 'التأمينات الاجتماعية' : 'Social Insurance'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <InfoItem icon={Shield} label={ar ? 'رقم التأمين الاجتماعي' : 'Social Insurance No.'} value={employee.socialInsuranceNo || ''} />
             <InfoItem icon={Shield} label={ar ? 'بطاقة التأمين الصحي' : 'Health Insurance Card'} value={employee.healthInsuranceCardNo || ''} />
@@ -106,7 +103,7 @@ export const PortalProfile = () => {
         </Card>
 
         <Card>
-          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><User className="w-5 h-5" />{ar ? 'معلومات إضافية' : 'Additional Info'}</CardTitle></CardHeader>
+          <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 text-lg"><User className="w-5 h-5" />{ar ? 'معلومات إضافية' : 'Additional Info'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <InfoItem icon={User} label={ar ? 'الحالة الاجتماعية' : 'Marital Status'} value={tr(employee.maritalStatus, maritalStatusMap, ar)} />
             <InfoItem icon={User} label={ar ? 'عدد الأطفال' : 'Children Count'} value={String(employee.childrenCount ?? 0)} />

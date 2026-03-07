@@ -5,7 +5,6 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
 import { Lock, Bell, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,9 +18,8 @@ interface NotificationSettings {
 }
 
 export const PortalSettings = () => {
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const ar = language === 'ar';
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,7 +48,6 @@ export const PortalSettings = () => {
       toast({ title: ar ? 'خطأ' : 'Error', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: ar ? 'تم التحديث' : 'Updated', description: ar ? 'تم تغيير كلمة المرور بنجاح' : 'Password changed successfully' });
-      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     }
@@ -70,18 +67,18 @@ export const PortalSettings = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className={cn("text-2xl font-bold", isRTL && "text-right")}>{ar ? 'الإعدادات' : 'Settings'}</h1>
+      <h1 className="text-2xl font-bold">{ar ? 'الإعدادات' : 'Settings'}</h1>
 
       <Card>
-        <CardHeader><CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}><Lock className="w-5 h-5" />{ar ? 'تغيير كلمة المرور' : 'Change Password'}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Lock className="w-5 h-5" />{ar ? 'تغيير كلمة المرور' : 'Change Password'}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label className={cn(isRTL && "text-right block")}>{ar ? 'كلمة المرور الجديدة' : 'New Password'}</Label>
-            <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className={cn(isRTL && "text-right")} />
+            <Label>{ar ? 'كلمة المرور الجديدة' : 'New Password'}</Label>
+            <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label className={cn(isRTL && "text-right block")}>{ar ? 'تأكيد كلمة المرور' : 'Confirm Password'}</Label>
-            <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={cn(isRTL && "text-right")} />
+            <Label>{ar ? 'تأكيد كلمة المرور' : 'Confirm Password'}</Label>
+            <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
           </div>
           <Button onClick={handlePasswordChange} className="gap-2" disabled={loading}>
             <Check className="w-4 h-4" />
@@ -91,10 +88,10 @@ export const PortalSettings = () => {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}><Bell className="w-5 h-5" />{ar ? 'إعدادات الإشعارات' : 'Notification Settings'}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Bell className="w-5 h-5" />{ar ? 'إعدادات الإشعارات' : 'Notification Settings'}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           {notifOptions.map(s => (
-            <div key={s.key} className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+            <div key={s.key} className="flex items-center justify-between">
               <Label>{ar ? s.ar : s.en}</Label>
               <Switch checked={notifSettings[s.key]} onCheckedChange={() => toggleNotif(s.key)} />
             </div>

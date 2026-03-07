@@ -9,7 +9,7 @@ import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 
 export const PortalEvaluations = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const ar = language === 'ar';
   const { reviews } = usePerformanceData();
 
@@ -32,7 +32,7 @@ export const PortalEvaluations = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className={cn("text-2xl font-bold", isRTL && "text-right")}>{ar ? 'تقييماتي' : 'My Evaluations'}</h1>
+      <h1 className="text-2xl font-bold">{ar ? 'تقييماتي' : 'My Evaluations'}</h1>
 
       {myReviews.length === 0 ? (
         <Card><CardContent className="p-10 text-center text-muted-foreground">{ar ? 'لا توجد تقييمات' : 'No evaluations'}</CardContent></Card>
@@ -41,8 +41,8 @@ export const PortalEvaluations = () => {
           {myReviews.map(r => (
             <Card key={r.id}>
               <CardContent className="p-5">
-                <div className={cn("flex justify-between items-start", isRTL && "flex-row-reverse")}>
-                  <div className={cn(isRTL && "text-right", "space-y-1")}>
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
                     <h3 className="font-semibold text-lg">{r.quarter} {r.year}</h3>
                     <p className="text-sm text-muted-foreground">{ar ? 'المقيّم:' : 'Reviewer:'} {r.reviewer}</p>
                     <p className="text-sm text-muted-foreground">{ar ? 'التاريخ:' : 'Date:'} {r.reviewDate}</p>
