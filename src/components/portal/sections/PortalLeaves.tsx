@@ -103,6 +103,12 @@ export const PortalLeaves = () => {
     { value: 'midday', ar: 'في منتصف اليوم', en: 'Midday' },
   ];
 
+  const overtimeTypes = [
+    { value: 'holiday', ar: 'إجازة رسمية', en: 'Holiday' },
+    { value: 'weekend', ar: 'عطلة أسبوعية', en: 'Weekend' },
+    { value: 'regular', ar: 'أخرى', en: 'Other' },
+  ];
+
   const calculateDays = () => (leaveStartDate && leaveEndDate ? differenceInDays(leaveEndDate, leaveStartDate) + 1 : 0);
 
   const handleSubmitLeave = () => {
@@ -171,6 +177,28 @@ export const PortalLeaves = () => {
       } else {
         toast.error(ar ? 'حدث خطأ أثناء تقديم الطلب' : 'Error submitting request');
       }
+    }
+  };
+
+  const handleSubmitOvertime = async () => {
+    if (!otType || !otDate || !otReason) {
+      toast.error(ar ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
+      return;
+    }
+    try {
+      await addOvertimeDay({
+        employeeId: PORTAL_EMPLOYEE_ID,
+        date: format(otDate, 'yyyy-MM-dd'),
+        overtimeType: otType,
+        typeAr: overtimeTypes.find(t => t.value === otType)?.ar || '',
+        typeEn: overtimeTypes.find(t => t.value === otType)?.en || '',
+        reason: otReason,
+      });
+      toast.success(ar ? 'تم إضافة يوم العمل الإضافي بنجاح' : 'Overtime day added successfully');
+      setShowOvertimeDialog(false);
+      setOtType(''); setOtDate(undefined); setOtReason('');
+    } catch {
+      toast.error(ar ? 'حدث خطأ' : 'Error submitting');
     }
   };
 
