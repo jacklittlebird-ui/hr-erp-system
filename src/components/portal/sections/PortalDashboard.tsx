@@ -123,10 +123,13 @@ export const PortalDashboard = () => {
     });
   };
 
+  const annualCasualRemaining = leaveBalances
+    .filter(b => b.typeEn === 'Annual' || b.typeEn === 'Casual')
+    .reduce((sum, b) => sum + b.remaining, 0);
+
   const stats = [
     { icon: Clock, labelAr: 'أيام الحضور هذا الشهر', labelEn: 'Attendance Days', value: String(monthlyStats.present), gradient: 'from-blue-500 to-cyan-500', bg: 'bg-blue-50 dark:bg-blue-950/40' },
-    { icon: Calendar, labelAr: 'رصيد الإجازات', labelEn: 'Leave Balance', value: String(totalLeaveRemaining), gradient: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
-    { icon: Wallet, labelAr: 'صافي الراتب', labelEn: 'Net Salary', value: latestPayroll ? latestPayroll.netSalary.toLocaleString() : '—', gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-50 dark:bg-amber-950/40' },
+    { icon: Calendar, labelAr: 'رصيد الإجازات', labelEn: 'Leave Balance', value: String(annualCasualRemaining), gradient: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
     { icon: Star, labelAr: 'آخر تقييم', labelEn: 'Last Evaluation', value: latestEval ? `${latestEval.score}/${latestEval.maxScore}` : '—', gradient: 'from-purple-500 to-pink-500', bg: 'bg-purple-50 dark:bg-purple-950/40' },
   ];
 
@@ -239,7 +242,7 @@ export const PortalDashboard = () => {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-3 gap-3 md:gap-4">
         {stats.map((s, i) => (
           <Card key={i} className={cn("border-0 shadow-sm", s.bg)}>
             <CardContent className="p-4 md:p-5 text-center">

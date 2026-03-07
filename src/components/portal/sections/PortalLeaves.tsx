@@ -172,8 +172,8 @@ export const PortalLeaves = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h1 className="text-xl md:text-2xl font-bold">{ar ? 'الإجازات والأذونات' : 'Leaves & Permissions'}</h1>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button onClick={() => setShowPermDialog(true)} variant="outline" size="sm" className="flex-1 sm:flex-none text-xs sm:text-sm"><Clock className="w-4 h-4 me-1" />{ar ? 'طلب إذن' : 'Permission'}</Button>
           <Button onClick={() => setShowLeaveDialog(true)} size="sm" className="flex-1 sm:flex-none text-xs sm:text-sm"><Plus className="w-4 h-4 me-1" />{ar ? 'طلب إجازة' : 'Leave'}</Button>
+          <Button onClick={() => setShowPermDialog(true)} variant="outline" size="sm" className="flex-1 sm:flex-none text-xs sm:text-sm"><Clock className="w-4 h-4 me-1" />{ar ? 'طلب إذن' : 'Permission'}</Button>
         </div>
       </div>
 
@@ -211,6 +211,32 @@ export const PortalLeaves = () => {
             </Card>
           );
         })}
+
+        {/* Permission Balance Card */}
+        {(() => {
+          const permBalance = balances.find(b => b.typeEn === 'Permissions');
+          if (!permBalance) return null;
+          return (
+            <Card className={cn("border-0 shadow-sm bg-violet-50 dark:bg-violet-950/40")}>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-gradient-to-br from-violet-500 to-purple-500">
+                    <Clock className="w-5 h-5 text-white" />
+                  </div>
+                  <p className="font-semibold text-lg">{ar ? 'الأذونات' : 'Permissions'}</p>
+                </div>
+                <div className="flex justify-between mt-3 text-sm">
+                  <span className="text-muted-foreground">{ar ? 'الإجمالي' : 'Total'}: <strong>{permBalance.total}</strong></span>
+                  <span className="text-destructive">{ar ? 'مستخدم' : 'Used'}: <strong>{permBalance.used}</strong></span>
+                  <span className="text-success">{ar ? 'متبقي' : 'Left'}: <strong>{permBalance.remaining}</strong></span>
+                </div>
+                <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full" style={{ width: `${(permBalance.used / permBalance.total) * 100}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
       </div>
 
       {/* Tables */}
