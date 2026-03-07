@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { QrCode, RefreshCw, MapPin, ShieldAlert, ShieldCheck, Loader2, LogOut } from "lucide-react";
 import QRCode from "qrcode";
+import { PortalWelcomeBanner } from '@/components/portal/PortalWelcomeBanner';
 
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -216,9 +217,12 @@ const AttendanceKiosk = () => {
 
   return (
     <div
-      className="min-h-screen bg-background flex items-center justify-center p-4 font-arabic"
+      className="min-h-screen bg-background flex flex-col items-center justify-center p-4 font-arabic gap-4"
       dir={ar ? "rtl" : "ltr"}
     >
+      <div className="w-full max-w-lg">
+        <PortalWelcomeBanner />
+      </div>
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center relative">
           <Button
