@@ -83,8 +83,6 @@ export const PortalProfile = () => {
           <CardContent className="space-y-4">
             <InfoItem icon={Mail} label={ar ? 'البريد الإلكتروني' : 'Email'} value={employee.email || ''} />
             <InfoItem icon={Phone} label={ar ? 'الهاتف' : 'Phone'} value={employee.phone || ''} />
-            <InfoItem icon={MapPin} label={ar ? 'العنوان' : 'Address'} value={employee.address || ''} />
-            <InfoItem icon={CreditCard} label={ar ? 'الرقم القومي' : 'National ID'} value={employee.nationalId || ''} />
           </CardContent>
         </Card>
 
@@ -98,14 +96,6 @@ export const PortalProfile = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><FileText className="w-5 h-5" />{ar ? 'معلومات العقد' : 'Contract'}</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <InfoItem icon={FileText} label={ar ? 'نوع العقد' : 'Contract Type'} value={tr(employee.contractType, contractTypeMap, ar)} />
-            <InfoItem icon={Calendar} label={ar ? 'تاريخ الالتحاق' : 'Hire Date'} value={employee.hireDate || ''} />
-            <InfoItem icon={Calendar} label={ar ? 'تاريخ انتهاء العقد' : 'Contract End Date'} value={employee.resignationDate || ''} />
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><Shield className="w-5 h-5" />{ar ? 'التأمينات الاجتماعية' : 'Social Insurance'}</CardTitle></CardHeader>
@@ -119,8 +109,7 @@ export const PortalProfile = () => {
           <CardHeader className="pb-4"><CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}><User className="w-5 h-5" />{ar ? 'معلومات إضافية' : 'Additional Info'}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <InfoItem icon={User} label={ar ? 'الحالة الاجتماعية' : 'Marital Status'} value={tr(employee.maritalStatus, maritalStatusMap, ar)} />
-            <InfoItem icon={User} label={ar ? 'النوع' : 'Gender'} value={tr(employee.gender, genderMap, ar)} />
-            <InfoItem icon={GraduationCap} label={ar ? 'المؤهل الدراسي' : 'Education'} value={employee.educationAr || ''} />
+            <InfoItem icon={User} label={ar ? 'عدد الأطفال' : 'Children Count'} value={String(employee.childrenCount ?? 0)} />
           </CardContent>
         </Card>
       </div>
