@@ -93,6 +93,23 @@ const LeaveForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
       toast({ title: t('leaves.form.error'), description: t('leaves.form.fillAllFields'), variant: 'destructive' });
       return;
     }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Annual leave: must be future date
+    if (leaveType === 'annual' && startDate < tomorrow) {
+      toast({ title: t('leaves.form.error'), description: isRTL ? 'الإجازة السنوية لا يمكن طلبها في نفس اليوم أو قبله' : 'Annual leave must start from tomorrow or later', variant: 'destructive' });
+      return;
+    }
+
+    // Sick leave warning
+    if (leaveType === 'sick') {
+      toast({ title: isRTL ? 'تنبيه' : 'Warning', description: isRTL ? 'بدون إرسال تقرير طبي معتمد من التأمين الصحي فلن تُقبل الإجازة المرضية' : 'Sick leave will not be accepted without an approved medical report from health insurance' });
+    }
+
     const emp = allEmployees.find((e: any) => e.employeeId === employeeId);
     onSubmit({
       employeeId,
@@ -122,8 +139,6 @@ const LeaveForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
               <SelectItem value="sick">{t('leaves.types.sick')}</SelectItem>
               <SelectItem value="casual">{t('leaves.types.casual')}</SelectItem>
               <SelectItem value="unpaid">{t('leaves.types.unpaid')}</SelectItem>
-              <SelectItem value="maternity">{t('leaves.types.maternity')}</SelectItem>
-              <SelectItem value="paternity">{t('leaves.types.paternity')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
