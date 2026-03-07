@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -29,6 +29,7 @@ interface Employee {
   jobFunctions: string[];
   jobTitleAr: string;
   jobTitleEn: string;
+  avatar?: string;
 }
 
 interface TrainingRecord {
@@ -125,6 +126,7 @@ export const TrainingRecords = () => {
     jobFunctions: (emp as any).deptCode ? [(emp as any).deptCode] : [],
     jobTitleAr: (emp as any).jobTitleAr || '',
     jobTitleEn: (emp as any).jobTitleEn || '',
+    avatar: emp.avatar || undefined,
   })), [contextEmployees]);
 
   // Fetch training records from DB when employee is selected
@@ -332,7 +334,10 @@ export const TrainingRecords = () => {
             <Card>
               <CardContent className="p-6">
                 <div className="flex gap-6">
-                  <Avatar className="w-24 h-24"><AvatarFallback className="text-2xl">{selectedEmployee.nameEn.charAt(0)}</AvatarFallback></Avatar>
+                  <Avatar className="w-24 h-24">
+                    {selectedEmployee.avatar && <AvatarImage src={selectedEmployee.avatar} alt={selectedEmployee.nameEn} />}
+                    <AvatarFallback className="text-2xl">{selectedEmployee.nameEn.charAt(0)}</AvatarFallback>
+                  </Avatar>
                   <div className="flex-1 space-y-4">
                     <div>
                       <h2 className="text-2xl font-bold">{ar ? selectedEmployee.nameAr : selectedEmployee.nameEn}</h2>
@@ -343,7 +348,6 @@ export const TrainingRecords = () => {
                       <div><span className="text-muted-foreground">{t('training.station')}: </span><span className="font-medium">{selectedEmployee.station}</span></div>
                       <div><span className="text-muted-foreground">{t('training.hireDate')}: </span><span className="font-medium">{selectedEmployee.hireDate}</span></div>
                       <div><span className="text-muted-foreground">{t('training.mobile')}: </span><span className="font-medium">{selectedEmployee.mobile}</span></div>
-                      <div><span className="text-muted-foreground">{ar ? 'القسم' : 'Department'}: </span><span className="font-medium">{selectedEmployee.department}</span></div>
                       <div><span className="text-muted-foreground">{ar ? 'الوظيفة' : 'Job Title'}: </span><span className="font-medium">{ar ? selectedEmployee.jobTitleAr : selectedEmployee.jobTitleEn || '-'}</span></div>
                     </div>
                     <div>
