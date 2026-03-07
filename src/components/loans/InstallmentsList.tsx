@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, CheckCircle, Clock, AlertCircle, Calendar, DollarSign } from 'lucide-react';
+import { Search, CheckCircle, Clock, AlertCircle, Calendar, Banknote } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -91,8 +91,8 @@ export const InstallmentsList = () => {
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">{t('loans.installments.paidCount')}</p><p className="text-2xl font-bold">{stats.paidInstallments}</p></div><CheckCircle className="h-8 w-8 text-green-500" /></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">{t('loans.installments.pendingCount')}</p><p className="text-2xl font-bold">{stats.pendingInstallments}</p></div><Clock className="h-8 w-8 text-yellow-500" /></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">{t('loans.installments.overdueCount')}</p><p className="text-2xl font-bold">{stats.overdueInstallments}</p></div><AlertCircle className="h-8 w-8 text-red-500" /></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">{t('loans.installments.paidAmount')}</p><p className="text-2xl font-bold">{stats.totalPaidAmount.toLocaleString()}</p></div><DollarSign className="h-8 w-8 text-green-500" /></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">{t('loans.installments.pendingAmount')}</p><p className="text-2xl font-bold">{stats.totalPendingAmount.toLocaleString()}</p></div><DollarSign className="h-8 w-8 text-yellow-500" /></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">{t('loans.installments.paidAmount')}</p><p className="text-2xl font-bold">{stats.totalPaidAmount.toLocaleString()}</p></div><Banknote className="h-8 w-8 text-green-500" /></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">{t('loans.installments.pendingAmount')}</p><p className="text-2xl font-bold">{stats.totalPendingAmount.toLocaleString()}</p></div><Banknote className="h-8 w-8 text-yellow-500" /></div></CardContent></Card>
       </div>
 
       <Card>
