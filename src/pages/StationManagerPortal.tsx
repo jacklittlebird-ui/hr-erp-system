@@ -772,7 +772,7 @@ const StationManagerPortal = () => {
 
           {/* Evaluations Tab - with inner tabs */}
           <TabsContent value="evaluations">
-            <Tabs value={evalInnerTab} onValueChange={setEvalInnerTab} className="space-y-4">
+            <Tabs value={evalInnerTab} onValueChange={setEvalInnerTab} className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
               <div className="flex justify-end">
                 <TabsList className="inline-grid grid-cols-3" dir="rtl">
                   <TabsTrigger value="dashboard" className="text-xs md:text-sm gap-1"><BarChart3 className="h-3.5 w-3.5" /><span className="hidden sm:inline">{t('لوحة التحكم', 'Dashboard')}</span></TabsTrigger>
