@@ -787,7 +787,7 @@ const StationManagerPortal = () => {
                   {/* Year/Quarter filter */}
                   <Card>
                     <CardContent className="p-4">
-                      <div className="flex items-end gap-4 flex-wrap justify-end">
+                      <div className="flex items-end gap-4 flex-wrap" dir="rtl">
                         <div className="space-y-1">
                           <Label className="text-xs">{t('السنة', 'Year')}</Label>
                           <Select value={newEvalYear} onValueChange={setNewEvalYear}>
@@ -857,7 +857,7 @@ const StationManagerPortal = () => {
                   {/* Department Breakdown */}
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-base justify-end">
+                      <CardTitle className="flex items-center gap-2 text-base">
                         <Building2 className="w-5 h-5 text-primary" />
                         {t('حالة التقييم حسب القسم', 'Evaluation Status by Department')}
                       </CardTitle>
@@ -896,7 +896,7 @@ const StationManagerPortal = () => {
                   {/* Employee selection with green/gray indicators */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-base justify-end">
+                      <CardTitle className="flex items-center gap-2 text-base">
                         <Users className="w-5 h-5 text-primary" />
                         {t('اختيار الموظف', 'Select Employee')}
                       </CardTitle>
@@ -1007,7 +1007,7 @@ const StationManagerPortal = () => {
                   {/* Criteria */}
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-base justify-end">
+                      <CardTitle className="flex items-center gap-2 text-base">
                         <Target className="w-4 h-4 text-primary" />
                         {t('معايير التقييم', 'Evaluation Criteria')}
                       </CardTitle>
