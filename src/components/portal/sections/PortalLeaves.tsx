@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { Calendar, Plus, Clock, CalendarIcon, Palmtree, HeartPulse, Umbrella } from 'lucide-react';
+import { Calendar, Plus, Clock, CalendarIcon, Palmtree, HeartPulse, Umbrella, CalendarPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInDays } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,9 +23,10 @@ export const PortalLeaves = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language } = useLanguage();
   const ar = language === 'ar';
-  const { getLeaveBalances, getLeaveRequests, addLeaveRequest, getPermissions, addPermission } = usePortalData();
+  const { getLeaveBalances, getLeaveRequests, addLeaveRequest, getPermissions, addPermission, getOvertimeDays, addOvertimeDay } = usePortalData();
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [showPermDialog, setShowPermDialog] = useState(false);
+  const [showOvertimeDialog, setShowOvertimeDialog] = useState(false);
 
   // Leave form state
   const [leaveType, setLeaveType] = useState('');

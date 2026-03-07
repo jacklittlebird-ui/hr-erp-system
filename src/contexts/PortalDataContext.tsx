@@ -389,7 +389,8 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       date: req.date,
       hours: 8,
       reason: req.reason,
-    });
+      overtime_type: req.overtimeType,
+    } as any);
     await fetchAll();
   }, [fetchAll]);
 
