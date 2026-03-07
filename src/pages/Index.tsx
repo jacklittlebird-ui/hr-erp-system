@@ -46,10 +46,9 @@ const Index = () => {
   const fetchStats = async () => {
     setLoading(true);
     const today = new Date().toISOString().split('T')[0];
-    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
     const currentYear = new Date().getFullYear().toString();
 
-    const [empRes, deptRes, attRes, leaveRes, assetRes, courseRes, perfRes, loanRes, payrollRes] = await Promise.all([
+    const [empRes, deptRes, attRes, leaveRes, assetRes, courseRes, perfRes, loanRes] = await Promise.all([
       supabase.from('employees').select('id, status'),
       supabase.from('departments').select('id').eq('is_active', true),
       supabase.from('attendance_records').select('id').eq('date', today),
@@ -58,7 +57,6 @@ const Index = () => {
       supabase.from('planned_courses').select('id').in('status', ['planned', 'in_progress']),
       supabase.from('performance_reviews').select('id').eq('year', currentYear),
       supabase.from('loans').select('id').eq('status', 'active'),
-      supabase.from('payroll_entries').select('net_salary').eq('year', currentYear).eq('month', currentMonth),
     ]);
 
     const totalActive = empRes.data?.filter(e => e.status === 'active').length || 0;
