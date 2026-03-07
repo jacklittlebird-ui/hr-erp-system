@@ -507,6 +507,48 @@ export const PortalLeaves = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Overtime Dialog */}
+      <Dialog open={showOvertimeDialog} onOpenChange={setShowOvertimeDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader><DialogTitle>{ar ? 'إضافة يوم عمل إضافي' : 'Add Overtime Day'}</DialogTitle></DialogHeader>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{ar ? 'نوع الإضافة' : 'Overtime Type'} <span className="text-destructive">*</span></Label>
+                <Select value={otType} onValueChange={setOtType}>
+                  <SelectTrigger><SelectValue placeholder={ar ? 'اختر النوع' : 'Select type'} /></SelectTrigger>
+                  <SelectContent>
+                    {overtimeTypes.map(t => <SelectItem key={t.value} value={t.value}>{ar ? t.ar : t.en}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? 'التاريخ' : 'Date'} <span className="text-destructive">*</span></Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start font-normal", !otDate && "text-muted-foreground")}>
+                      <CalendarIcon className="me-2 h-4 w-4" />
+                      {otDate ? format(otDate, 'yyyy/MM/dd') : (ar ? 'اختر التاريخ' : 'Pick a date')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-50" align="start">
+                    <CalendarComponent mode="single" selected={otDate} onSelect={setOtDate} initialFocus className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{ar ? 'السبب' : 'Reason'} <span className="text-destructive">*</span></Label>
+              <Textarea value={otReason} onChange={e => setOtReason(e.target.value)} placeholder={ar ? 'أدخل السبب' : 'Enter reason'} rows={4} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowOvertimeDialog(false)}>{ar ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleSubmitOvertime}>{ar ? 'إضافة' : 'Add'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
