@@ -37,8 +37,18 @@ export const PortalLeaves = () => {
   const [permType, setPermType] = useState('');
   const [permDate, setPermDate] = useState<Date>();
   const [permFrom, setPermFrom] = useState('');
-  const [permTo, setPermTo] = useState('');
+  const [permDuration, setPermDuration] = useState('');
   const [permReason, setPermReason] = useState('');
+
+  const calcPermTo = (from: string, duration: string) => {
+    if (!from || !duration) return '';
+    const [h, m] = from.split(':').map(Number);
+    const totalMin = h * 60 + m + Number(duration) * 60;
+    const eH = Math.floor(totalMin / 60) % 24;
+    const eM = totalMin % 60;
+    return `${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}`;
+  };
+  const permTo = calcPermTo(permFrom, permDuration);
 
   const balances = useMemo(() => getLeaveBalances(PORTAL_EMPLOYEE_ID), [getLeaveBalances]);
   const requests = useMemo(() => getLeaveRequests(PORTAL_EMPLOYEE_ID), [getLeaveRequests]);
@@ -130,19 +140,8 @@ export const PortalLeaves = () => {
   };
 
   const handleSubmitPerm = async () => {
-    if (!permType || !permDate || !permFrom || !permTo || !permReason) {
+    if (!permType || !permDate || !permFrom || !permDuration || !permReason) {
       toast.error(ar ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
-      return;
-    }
-    const [fH, fM] = permFrom.split(':').map(Number);
-    const [tH, tM] = permTo.split(':').map(Number);
-    const durationHours = Math.max(0, (tH * 60 + tM - fH * 60 - fM) / 60);
-    if (durationHours > 2) {
-      toast.error(ar ? 'الحد الأقصى للإذن ساعتان' : 'Maximum permission duration is 2 hours');
-      return;
-    }
-    if (durationHours < 0.5) {
-      toast.error(ar ? 'الحد الأدنى للإذن نصف ساعة' : 'Minimum permission duration is 30 minutes');
       return;
     }
     const t = permTypes.find(p => p.value === permType);
@@ -158,7 +157,7 @@ export const PortalLeaves = () => {
       });
       toast.success(ar ? 'تم تقديم طلب الإذن بنجاح' : 'Permission request submitted');
       setShowPermDialog(false);
-      setPermType(''); setPermDate(undefined); setPermFrom(''); setPermTo(''); setPermReason('');
+      setPermType(''); setPermDate(undefined); setPermFrom(''); setPermDuration(''); setPermReason('');
     } catch (err: any) {
       if (err.message === 'LEAVE_CONFLICT') {
         toast.error(ar ? 'لا يمكن طلب إذن في يوم به إجازة مسجلة بالفعل' : 'Cannot request permission on a day with an existing leave request');
@@ -381,12 +380,22 @@ export const PortalLeaves = () => {
                 </Popover>
               </div>
               <div className="space-y-2">
-                <Label>{ar ? 'من الساعة' : 'From Time'} <span className="text-destructive">*</span></Label>
+                <Label>{ar ? 'مدة الإذن' : 'Duration'} <span className="text-destructive">*</span></Label>
+                <Select value={permDuration} onValueChange={setPermDuration}>
+                  <SelectTrigger><SelectValue placeholder={ar ? 'اختر المدة' : 'Select duration'} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">{ar ? 'ساعة' : '1 Hour'}</SelectItem>
+                    <SelectItem value="2">{ar ? 'ساعتين' : '2 Hours'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? 'وقت البداية' : 'Start Time'} <span className="text-destructive">*</span></Label>
                 <Input type="time" value={permFrom} onChange={e => setPermFrom(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>{ar ? 'إلى الساعة' : 'To Time'} <span className="text-destructive">*</span></Label>
-                <Input type="time" value={permTo} onChange={e => setPermTo(e.target.value)} />
+                <Label>{ar ? 'وقت النهاية' : 'End Time'}</Label>
+                <Input value={permTo || '—'} readOnly className="bg-muted" />
               </div>
             </div>
             <div className="space-y-2">
