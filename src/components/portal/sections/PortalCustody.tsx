@@ -233,7 +233,7 @@ export const PortalCustody = () => {
                             <p className="text-sm leading-7 text-muted-foreground whitespace-pre-wrap">
                               {ar ? (
                                 <>
-                                  أقر وأتعهد أنا <strong className="text-foreground">{employeeName}</strong> أنني استلمت مبلغ <strong className="text-primary">{t.totalCost.toLocaleString()}</strong> جنيه وذلك لرغبتي في الحصول على دورة تدريبية <strong className="text-primary">{courseName}</strong> والمقامة في الفترة من <strong>{t.startDate}</strong> وحتى <strong>{t.endDate}</strong> والمقامة في <strong>{t.provider}</strong>
+                                  قد أقريت وتعهدت أنا <strong className="text-foreground">{employeeName}</strong> أنني استلمت مبلغ <strong className="text-primary">{t.totalCost.toLocaleString()}</strong> جنيه وذلك لرغبتي في الحصول على دورة تدريبية <strong className="text-primary">{courseName}</strong> والمقامة في الفترة من <strong>{t.startDate}</strong> وحتى <strong>{t.endDate}</strong> والمقامة في <strong>{t.provider}</strong>
 
 وهذا المبلغ يمثل قيمة مصروفات الدورة المذكورة، وأقر بأنني قد تسلمت المبلغ المذكور من شركة لينك أيرو تريدنج إجنسي على سبيل الأمانة، ومستعد لرده فوراً حين طلب الشركة له وذلك في حالة تركي للعمل بالشركة قبل انقضاء <strong className="text-primary">{yearsLabel}</strong> من تاريخ انتهاء الدورة. وهذا إقرار مني باستلام المبلغ. مع كامل علمي بأحكام القوانين المنظمة لخيانة الأمانة وهذا إقرار مني بذلك.
                                 </>
