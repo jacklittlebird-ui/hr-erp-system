@@ -609,24 +609,78 @@ const Employees = () => {
 
   const downloadTemplate = () => {
     const headersAr = [
+      // المعلومات الأساسية
       'كود الموظف', 'الاسم (عربي)', 'الاسم (انجليزي)', 'الاسم الأول', 'اسم الأب', 'اسم العائلة',
+      'محطة العمل', 'تاريخ الميلاد', 'محل الميلاد', 'محافظة الميلاد',
+      'الجنس', 'الديانة', 'الجنسية', 'الحالة الاجتماعية', 'عدد الأطفال', 'المؤهل', 'سنة التخرج',
+      // بيانات الاتصال
       'الهاتف', 'البريد الإلكتروني', 'هاتف المنزل',
-      'الرقم القومي', 'تاريخ الميلاد', 'محل الميلاد', 'الجنس', 'الديانة', 'الجنسية',
-      'الحالة الاجتماعية', 'عدد الأطفال', 'المؤهل', 'سنة التخرج',
-      'العنوان', 'المدينة', 'المحافظة', 'الموقف من التجنيد',
-      'نوع العقد', 'تاريخ التعيين', 'الوظيفة', 'الراتب الأساسي',
-      'رقم التأمين الاجتماعي', 'رقم بطاقة التأمين الصحي',
-      'اسم البنك', 'رقم الحساب البنكي', 'ملاحظات',
+      'العنوان', 'المدينة', 'المحافظة',
+      'اسم جهة اتصال الطوارئ 1', 'موبايل جهة اتصال الطوارئ 1',
+      'اسم جهة اتصال الطوارئ 2', 'موبايل جهة اتصال الطوارئ 2',
+      // الهوية
+      'الرقم القومي', 'تاريخ إصدار البطاقة', 'تاريخ انتهاء البطاقة',
+      'جهة الإصدار', 'محافظة الإصدار', 'الموقف من التجنيد',
+      // البيانات الوظيفية
+      'القسم (كود)', 'الوظيفة (عربي)', 'الوظيفة (انجليزي)',
+      'الدرجة الوظيفية', 'المستوى الوظيفي', 'تاريخ التعيين', 'جهة التعيين',
+      'الحالة الوظيفية', 'مستقيل', 'تاريخ الاستقالة', 'سبب الاستقالة',
+      // التأمينات
+      'رقم التأمين الاجتماعي', 'تاريخ بداية التأمين', 'تاريخ نهاية التأمين',
+      'رقم بطاقة التأمين الصحي', 'تأمين صحي', 'تأمين صحي حكومي', 'تأمينات اجتماعية',
+      'نوع العقد',
+      // التصاريح
+      'تصريح مطار القاهرة مؤقت', 'رقم التصريح المؤقت',
+      'تصريح مطار القاهرة سنوي', 'رقم التصريح السنوي',
+      'تصريح المطارات مؤقت', 'رقم تصريح المطارات المؤقت',
+      'تصريح المطارات سنوي', 'رقم تصريح المطارات السنوي',
+      'نوع تصريح المطارات', 'اسم التصريح (انجليزي)', 'اسم التصريح (عربي)',
+      // الشهادات
+      'شهادة مؤهل', 'شهادة خدمة عسكرية', 'شهادة ميلاد', 'صورة بطاقة',
+      'تعهد', 'عقد', 'إيصال', 'مرفقات',
+      // الراتب والبنك
+      'الراتب الأساسي', 'اسم البنك', 'رقم الحساب البنكي', 'رقم ID البنكي', 'نوع الحساب البنكي',
+      // كود القسم
+      'كود القسم',
+      // ملاحظات
+      'ملاحظات',
     ];
     const headersEn = [
+      // Basic Info
       'Employee ID', 'Name (AR)', 'Name (EN)', 'First Name', 'Father Name', 'Family Name',
+      'Station Location', 'Birth Date', 'Birth Place', 'Birth Governorate',
+      'Gender', 'Religion', 'Nationality', 'Marital Status', 'Children', 'Education', 'Graduation Year',
+      // Contact
       'Phone', 'Email', 'Home Phone',
-      'National ID', 'Birth Date', 'Birth Place', 'Gender', 'Religion', 'Nationality',
-      'Marital Status', 'Children', 'Education', 'Graduation Year',
-      'Address', 'City', 'Governorate', 'Military Status',
-      'Contract Type', 'Hire Date', 'Job Title', 'Basic Salary',
-      'Social Insurance No', 'Health Insurance Card',
-      'Bank Name', 'Bank Account', 'Notes',
+      'Address', 'City', 'Governorate',
+      'Emergency Contact Name 1', 'Emergency Contact Mobile 1',
+      'Emergency Contact Name 2', 'Emergency Contact Mobile 2',
+      // Identity
+      'National ID', 'ID Issue Date', 'ID Expiry Date',
+      'Issuing Authority', 'Issuing Governorate', 'Military Status',
+      // Job Info
+      'Department Code', 'Job Title (AR)', 'Job Title (EN)',
+      'Job Degree', 'Job Level', 'Hire Date', 'Recruited By',
+      'Employment Status', 'Resigned', 'Resignation Date', 'Resignation Reason',
+      // Insurance
+      'Social Insurance No', 'Social Insurance Start Date', 'Social Insurance End Date',
+      'Health Insurance Card No', 'Has Health Insurance', 'Has Gov Health Insurance', 'Has Social Insurance',
+      'Contract Type',
+      // Permits
+      'Cairo Airport Temp Permit', 'Temp Permit No',
+      'Cairo Airport Annual Permit', 'Annual Permit No',
+      'Airports Temp Permit', 'Airports Temp Permit No',
+      'Airports Annual Permit', 'Airports Annual Permit No',
+      'Airports Permit Type', 'Permit Name (EN)', 'Permit Name (AR)',
+      // Certificates
+      'Qualification Cert', 'Military Service Cert', 'Birth Cert', 'ID Copy',
+      'Pledge', 'Contract Doc', 'Receipt', 'Attachments',
+      // Salary & Bank
+      'Basic Salary', 'Bank Name', 'Bank Account', 'Bank ID Number', 'Bank Account Type',
+      // Dept Code
+      'Dept Code',
+      // Notes
+      'Notes',
     ];
     const headers = ar ? headersAr : headersEn;
     const tableHtml = `
