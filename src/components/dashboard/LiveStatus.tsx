@@ -36,7 +36,7 @@ export const LiveStatus = () => {
 
   return (
     <div className="mb-6">
-      <h2 className={cn("text-lg font-bold text-foreground mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
+      <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
         <span className="relative flex h-3 w-3">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
@@ -45,14 +45,11 @@ export const LiveStatus = () => {
       </h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {items.map((item, i) => (
-          <div key={i} className={cn(
-            "flex items-center gap-3 p-4 rounded-xl border border-border/50 bg-card",
-            isRTL && "flex-row-reverse"
-          )}>
+          <div key={i} className="flex items-center gap-3 p-4 rounded-xl border border-border/50 bg-card">
             <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", item.bg)}>
               <item.icon className={cn("w-5 h-5", item.color)} />
             </div>
-            <div className={cn(isRTL && "text-right")}>
+            <div>
               <p className="text-2xl font-bold text-foreground">{item.value}</p>
               <p className="text-xs text-muted-foreground">{item.label}</p>
             </div>

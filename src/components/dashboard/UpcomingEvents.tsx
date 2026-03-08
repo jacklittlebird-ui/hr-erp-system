@@ -47,7 +47,7 @@ export const UpcomingEvents = () => {
 
   return (
     <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
-      <div className={cn("flex items-center gap-2 p-4 border-b border-border/50", isRTL && "flex-row-reverse")}>
+      <div className="flex items-center gap-2 p-4 border-b border-border/50">
         <Calendar className="w-5 h-5 text-primary" />
         <h3 className="font-semibold text-foreground">{ar ? 'الأحداث القادمة' : 'Upcoming Events'}</h3>
       </div>
@@ -58,11 +58,11 @@ export const UpcomingEvents = () => {
           const cfg = typeConfig[ev.type];
           const Icon = cfg.icon;
           return (
-            <div key={ev.id} className={cn("flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors", isRTL && "flex-row-reverse")}>
+             <div key={ev.id} className="flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors">
               <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", cfg.bg)}>
                 <Icon className={cn("w-4 h-4", cfg.color)} />
               </div>
-              <div className={cn("flex-1 min-w-0", isRTL && "text-right")}>
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
                 <p className="text-xs text-muted-foreground">
                   {new Date(ev.date).toLocaleDateString(ar ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
