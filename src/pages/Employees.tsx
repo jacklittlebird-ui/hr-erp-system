@@ -472,7 +472,7 @@ const Employees = () => {
       } else {
         if (ch === '"') {
           inQuotes = true;
-        } else if (ch === '\t' || ch === ',') {
+        } else if (ch === '\t' || ch === ',' || ch === ';') {
           result.push(current.trim());
           current = '';
         } else {
