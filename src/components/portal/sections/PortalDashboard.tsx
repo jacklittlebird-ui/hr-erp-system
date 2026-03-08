@@ -280,15 +280,15 @@ export const PortalDashboard = () => {
         {/* Leave Balances */}
         <Card className="border-0 shadow-sm bg-sky-50 dark:bg-sky-950/40">
           <CardContent className="p-5">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex flex-row-reverse items-center gap-3 mb-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-gradient-to-br from-sky-500 to-blue-500">
                 <Calendar className="w-5 h-5 text-white" />
               </div>
-              <h3 className="font-semibold">{ar ? 'أرصدة الإجازات' : 'Leave Balances'}</h3>
+              <h3 className="font-semibold text-right">{ar ? 'أرصدة الإجازات' : 'Leave Balances'}</h3>
             </div>
             <div className="space-y-2">
               {leaveBalances.map((b, i) => (
-                <div key={i} className="flex justify-between text-sm">
+                <div key={i} className="flex flex-row-reverse justify-between text-sm">
                   <span className="text-muted-foreground">{ar ? b.typeAr : b.typeEn}</span>
                   <span className="font-medium">{b.remaining}/{b.total}</span>
                 </div>
