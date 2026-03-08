@@ -29,6 +29,17 @@ const Employees = () => {
 
   const ar = isRTL;
 
+  const handleDeleteEmployee = async (employeeId: string) => {
+    try {
+      const { error } = await supabase.from('employees').delete().eq('id', employeeId);
+      if (error) throw error;
+      toast({ title: ar ? 'تم حذف الموظف بنجاح' : 'Employee deleted successfully' });
+      refreshEmployees();
+    } catch (err: any) {
+      toast({ title: ar ? 'فشل حذف الموظف' : 'Failed to delete employee', description: err.message, variant: 'destructive' });
+    }
+  };
+
   const getStationLabel = (val?: string) => {
     if (!val) return '-';
     const s = stationLocations.find(s => s.value === val);
@@ -1001,7 +1012,7 @@ const Employees = () => {
         <EmployeeStatsCards total={counts.all} active={counts.active} departments={departments} newThisMonth={1} />
         <EmployeeFilters searchQuery={searchQuery} onSearchChange={setSearchQuery} activeFilter={activeFilter} onFilterChange={setActiveFilter} counts={counts} />
         <div ref={reportRef}>
-          <EmployeeTable employees={filteredEmployees} />
+          <EmployeeTable employees={filteredEmployees} onDelete={handleDeleteEmployee} />
         </div>
       </div>
       <AddEmployeeDialog open={showAddDialog} onClose={() => setShowAddDialog(false)} />

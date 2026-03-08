@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { useNavigate } from 'react-router-dom';
@@ -12,17 +13,29 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Trash2, Edit, Eye, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { stationLocations } from '@/data/stationLocations';
 
 interface EmployeeTableProps {
   employees: Employee[];
+  onDelete?: (employeeId: string) => void;
 }
 
-export const EmployeeTable = ({ employees }: EmployeeTableProps) => {
+export const EmployeeTable = ({ employees, onDelete }: EmployeeTableProps) => {
   const { t, isRTL, language } = useLanguage();
   const navigate = useNavigate();
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
 
   const getInitials = (name: string) => {
     return name
@@ -138,6 +151,8 @@ export const EmployeeTable = ({ employees }: EmployeeTableProps) => {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setDeleteTarget(employee)}
+                    title={language === 'ar' ? 'حذف' : 'Delete'}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -165,6 +180,35 @@ export const EmployeeTable = ({ employees }: EmployeeTableProps) => {
           ))}
         </TableBody>
       </Table>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === 'ar' ? 'تأكيد حذف الموظف' : 'Confirm Employee Deletion'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === 'ar'
+                ? `هل أنت متأكد من حذف الموظف "${deleteTarget?.nameAr}"؟ لا يمكن التراجع عن هذا الإجراء.`
+                : `Are you sure you want to delete "${deleteTarget?.nameEn}"? This action cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={cn(isRTL && "flex-row-reverse")}>
+            <AlertDialogCancel>{language === 'ar' ? 'إلغاء' : 'Cancel'}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTarget && onDelete) {
+                  onDelete(deleteTarget.id);
+                }
+                setDeleteTarget(null);
+              }}
+            >
+              {language === 'ar' ? 'حذف' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
