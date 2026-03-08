@@ -966,7 +966,7 @@ const Employees = () => {
       <input
         type="file"
         ref={fileInputRef}
-        accept=".xls,.xlsx"
+        accept=".csv,.xls,.xlsx"
         className="hidden"
         onChange={handleFileChange}
       />
