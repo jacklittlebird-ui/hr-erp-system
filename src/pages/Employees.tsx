@@ -465,9 +465,16 @@ const Employees = () => {
   };
 
   // Parse HTML table (from .xls template/export)
-  const parseHtmlTable = (html: string): { headers: string[]; rows: string[][] } => {
+  const parseHtmlTable = (html: string): { headers: string[]; rows: string[][]; isFrameset?: boolean } => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
+    
+    // Detect Excel-saved frameset format (data is in external file, not inline)
+    const frameset = doc.querySelector('frameset');
+    if (frameset) {
+      return { headers: [], rows: [], isFrameset: true };
+    }
+    
     const table = doc.querySelector('table');
     if (!table) return { headers: [], rows: [] };
     const allRows = Array.from(table.querySelectorAll('tr'));
