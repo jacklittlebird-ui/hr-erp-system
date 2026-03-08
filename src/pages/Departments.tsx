@@ -133,11 +133,14 @@ const Departments = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="bg-primary rounded-xl p-6">
-          <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+           <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
             <div>
               <h1 className="text-2xl font-bold text-primary-foreground">{t('departmentsPage.title')}</h1>
               <p className="text-primary-foreground/70 mt-1">{t('departmentsPage.subtitle')}</p>
             </div>
+            <Button variant="secondary" size="icon" onClick={fetchDepartments}>
+              <RefreshCw className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
