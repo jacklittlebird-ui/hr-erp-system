@@ -2,7 +2,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { cn } from '@/lib/utils';
-import { Menu, Globe, User, LogOut } from 'lucide-react';
+import { Menu, Globe, User, LogOut, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
