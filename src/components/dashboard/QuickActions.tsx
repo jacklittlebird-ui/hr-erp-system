@@ -24,7 +24,7 @@ export const QuickActions = () => {
 
   return (
     <div className="mb-6">
-      <h2 className={cn("text-lg font-bold text-foreground mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
+      <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
         ⚡ {ar ? 'إجراءات سريعة' : 'Quick Actions'}
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
