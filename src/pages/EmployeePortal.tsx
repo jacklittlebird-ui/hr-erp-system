@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TrainingAcknowledgmentModal } from '@/components/portal/TrainingAcknowledgmentModal';
+import { SystemUsageAcknowledgmentModal } from '@/components/portal/SystemUsageAcknowledgmentModal';
 import { cn } from '@/lib/utils';
 import { PortalSidebar } from '@/components/portal/PortalSidebar';
 import { PortalHeader } from '@/components/portal/PortalHeader';
@@ -56,6 +57,7 @@ const EmployeePortal = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [ackDismissed, setAckDismissed] = useState(false);
+  const [systemAckDismissed, setSystemAckDismissed] = useState(false);
 
   // Pull-to-refresh
   const mainRef = useRef<HTMLDivElement>(null);
@@ -107,7 +109,8 @@ const EmployeePortal = () => {
 
   return (
     <>
-      {!ackDismissed && <TrainingAcknowledgmentModal onAllAcknowledged={() => setAckDismissed(true)} />}
+      {!systemAckDismissed && <SystemUsageAcknowledgmentModal onAcknowledged={() => setSystemAckDismissed(true)} />}
+      {systemAckDismissed && !ackDismissed && <TrainingAcknowledgmentModal onAllAcknowledged={() => setAckDismissed(true)} />}
       <div dir="rtl" className="min-h-screen bg-background flex flex-row-reverse font-arabic">
       <div className="flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden">
         <PortalHeader onToggleSidebar={() => {
