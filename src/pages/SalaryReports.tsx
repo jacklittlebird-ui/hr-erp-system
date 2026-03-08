@@ -20,7 +20,7 @@ const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
 const SalaryReports = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
-  const { payrollEntries } = usePayrollData();
+  const { payrollEntries, refreshPayroll } = usePayrollData();
   const { reportRef, handlePrint, exportToCSV, exportToPDF, exportBilingualPDF, exportBilingualCSV } = useReportExport();
 
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));

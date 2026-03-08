@@ -68,7 +68,7 @@ const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
 const StationManagerPortal = () => {
   const { user, logout } = useAuth();
   const { language, setLanguage, isRTL } = useLanguage();
-  const { employees } = useEmployeeData();
+  const { employees, refreshEmployees } = useEmployeeData();
   const { reviews, addReview, updateReview } = usePerformanceData();
   const { addNotification } = useNotifications();
   const navigate = useNavigate();

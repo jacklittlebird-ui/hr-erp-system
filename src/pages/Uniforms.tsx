@@ -24,7 +24,7 @@ import { stationLocations } from '@/data/stationLocations';
 const Uniforms = () => {
   const { language, isRTL, t } = useLanguage();
   const { employees } = useEmployeeData();
-  const { uniforms, addUniform, deleteUniform, updateUniform } = useUniformData();
+  const { uniforms, addUniform, deleteUniform, updateUniform, refreshUniforms } = useUniformData();
   const { reportRef, handlePrint, exportToCSV } = useReportExport();
 
   const [employeeId, setEmployeeId] = useState(''); // This stores employee code for display
