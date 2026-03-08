@@ -6,7 +6,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
   LayoutDashboard, User, Clock, Calendar, Wallet, HandCoins,
   Star, GraduationCap, Package, FileText, MapPin, Ban,
-  ClipboardList, Bell, Settings, ChevronRight, ChevronLeft, Shirt,
+  ClipboardList, Bell, Settings, PanelLeftClose, PanelLeftOpen, Shirt,
 } from 'lucide-react';
 
 interface SidebarGroup {
@@ -86,36 +86,36 @@ interface PortalSidebarProps {
 }
 
 export const PortalSidebar = ({ activeSection, onSectionChange, collapsed, onToggleCollapse, mobileOpen, onMobileOpenChange }: PortalSidebarProps) => {
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const isMobile = useIsMobile();
-
-  // Portal is always RTL
-  const CollapseIcon = collapsed ? ChevronLeft : ChevronRight;
 
   const navContent = (
     <>
       {/* Collapse toggle - desktop only */}
       {!isMobile && (
-        <div className={cn("flex items-center p-3", collapsed ? "justify-center" : "justify-start")}>
+        <div className={cn("flex items-center px-3 py-4", collapsed ? "justify-center" : "justify-start")}>
           <button
             onClick={onToggleCollapse}
-            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"
+            className="p-1.5 rounded-md hover:bg-sidebar-accent text-sidebar-muted transition-colors"
           >
-            <CollapseIcon className="w-5 h-5" />
+            {collapsed
+              ? <PanelLeftOpen className="w-4 h-4" />
+              : <PanelLeftClose className="w-4 h-4" />
+            }
           </button>
         </div>
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2 pb-4 space-y-4">
+      <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-4">
         {sidebarGroups.map((group, gi) => (
           <div key={gi}>
             {!collapsed && (
-              <p className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 text-right">
+              <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-muted text-right">
                 {language === 'ar' ? group.labelAr : group.labelEn}
               </p>
             )}
-            {collapsed && gi > 0 && <div className="border-t border-border my-1" />}
+            {collapsed && gi > 0 && <div className="border-t border-sidebar-border my-2 mx-2" />}
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
@@ -129,15 +129,18 @@ export const PortalSidebar = ({ activeSection, onSectionChange, collapsed, onTog
                     }}
                     title={collapsed ? (language === 'ar' ? item.labelAr : item.labelEn) : undefined}
                     className={cn(
-                      "w-full flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
-                      collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5 flex-row-reverse text-right",
+                      "group w-full flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all duration-150",
+                      collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2 flex-row-reverse text-right",
                       isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground/70 hover:bg-muted hover:text-foreground",
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm shadow-sidebar-primary/25"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
                   >
-                    <Icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span>{language === 'ar' ? item.labelAr : item.labelEn}</span>}
+                    <Icon className={cn(
+                      "w-[18px] h-[18px] shrink-0 transition-colors",
+                      isActive ? "text-sidebar-primary-foreground" : "text-sidebar-muted group-hover:text-sidebar-accent-foreground"
+                    )} />
+                    {!collapsed && <span className="truncate">{language === 'ar' ? item.labelAr : item.labelEn}</span>}
                   </button>
                 );
               })}
@@ -154,7 +157,7 @@ export const PortalSidebar = ({ activeSection, onSectionChange, collapsed, onTog
       <Sheet open={mobileOpen} onOpenChange={onMobileOpenChange}>
         <SheetContent
           side="right"
-          className="w-64 p-0 bg-card border-border"
+          className="w-[272px] p-0 bg-sidebar border-sidebar-border"
         >
           <div className="h-full overflow-y-auto pt-4">
             {navContent}
@@ -168,8 +171,8 @@ export const PortalSidebar = ({ activeSection, onSectionChange, collapsed, onTog
   return (
     <aside
       className={cn(
-        "h-screen sticky top-0 bg-card border-border flex flex-col transition-all duration-300 overflow-hidden shrink-0 border-l",
-        collapsed ? "w-16" : "w-64"
+        "h-screen sticky top-0 bg-sidebar border-sidebar-border flex flex-col transition-all duration-300 overflow-hidden shrink-0 border-l",
+        collapsed ? "w-[60px]" : "w-[260px]"
       )}
     >
       {navContent}
