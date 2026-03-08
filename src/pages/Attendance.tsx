@@ -154,7 +154,8 @@ export const generateWeeklyData = (): AttendanceRecord[] => {
 };
 
 const Attendance = () => {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language } = useLanguage();
+  const { refresh: refreshAttendance } = useAttendanceData();
   const [activeTab, setActiveTab] = useState('checkin');
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([
     ...sampleAttendanceRecords,
