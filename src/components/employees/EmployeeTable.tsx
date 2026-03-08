@@ -32,9 +32,10 @@ interface EmployeeTableProps {
   onDelete?: (employeeId: string) => void;
 }
 
-export const EmployeeTable = ({ employees }: EmployeeTableProps) => {
+export const EmployeeTable = ({ employees, onDelete }: EmployeeTableProps) => {
   const { t, isRTL, language } = useLanguage();
   const navigate = useNavigate();
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
 
   const getInitials = (name: string) => {
     return name
