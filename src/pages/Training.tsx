@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,17 +9,26 @@ import { CoursesList } from '@/components/training/CoursesList';
 import { TrainingPlan } from '@/components/training/TrainingPlan';
 import { TrainingRecordsReport } from '@/components/training/TrainingRecordsReport';
 import { TrainingStatsCards } from '@/components/training/TrainingStatsCards';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Training = () => {
-  const { t, language } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const ar = language === 'ar';
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">{t('training.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('training.subtitle')}</p>
+        <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">{t('training.title')}</h1>
+            <p className="text-muted-foreground mt-1">{t('training.subtitle')}</p>
+          </div>
+          <Button variant="outline" size="icon" onClick={() => setRefreshKey(k => k + 1)}>
+            <RefreshCw className="w-4 h-4" />
+          </Button>
         </div>
 
         <TrainingStatsCards />
