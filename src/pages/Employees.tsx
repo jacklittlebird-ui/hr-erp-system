@@ -268,6 +268,7 @@ const Employees = () => {
     firstName: e.firstName || '-',
     fatherName: e.fatherName || '-',
     familyName: e.familyName || '-',
+    stationId: e.stationLocation || '-',
     station: getStationLabel(e.stationLocation),
     deptCode: e.deptCode || '-',
     department: e.department,
