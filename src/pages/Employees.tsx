@@ -94,6 +94,7 @@ const Employees = () => {
       columns: [
         { headerAr: 'كود الموظف', headerEn: 'Employee Code', key: 'employeeId' },
         { headerAr: 'الاسم (عربي)', headerEn: 'Name (AR)', key: 'nameAr' },
+        { headerAr: 'معرف المحطة', headerEn: 'Station ID', key: 'stationId' },
         { headerAr: 'المحطة', headerEn: 'Station', key: 'station' },
         { headerAr: 'كود القسم', headerEn: 'Dept Code', key: 'deptCode' },
         { headerAr: 'القسم', headerEn: 'Department', key: 'department' },
@@ -267,6 +268,7 @@ const Employees = () => {
     firstName: e.firstName || '-',
     fatherName: e.fatherName || '-',
     familyName: e.familyName || '-',
+    stationId: e.stationLocation || '-',
     station: getStationLabel(e.stationLocation),
     deptCode: e.deptCode || '-',
     department: e.department,
@@ -557,7 +559,8 @@ const Employees = () => {
         'first name': 'first_name', 'الاسم الأول': 'first_name',
         'father name': 'father_name', 'اسم الأب': 'father_name',
         'family name': 'family_name', 'اسم العائلة': 'family_name',
-        'station location': 'station_id', 'محطة العمل': 'station_id', 'station': 'station_id', 'المحطة': 'station_id',
+        'station location': 'station_id', 'محطة العمل': 'station_id',
+        'station id': 'station_id', 'معرف المحطة': 'station_id',
         'birth date': 'birth_date', 'تاريخ الميلاد': 'birth_date',
         'birth place': 'birth_place', 'محل الميلاد': 'birth_place',
         'birth governorate': 'birth_governorate', 'محافظة الميلاد': 'birth_governorate',
@@ -578,9 +581,11 @@ const Employees = () => {
         'city': 'city', 'المدينة': 'city',
         'governorate': 'governorate', 'المحافظة': 'governorate',
         'emergency contact name 1': 'emergency_contact_name1', 'اسم جهة اتصال الطوارئ 1': 'emergency_contact_name1',
+        'emergency contact 1': 'emergency_contact_name1',
         'emergency contact mobile 1': 'emergency_contact_mobile1', 'موبايل جهة اتصال الطوارئ 1': 'emergency_contact_mobile1',
         'emergency mobile 1': 'emergency_contact_mobile1', 'هاتف جهة اتصال الطوارئ 1': 'emergency_contact_mobile1',
         'emergency contact name 2': 'emergency_contact_name2', 'اسم جهة اتصال الطوارئ 2': 'emergency_contact_name2',
+        'emergency contact 2': 'emergency_contact_name2',
         'emergency contact mobile 2': 'emergency_contact_mobile2', 'موبايل جهة اتصال الطوارئ 2': 'emergency_contact_mobile2',
         'emergency mobile 2': 'emergency_contact_mobile2', 'هاتف جهة اتصال الطوارئ 2': 'emergency_contact_mobile2',
         // Identity
@@ -589,10 +594,9 @@ const Employees = () => {
         'id expiry date': 'id_expiry_date', 'تاريخ انتهاء البطاقة': 'id_expiry_date',
         'issuing authority': 'issuing_authority', 'جهة الإصدار': 'issuing_authority',
         'issuing governorate': 'issuing_governorate', 'محافظة الإصدار': 'issuing_governorate',
-        // Job Info
+        // Job Info — station/department display columns are skipped (use station_id and dept_code instead)
         'department code': 'dept_code', 'القسم (كود)': 'dept_code',
         'dept code': 'dept_code', 'كود القسم': 'dept_code',
-        'department': 'dept_code', 'القسم': 'dept_code',
         'job title (ar)': 'job_title_ar', 'الوظيفة (عربي)': 'job_title_ar', 'المسمى الوظيفي (عربي)': 'job_title_ar',
         'job title (en)': 'job_title_en', 'الوظيفة (انجليزي)': 'job_title_en', 'المسمى الوظيفي (انجليزي)': 'job_title_en',
         'job title': 'job_title_ar', 'الوظيفة': 'job_title_ar',
@@ -647,14 +651,26 @@ const Employees = () => {
         'notes': 'notes', 'ملاحظات': 'notes',
       };
 
+      // Display-only columns from export that should be skipped during import
+      const skipHeaders = new Set(['station', 'المحطة', 'department', 'القسم']);
+
       // Resolve headers - support bilingual "AR|EN" format from export
       const resolveHeader = (h: string): string | null => {
+        // Check if this is a display-only column that should be skipped
+        const lh = h.toLowerCase ? h.toLowerCase() : h;
+        if (skipHeaders.has(lh)) return null;
+        // Check split parts for skip too
+        if (h.includes('|')) {
+          const parts = h.split('|').map(p => p.trim().toLowerCase());
+          if (parts.every(p => skipHeaders.has(p))) return null;
+        }
         // Direct match
-        if (headerMap[h]) return headerMap[h];
+        if (headerMap[lh]) return headerMap[lh];
         // Try splitting bilingual header
         if (h.includes('|')) {
           for (const part of h.split('|')) {
             const trimmed = part.trim().toLowerCase();
+            if (skipHeaders.has(trimmed)) return null;
             if (headerMap[trimmed]) return headerMap[trimmed];
           }
         }
@@ -666,7 +682,15 @@ const Employees = () => {
       let successCount = 0;
       let errorCount = 0;
       const errorDetails: string[] = [];
-      const unmappedHeaders = headers.filter(h => !resolveHeader(h));
+      const unmappedHeaders = headers.filter(h => {
+        const lh = h.toLowerCase();
+        if (skipHeaders.has(lh)) return false;
+        if (h.includes('|')) {
+          const parts = h.split('|').map(p => p.trim().toLowerCase());
+          if (parts.some(p => skipHeaders.has(p))) return false;
+        }
+        return !resolveHeader(h);
+      });
 
       if (unmappedHeaders.length > 0) {
         console.warn('Unmapped headers:', unmappedHeaders);
