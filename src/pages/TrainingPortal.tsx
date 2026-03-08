@@ -80,12 +80,12 @@ const TrainingPortal = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="records" className="mt-6"><TrainingRecords /></TabsContent>
-          <TabsContent value="trainers" className="mt-6"><Trainers /></TabsContent>
-          <TabsContent value="syllabus" className="mt-6"><CoursesSyllabus /></TabsContent>
-          <TabsContent value="courses" className="mt-6"><CoursesList /></TabsContent>
-          <TabsContent value="plan" className="mt-6"><TrainingPlan /></TabsContent>
-          <TabsContent value="reports" className="mt-6"><TrainingRecordsReport /></TabsContent>
+          <TabsContent value="records" className="mt-6"><TrainingRecords key={refreshKey} /></TabsContent>
+          <TabsContent value="trainers" className="mt-6"><Trainers key={refreshKey} /></TabsContent>
+          <TabsContent value="syllabus" className="mt-6"><CoursesSyllabus key={refreshKey} /></TabsContent>
+          <TabsContent value="courses" className="mt-6"><CoursesList key={refreshKey} /></TabsContent>
+          <TabsContent value="plan" className="mt-6"><TrainingPlan key={refreshKey} /></TabsContent>
+          <TabsContent value="reports" className="mt-6"><TrainingRecordsReport key={refreshKey} /></TabsContent>
         </Tabs>
       </main>
     </div>
