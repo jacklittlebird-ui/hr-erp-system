@@ -10,8 +10,9 @@ import { ShiftManagement } from '@/components/attendance/ShiftManagement';
 import { AttendanceRules } from '@/components/attendance/AttendanceRules';
 
 import { EmployeeAssignment } from '@/components/attendance/EmployeeAssignment';
-import { Clock, List, AlertTriangle, BarChart3, Calendar, Settings2, Users } from 'lucide-react';
+import { Clock, List, AlertTriangle, BarChart3, Calendar, Settings2, Users, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 export interface AttendanceRecord {
   id: string;
@@ -210,9 +211,14 @@ const Attendance = () => {
   return (
     <DashboardLayout>
       <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">{t('attendance.title')}</h1>
-          <p className="text-muted-foreground">{t('attendance.subtitle')}</p>
+        <div className={cn("flex items-center justify-between mb-6", isRTL && "flex-row-reverse")}>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{t('attendance.title')}</h1>
+            <p className="text-muted-foreground">{t('attendance.subtitle')}</p>
+          </div>
+          <Button variant="outline" size="icon" onClick={() => window.location.reload()}>
+            <RefreshCw className="w-4 h-4" />
+          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

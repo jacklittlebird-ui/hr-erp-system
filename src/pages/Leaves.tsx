@@ -23,8 +23,9 @@ import {
   EmployeeLeaveBalance,
   MISSION_TIME_CONFIG,
 } from '@/types/leaves';
-import { FileText, Plus, CheckCircle, BarChart3, Calendar, ShieldCheck, Briefcase, PlusCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Plus, CheckCircle, BarChart3, Calendar, ShieldCheck, Briefcase, PlusCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface DeptOption { id: string; name_ar: string; name_en: string; }
 interface StationOption { id: string; name_ar: string; name_en: string; }
@@ -266,9 +267,14 @@ const Leaves = () => {
   return (
     <DashboardLayout>
       <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">{t('leaves.title')}</h1>
-          <p className="text-muted-foreground">{t('leaves.subtitle')}</p>
+        <div className={cn("flex items-center justify-between mb-6", isRTL && "flex-row-reverse")}>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{t('leaves.title')}</h1>
+            <p className="text-muted-foreground">{t('leaves.subtitle')}</p>
+          </div>
+          <Button variant="outline" size="icon" onClick={fetchData}>
+            <RefreshCw className="w-4 h-4" />
+          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

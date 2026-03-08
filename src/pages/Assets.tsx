@@ -7,10 +7,13 @@ import { AssetRegistry } from '@/components/assets/AssetRegistry';
 import { AssetAssignment } from '@/components/assets/AssetAssignment';
 import { AssetMaintenance } from '@/components/assets/AssetMaintenance';
 import { AssetReports } from '@/components/assets/AssetReports';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 const Assets = () => {
   const { t, isRTL } = useLanguage();
   const [activeTab, setActiveTab] = useState('registry');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const tabs = [
     { id: 'registry', label: t('assets.tabs.registry') },
@@ -21,9 +24,14 @@ const Assets = () => {
 
   return (
     <DashboardLayout>
-      <div className={cn("mb-6", isRTL && "text-right")}>
-        <h1 className="text-2xl font-bold text-foreground">{t('assets.title')}</h1>
-        <p className="text-muted-foreground mt-1">{t('assets.subtitle')}</p>
+      <div className={cn("flex items-center justify-between mb-6", isRTL && "flex-row-reverse")}>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{t('assets.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('assets.subtitle')}</p>
+        </div>
+        <Button variant="outline" size="icon" onClick={() => setRefreshKey(k => k + 1)}>
+          <RefreshCw className="w-4 h-4" />
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
