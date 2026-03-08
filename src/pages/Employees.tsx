@@ -682,7 +682,15 @@ const Employees = () => {
       let successCount = 0;
       let errorCount = 0;
       const errorDetails: string[] = [];
-      const unmappedHeaders = headers.filter(h => !resolveHeader(h));
+      const unmappedHeaders = headers.filter(h => {
+        const lh = h.toLowerCase();
+        if (skipHeaders.has(lh)) return false;
+        if (h.includes('|')) {
+          const parts = h.split('|').map(p => p.trim().toLowerCase());
+          if (parts.some(p => skipHeaders.has(p))) return false;
+        }
+        return !resolveHeader(h);
+      });
 
       if (unmappedHeaders.length > 0) {
         console.warn('Unmapped headers:', unmappedHeaders);
