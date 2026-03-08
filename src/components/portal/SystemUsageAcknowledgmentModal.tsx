@@ -62,7 +62,7 @@ export const SystemUsageAcknowledgmentModal = ({ onAcknowledged }: { onAcknowled
         </div>
 
         {/* Body - scrollable */}
-        <div className="flex-1 min-h-0 overflow-auto p-5">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-5" style={{ minHeight: 0, WebkitOverflowScrolling: 'touch' }}>
           <div className="text-sm leading-8 text-foreground text-right space-y-4">
             <p>
               أقر أنا <strong className="text-primary">{employeeName}</strong> بأن جميع البيانات والمعلومات التي سأقوم بإدراجها داخل النظام صحيحة وكاملة وأتحمل المسؤولية الكاملة عنها.
