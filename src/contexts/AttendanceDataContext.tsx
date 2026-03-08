@@ -206,7 +206,7 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
   }, [records]);
 
   return (
-    <AttendanceDataContext.Provider value={{ records, checkIn: checkInFn, checkOut: checkOutFn, addMissionAttendance, getEmployeeRecords, getEmployeeMonthlyRecords, getMonthlyStats }}>
+    <AttendanceDataContext.Provider value={{ records, refresh: fetchRecords, checkIn: checkInFn, checkOut: checkOutFn, addMissionAttendance, getEmployeeRecords, getEmployeeMonthlyRecords, getMonthlyStats }}>
       {children}
     </AttendanceDataContext.Provider>
   );
