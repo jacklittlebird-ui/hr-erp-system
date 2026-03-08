@@ -539,6 +539,15 @@ const Employees = () => {
       if (isHtml) {
         // Parse HTML-based Excel file (template or export)
         const parsed = parseHtmlTable(text);
+        if (parsed.isFrameset) {
+          toast({ 
+            title: ar 
+              ? 'هذا الملف تم حفظه بواسطة Excel بصيغة مختلفة. يرجى استخدام الملف الأصلي المُصدّر من النظام مباشرة دون فتحه وحفظه في Excel أولاً.' 
+              : 'This file was re-saved by Excel in a different format. Please use the original file exported from the system without opening and saving it in Excel first.', 
+            variant: 'destructive' 
+          });
+          return;
+        }
         headers = parsed.headers.map(h => h.toLowerCase());
         dataLines = parsed.rows;
       } else {
