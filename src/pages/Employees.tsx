@@ -207,6 +207,31 @@ const Employees = () => {
   // Single-language columns for PDF fallback
   const exportColumns = bilingualExportColumns.map(c => ({ header: ar ? c.headerAr : c.headerEn, key: c.key }));
 
+  const counts = useMemo(() => ({
+    all: employees.length,
+    active: employees.filter(e => e.status === 'active').length,
+    inactive: employees.filter(e => e.status === 'inactive').length,
+    suspended: employees.filter(e => e.status === 'suspended').length,
+  }), [employees]);
+
+  const departments = useMemo(() => {
+    const depts = new Set(employees.map(e => e.department).filter(d => d !== '-'));
+    return depts.size;
+  }, [employees]);
+
+  const filteredEmployees = useMemo(() => {
+    return employees.filter(emp => {
+      const matchesSearch =
+        emp.nameAr.includes(searchQuery) ||
+        emp.nameEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.department.includes(searchQuery) ||
+        emp.jobTitle.includes(searchQuery);
+      const matchesFilter = activeFilter === 'all' || emp.status === activeFilter;
+      return matchesSearch && matchesFilter;
+    });
+  }, [employees, searchQuery, activeFilter]);
+
   const boolLabel = (v?: boolean) => v ? (ar ? 'نعم' : 'Yes') : (ar ? 'لا' : 'No');
 
   const getExportData = () => filteredEmployees.map(e => ({
