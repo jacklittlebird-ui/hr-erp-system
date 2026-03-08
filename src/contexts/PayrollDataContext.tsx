@@ -231,7 +231,7 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [payrollEntries]);
 
   return (
-    <PayrollDataContext.Provider value={{ payrollEntries, savePayrollEntry, savePayrollEntries, getPayrollEntry, getMonthlyPayroll, getEmployeePayroll }}>
+    <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll: fetchEntries, savePayrollEntry, savePayrollEntries, getPayrollEntry, getMonthlyPayroll, getEmployeePayroll }}>
       {children}
     </PayrollDataContext.Provider>
   );

@@ -676,7 +676,7 @@ const SalaryReports = () => {
           <h1 className="text-2xl font-bold text-foreground">{ar ? 'تقارير الرواتب التحليلية' : 'Salary Analytics Reports'}</h1>
           <p className="text-muted-foreground mt-1">{ar ? 'تقارير وتحليلات تفصيلية لمسير الرواتب' : 'Detailed payroll analytics and reports'}</p>
         </div>
-        <Button variant="outline" size="icon" onClick={() => window.location.reload()}>
+        <Button variant="outline" size="icon" onClick={() => { refreshPayroll(); }}>
           <RefreshCw className="w-4 h-4" />
         </Button>
       </div>

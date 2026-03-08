@@ -117,7 +117,7 @@ export const UniformDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [uniforms]);
 
   return (
-    <UniformDataContext.Provider value={{ uniforms, addUniform, deleteUniform, updateUniform, getEmployeeUniforms }}>
+    <UniformDataContext.Provider value={{ uniforms, refreshUniforms: fetchUniforms, addUniform, deleteUniform, updateUniform, getEmployeeUniforms }}>
       {children}
     </UniformDataContext.Provider>
   );

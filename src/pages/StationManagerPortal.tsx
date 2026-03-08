@@ -510,7 +510,7 @@ const StationManagerPortal = () => {
             </div>
           </div>
           <div className="flex items-center gap-1 md:gap-2 shrink-0">
-            <Button variant="ghost" size="icon" onClick={() => window.location.reload()}>
+            <Button variant="ghost" size="icon" onClick={() => { refreshEmployees(); toast({ title: language === 'ar' ? 'تم التحديث' : 'Refreshed' }); }}>
               <RefreshCw className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}>

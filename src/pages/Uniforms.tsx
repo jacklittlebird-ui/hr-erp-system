@@ -169,7 +169,7 @@ const Uniforms = () => {
             <Shirt className="w-7 h-7 text-primary" />
             {language === 'ar' ? 'إدارة يونيفورم الموظفين' : 'Employee Uniform Management'}
           </h1>
-          <Button variant="outline" size="icon" onClick={() => window.location.reload()}>
+          <Button variant="outline" size="icon" onClick={() => { refreshUniforms(); toast.success(language === 'ar' ? 'تم التحديث' : 'Refreshed'); }}>
             <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
