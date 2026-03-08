@@ -34,7 +34,7 @@ export const PerformanceChart = () => {
 
   return (
     <div className="bg-card rounded-xl p-6 shadow-sm border border-border/50">
-      <h3 className={`text-lg font-semibold text-foreground mb-4 flex items-center gap-2 ${ar ? 'flex-row-reverse' : ''}`}>
+      <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2 text-right">
         <span className="text-primary">⭐</span>
         {ar ? 'ملخص تقييمات الأداء' : 'Performance Reviews Summary'}
       </h3>
