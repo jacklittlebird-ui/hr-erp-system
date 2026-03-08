@@ -51,6 +51,11 @@ export const PortalHeader = ({ onToggleSidebar, onRefresh }: PortalHeaderProps) 
       </div>
 
       <div className="flex items-center gap-2">
+        {onRefresh && (
+          <Button variant="ghost" size="icon" onClick={onRefresh} className="shrink-0">
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
