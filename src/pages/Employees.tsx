@@ -94,6 +94,7 @@ const Employees = () => {
       columns: [
         { headerAr: 'كود الموظف', headerEn: 'Employee Code', key: 'employeeId' },
         { headerAr: 'الاسم (عربي)', headerEn: 'Name (AR)', key: 'nameAr' },
+        { headerAr: 'معرف المحطة', headerEn: 'Station ID', key: 'stationId' },
         { headerAr: 'المحطة', headerEn: 'Station', key: 'station' },
         { headerAr: 'كود القسم', headerEn: 'Dept Code', key: 'deptCode' },
         { headerAr: 'القسم', headerEn: 'Department', key: 'department' },
