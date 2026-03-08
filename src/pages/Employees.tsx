@@ -427,10 +427,13 @@ const Employees = () => {
     link.click();
     setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url); }, 1000);
 
-    // Also export a CSV (tab-separated) for re-import
-    const csvHeaders = uniqueColumns.map(c => c.headerAr + ' | ' + c.headerEn).join('\t');
+    // Also export a CSV (semicolon-separated) for re-import — semicolons work in all Excel regional settings
+    const csvHeaders = uniqueColumns.map(c => `"${c.headerAr} | ${c.headerEn}"`).join(';');
     const csvRows = data.map(row =>
-      uniqueColumns.map(col => String((row as any)[col.key] ?? '').replace(/\t/g, ' ')).join('\t')
+      uniqueColumns.map(col => {
+        const val = String((row as any)[col.key] ?? '').replace(/"/g, '""');
+        return `"${val}"`;
+      }).join(';')
     );
     const csvContent = '\uFEFF' + [csvHeaders, ...csvRows].join('\n');
     const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -469,7 +472,7 @@ const Employees = () => {
       } else {
         if (ch === '"') {
           inQuotes = true;
-        } else if (ch === '\t' || ch === ',') {
+        } else if (ch === '\t' || ch === ',' || ch === ';') {
           result.push(current.trim());
           current = '';
         } else {
