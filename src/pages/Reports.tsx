@@ -11,10 +11,13 @@ import { PerformanceReports } from '@/components/reports/PerformanceReports';
 import { TrainingReports } from '@/components/reports/TrainingReports';
 import { TrainingDebtReport } from '@/components/reports/TrainingDebtReport';
 import { UniformReport } from '@/components/reports/UniformReport';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 const Reports = () => {
   const { t, isRTL } = useLanguage();
   const [activeTab, setActiveTab] = useState('employees');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const tabs = [
     { id: 'employees', label: t('reports.tabs.employees') },
@@ -29,9 +32,14 @@ const Reports = () => {
 
   return (
     <DashboardLayout>
-      <div className={cn("mb-6", isRTL && "text-right")}>
-        <h1 className="text-2xl font-bold text-foreground">{t('reports.title')}</h1>
-        <p className="text-muted-foreground mt-1">{t('reports.subtitle')}</p>
+      <div className={cn("flex items-center justify-between mb-6", isRTL && "flex-row-reverse")}>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{t('reports.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('reports.subtitle')}</p>
+        </div>
+        <Button variant="outline" size="icon" onClick={() => setRefreshKey(k => k + 1)}>
+          <RefreshCw className="w-4 h-4" />
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>

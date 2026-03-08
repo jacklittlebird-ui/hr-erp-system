@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import {
   Building2, Users, UserCheck, TrendingUp, Plus, Save,
-  ChevronDown, Check, Edit2, Trash2, BarChart3,
+  ChevronDown, Check, Edit2, Trash2, BarChart3, RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';

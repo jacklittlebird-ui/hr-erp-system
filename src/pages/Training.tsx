@@ -31,7 +31,7 @@ const Training = () => {
           </Button>
         </div>
 
-        <TrainingStatsCards />
+        <TrainingStatsCards key={`stats-${refreshKey}`} />
 
         <Tabs defaultValue="records" className="w-full">
           <TabsList className="grid w-full grid-cols-6" dir="rtl">

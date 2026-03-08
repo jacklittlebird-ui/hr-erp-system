@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,16 +7,25 @@ import { AdvancesList } from '@/components/loans/AdvancesList';
 import { InstallmentsList } from '@/components/loans/InstallmentsList';
 import { LoanReports } from '@/components/loans/LoanReports';
 import { LoanSettings } from '@/components/loans/LoanSettings';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Loans = () => {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">{t('loans.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('loans.subtitle')}</p>
+        <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">{t('loans.title')}</h1>
+            <p className="text-muted-foreground mt-1">{t('loans.subtitle')}</p>
+          </div>
+          <Button variant="outline" size="icon" onClick={() => setRefreshKey(k => k + 1)}>
+            <RefreshCw className="w-4 h-4" />
+          </Button>
         </div>
 
         <Tabs defaultValue="loans" className="w-full">

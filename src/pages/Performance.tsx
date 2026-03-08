@@ -7,22 +7,30 @@ import { PerformanceReviewForm } from '@/components/performance/PerformanceRevie
 import { PerformanceList } from '@/components/performance/PerformanceList';
 import { QuarterlyReports } from '@/components/performance/QuarterlyReports';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 const Performance = () => {
   const { t, isRTL } = useLanguage();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Page Header */}
-        <div className={cn("space-y-1", isRTL && "text-right")}>
-          <h1 className="text-2xl font-bold text-foreground">
-            {t('performance.title')}
-          </h1>
-          <p className="text-muted-foreground">
-            {t('performance.subtitle')}
-          </p>
+        <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold text-foreground">
+              {t('performance.title')}
+            </h1>
+            <p className="text-muted-foreground">
+              {t('performance.subtitle')}
+            </p>
+          </div>
+          <Button variant="outline" size="icon" onClick={() => setRefreshKey(k => k + 1)}>
+            <RefreshCw className="w-4 h-4" />
+          </Button>
         </div>
 
         {/* Tabs */}
