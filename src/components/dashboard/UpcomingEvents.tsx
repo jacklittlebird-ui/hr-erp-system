@@ -47,7 +47,7 @@ export const UpcomingEvents = () => {
 
   return (
     <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
-      <div className={cn("flex items-center gap-2 p-4 border-b border-border/50", isRTL && "flex-row-reverse")}>
+      <div className="flex items-center gap-2 p-4 border-b border-border/50">
         <Calendar className="w-5 h-5 text-primary" />
         <h3 className="font-semibold text-foreground">{ar ? 'الأحداث القادمة' : 'Upcoming Events'}</h3>
       </div>
