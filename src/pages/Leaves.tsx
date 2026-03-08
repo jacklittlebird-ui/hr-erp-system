@@ -267,9 +267,14 @@ const Leaves = () => {
   return (
     <DashboardLayout>
       <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">{t('leaves.title')}</h1>
-          <p className="text-muted-foreground">{t('leaves.subtitle')}</p>
+        <div className={cn("flex items-center justify-between mb-6", isRTL && "flex-row-reverse")}>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{t('leaves.title')}</h1>
+            <p className="text-muted-foreground">{t('leaves.subtitle')}</p>
+          </div>
+          <Button variant="outline" size="icon" onClick={fetchData}>
+            <RefreshCw className="w-4 h-4" />
+          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
