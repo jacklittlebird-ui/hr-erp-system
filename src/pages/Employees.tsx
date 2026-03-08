@@ -799,7 +799,14 @@ const Employees = () => {
           if (col && values[idx] != null) {
             const rawVal = String(values[idx]).trim();
             if (!rawVal || rawVal === '-' || rawVal === '—' || rawVal === 'N/A' || rawVal === 'n/a' || rawVal === 'لا يوجد') return;
-            if (booleanCols.includes(col)) {
+            if (dateCols.includes(col)) {
+              const normalized = normalizeDate(rawVal);
+              if (normalized) record[col] = normalized;
+            } else if (col === 'station_id') {
+              const looked = stationLookup.get(rawVal.toLowerCase()) || stationLookup.get(rawVal);
+              if (looked) record[col] = looked;
+              // Skip if not found (don't set invalid UUID)
+            } else if (booleanCols.includes(col)) {
               const v = rawVal.toLowerCase();
               if (v in boolRevMap) {
                 record[col] = boolRevMap[v];
