@@ -656,12 +656,21 @@ const Employees = () => {
 
       // Resolve headers - support bilingual "AR|EN" format from export
       const resolveHeader = (h: string): string | null => {
+        // Check if this is a display-only column that should be skipped
+        const lh = h.toLowerCase ? h.toLowerCase() : h;
+        if (skipHeaders.has(lh)) return null;
+        // Check split parts for skip too
+        if (h.includes('|')) {
+          const parts = h.split('|').map(p => p.trim().toLowerCase());
+          if (parts.every(p => skipHeaders.has(p))) return null;
+        }
         // Direct match
-        if (headerMap[h]) return headerMap[h];
+        if (headerMap[lh]) return headerMap[lh];
         // Try splitting bilingual header
         if (h.includes('|')) {
           for (const part of h.split('|')) {
             const trimmed = part.trim().toLowerCase();
+            if (skipHeaders.has(trimmed)) return null;
             if (headerMap[trimmed]) return headerMap[trimmed];
           }
         }
