@@ -9,6 +9,7 @@ import { NotificationDropdown } from '@/components/notifications/NotificationDro
 
 interface PortalHeaderProps {
   onToggleSidebar: () => void;
+  onRefresh?: () => void;
 }
 
 export const PortalHeader = ({ onToggleSidebar }: PortalHeaderProps) => {
