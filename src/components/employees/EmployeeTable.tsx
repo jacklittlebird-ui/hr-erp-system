@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { useNavigate } from 'react-router-dom';
@@ -12,12 +13,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Trash2, Edit, Eye, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { stationLocations } from '@/data/stationLocations';
 
 interface EmployeeTableProps {
   employees: Employee[];
+  onDelete?: (employeeId: string) => void;
 }
 
 export const EmployeeTable = ({ employees }: EmployeeTableProps) => {
