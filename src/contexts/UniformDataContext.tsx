@@ -45,6 +45,7 @@ export function isExpired(deliveryDate: string): boolean {
 
 interface UniformDataContextType {
   uniforms: UniformItem[];
+  refreshUniforms: () => Promise<void>;
   addUniform: (item: Omit<UniformItem, 'id'>) => void;
   deleteUniform: (id: number) => void;
   updateUniform: (id: number, updates: Partial<UniformItem>) => void;
