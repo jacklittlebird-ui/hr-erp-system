@@ -134,12 +134,12 @@ export const PortalDashboard = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div dir="rtl" className="space-y-6 text-right">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold">
+        <h1 className="text-xl md:text-2xl font-bold text-right">
           {ar ? 'لوحة التحكم' : 'Dashboard'}
         </h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm text-right">
           {format(new Date(), 'EEEE, d MMMM yyyy', { locale: ar ? arLocale : enUS })}
         </p>
       </div>
