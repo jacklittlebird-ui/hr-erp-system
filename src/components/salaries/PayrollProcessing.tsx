@@ -327,7 +327,7 @@ export const PayrollProcessing = () => {
       {/* Main Layout */}
       <div className="grid grid-cols-12 gap-6">
         {/* Employee Sidebar */}
-        <div className={cn("col-span-3 space-y-4", isRTL && "order-last")}>
+        <div className={cn("col-span-3 space-y-4", isRTL && "order-first")}>
           <Card>
             <CardContent className="p-4 space-y-3">
               <div className="relative">
