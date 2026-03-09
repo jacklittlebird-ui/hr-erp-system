@@ -59,7 +59,23 @@ export const WelcomeBanner = () => {
         backgroundSize: '24px 24px'
       }} />
 
-      <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="relative z-10 p-6 md:p-8 flex flex-col-reverse md:flex-row-reverse items-start md:items-center justify-between gap-4">
+        {/* Quick stats pills - left side */}
+        <div className="flex flex-wrap gap-2 md:gap-3">
+          {[
+            { icon: Clock, label: ar ? 'الوقت الآن' : 'Current Time', value: now.toLocaleTimeString(ar ? 'ar-EG' : 'en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) },
+          ].map((pill, i) => (
+            <div key={i} className="flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm rounded-full px-4 py-2 border border-primary-foreground/10">
+              <pill.icon className="w-4 h-4 text-primary-foreground/70" />
+              <div className="flex flex-col">
+                <span className="text-[10px] text-primary-foreground/50 leading-tight">{pill.label}</span>
+                <span className="text-sm font-semibold text-primary-foreground leading-tight">{pill.value}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Greeting - right side */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
             <span className="text-3xl md:text-4xl">{emoji}</span>
@@ -74,21 +90,6 @@ export const WelcomeBanner = () => {
             <CalendarDays className="w-4 h-4" />
             <span>{today}</span>
           </div>
-        </div>
-
-        {/* Quick stats pills */}
-        <div className="flex flex-wrap gap-2 md:gap-3">
-          {[
-            { icon: Clock, label: ar ? 'الوقت الآن' : 'Current Time', value: now.toLocaleTimeString(ar ? 'ar-EG' : 'en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) },
-          ].map((pill, i) => (
-            <div key={i} className="flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm rounded-full px-4 py-2 border border-primary-foreground/10">
-              <pill.icon className="w-4 h-4 text-primary-foreground/70" />
-              <div className="flex flex-col">
-                <span className="text-[10px] text-primary-foreground/50 leading-tight">{pill.label}</span>
-                <span className="text-sm font-semibold text-primary-foreground leading-tight">{pill.value}</span>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>
