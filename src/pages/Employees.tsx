@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
