@@ -55,7 +55,7 @@ export const ViolationsManagement = ({ searchQuery, selectedDepartment, selected
   const [filterStatus, setFilterStatus] = useState('all');
 
   const fetchViolations = useCallback(async () => {
-    const { data: employees } = await supabase.from('employees').select('id, name_en, name_ar, department_id, station_id');
+    const { data: employees } = await supabase.from('employees').select('id, employee_code, name_en, name_ar, department_id, station_id').order('employee_code');
     const { data: depts } = await supabase.from('departments').select('id, name_ar, name_en');
     const { data: stations } = await supabase.from('stations').select('id, name_ar, name_en');
     const { data: viols } = await supabase.from('violations').select('*').order('created_at', { ascending: false });

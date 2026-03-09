@@ -96,7 +96,7 @@ const Users = () => {
         supabase.from('user_roles').select('user_id, role, station_id, employee_id'),
         supabase.from('permission_profiles' as any).select('*'),
         supabase.from('stations').select('id, code, name_ar, name_en'),
-        supabase.from('employees').select('id, employee_code, name_ar, name_en'),
+        supabase.from('employees').select('id, employee_code, name_ar, name_en').order('employee_code'),
       ]);
 
       const roles = rolesRes.data || [];
