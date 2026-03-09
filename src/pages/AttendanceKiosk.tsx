@@ -182,7 +182,7 @@ const AttendanceKiosk = () => {
   // Clear QR when not allowed
   useEffect(() => {
     if (geoStatus !== "allowed") {
-      setQrSrc("");
+      setQrSrcs(["", "", ""]);
     }
   }, [geoStatus]);
 
