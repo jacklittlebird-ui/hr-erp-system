@@ -42,6 +42,7 @@ export const PortalCustody = () => {
   const [assets, setAssets] = useState<AssignedAsset[]>([]);
   const [trainingDebts, setTrainingDebts] = useState<TrainingDebt[]>([]);
   const [employeeName, setEmployeeName] = useState('');
+  const [ackDates, setAckDates] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!PORTAL_EMPLOYEE_ID) return;
@@ -92,9 +93,22 @@ export const PortalCustody = () => {
       if (data) setEmployeeName(ar ? data.name_ar : data.name_en);
     };
 
+    const fetchAcknowledgments = async () => {
+      const { data } = await supabase
+        .from('training_acknowledgments')
+        .select('training_record_id, acknowledged_at')
+        .eq('employee_id', PORTAL_EMPLOYEE_ID);
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((a: any) => { map[a.training_record_id] = a.acknowledged_at; });
+        setAckDates(map);
+      }
+    };
+
     fetchAssets();
     fetchTraining();
     fetchEmployeeName();
+    fetchAcknowledgments();
   }, [PORTAL_EMPLOYEE_ID]);
 
   const assigned = assets.filter(a => a.status === 'assigned').length;
@@ -208,8 +222,7 @@ export const PortalCustody = () => {
                                 <TableHead>{ar ? 'الدورة' : 'Course'}</TableHead>
                                 <TableHead>{ar ? 'تاريخ البداية' : 'Start'}</TableHead>
                                 <TableHead>{ar ? 'تاريخ النهاية' : 'End'}</TableHead>
-                                <TableHead>{ar ? 'قيمة الدورة' : 'Value'}</TableHead>
-                                <TableHead>{ar ? 'تكاليف الدورة' : 'Costs'}</TableHead>
+                                <TableHead>{ar ? 'تكاليف التدريب' : 'Training Costs'}</TableHead>
                                 <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
                               </TableRow></TableHeader>
                               <TableBody>
@@ -217,7 +230,6 @@ export const PortalCustody = () => {
                                   <TableCell className="font-medium">{courseName}</TableCell>
                                   <TableCell>{t.startDate || '—'}</TableCell>
                                   <TableCell>{t.endDate || '—'}</TableCell>
-                                  <TableCell>{t.cost ? t.cost.toLocaleString() : '—'}</TableCell>
                                   <TableCell className="font-semibold">{t.totalCost ? t.totalCost.toLocaleString() : '—'}</TableCell>
                                   <TableCell><Badge variant="outline" className={s.cls}>{ar ? s.ar : t.status}</Badge></TableCell>
                                 </TableRow>
@@ -245,6 +257,16 @@ This amount represents the expenses of the aforementioned course. I acknowledge 
                                 </>
                               )}
                             </p>
+                            <div className="mt-4 pt-3 border-t border-border/50 flex flex-col gap-1">
+                              <p className="text-sm font-semibold text-foreground">
+                                {ar ? 'المقر بما فيه:' : 'Acknowledged by:'} <span className="text-primary">{employeeName}</span>
+                              </p>
+                              {ackDates[t.id] && (
+                                <p className="text-xs text-muted-foreground">
+                                  {ar ? 'تاريخ الإقرار:' : 'Acknowledgment date:'} {new Date(ackDates[t.id]).toLocaleDateString(ar ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
