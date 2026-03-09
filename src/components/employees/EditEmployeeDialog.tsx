@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Employee } from '@/types/employee';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ interface EditEmployeeDialogProps {
   onClose: () => void;
 }
 
-const tabs = [
+const allTabs = [
   { id: 'basic', icon: User, labelKey: 'employees.tabs.basicInfo' },
   { id: 'contact', icon: Phone, labelKey: 'employees.tabs.contactInfo' },
   { id: 'identity', icon: CreditCard, labelKey: 'employees.tabs.identity' },
@@ -40,6 +41,11 @@ const tabs = [
 
 export const EditEmployeeDialog = ({ employee, open, onClose }: EditEmployeeDialogProps) => {
   const { t, isRTL } = useLanguage();
+  const { user } = useAuth();
+  const isHR = user?.role === 'hr';
+
+  // Filter out salary tab for HR users
+  const tabs = isHR ? allTabs.filter(tab => tab.id !== 'salary') : allTabs;
 
   if (!employee) return null;
 
