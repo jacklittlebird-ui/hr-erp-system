@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -228,28 +228,24 @@ const Employees = () => {
     suspended: employees.filter(e => e.status === 'suspended').length,
   }), [employees]);
 
-  const stationOptions = useMemo(() => {
-    const map = new Map<string, { labelAr: string; labelEn: string }>();
-    employees.forEach(e => {
-      if (e.stationLocation && e.stationName) {
-        map.set(e.stationLocation, {
-          labelAr: stationLocations.find(s => s.value === e.stationLocation)?.labelAr || e.stationName,
-          labelEn: stationLocations.find(s => s.value === e.stationLocation)?.labelEn || e.stationName,
-        });
-      }
-    });
-    return Array.from(map.entries()).map(([value, labels]) => ({ value, ...labels }));
-  }, [employees]);
+  const [stationOptions, setStationOptions] = useState<{ value: string; labelAr: string; labelEn: string }[]>([]);
+  const [departmentOptions, setDepartmentOptions] = useState<{ value: string; labelAr: string; labelEn: string }[]>([]);
 
-  const departmentOptions = useMemo(() => {
-    const map = new Map<string, { labelAr: string; labelEn: string }>();
-    employees.forEach(e => {
-      if (e.departmentId && e.department && e.department !== '-') {
-        map.set(e.departmentId, { labelAr: e.department, labelEn: e.department });
+  useEffect(() => {
+    const fetchFilters = async () => {
+      const [{ data: stationsData }, { data: deptsData }] = await Promise.all([
+        supabase.from('stations').select('id, code, name_ar, name_en').eq('is_active', true).order('code'),
+        supabase.from('departments').select('id, name_ar, name_en').eq('is_active', true).order('name_ar'),
+      ]);
+      if (stationsData) {
+        setStationOptions(stationsData.map(s => ({ value: s.code, labelAr: s.name_ar, labelEn: s.name_en })));
       }
-    });
-    return Array.from(map.entries()).map(([value, labels]) => ({ value, ...labels }));
-  }, [employees]);
+      if (deptsData) {
+        setDepartmentOptions(deptsData.map(d => ({ value: d.id, labelAr: d.name_ar, labelEn: d.name_en })));
+      }
+    };
+    fetchFilters();
+  }, []);
 
   const departments = useMemo(() => {
     const depts = new Set(employees.map(e => e.department).filter(d => d !== '-'));
