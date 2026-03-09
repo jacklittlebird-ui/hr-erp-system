@@ -335,8 +335,10 @@ const Users = () => {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin': return <Badge className="bg-primary/10 text-primary border-primary/30">{isAr ? 'مدير النظام' : 'Admin'}</Badge>;
+      case 'hr': return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">{isAr ? 'موارد بشرية' : 'HR'}</Badge>;
       case 'station_manager': return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30">{isAr ? 'مدير محطة' : 'Station Manager'}</Badge>;
       case 'employee': return <Badge className="bg-sky-500/10 text-sky-600 border-sky-500/30">{isAr ? 'موظف' : 'Employee'}</Badge>;
+      case 'training_manager': return <Badge className="bg-violet-500/10 text-violet-600 border-violet-500/30">{isAr ? 'مدير التدريب' : 'Training Manager'}</Badge>;
       default: return <Badge variant="outline">{role}</Badge>;
     }
   };
@@ -650,6 +652,7 @@ const Users = () => {
                   <SelectTrigger><SelectValue placeholder={isAr ? 'اختر الدور' : 'Select role'} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin"><span className="flex items-center gap-2"><Shield className="w-4 h-4" /> {isAr ? 'مدير النظام' : 'Admin'}</span></SelectItem>
+                    <SelectItem value="hr"><span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> {isAr ? 'موارد بشرية' : 'HR'}</span></SelectItem>
                     <SelectItem value="station_manager"><span className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {isAr ? 'مدير محطة' : 'Station Manager'}</span></SelectItem>
                     <SelectItem value="employee"><span className="flex items-center gap-2"><User className="w-4 h-4" /> {isAr ? 'موظف' : 'Employee'}</span></SelectItem>
                     <SelectItem value="training_manager"><span className="flex items-center gap-2"><Shield className="w-4 h-4" /> {isAr ? 'مدير التدريب' : 'Training Manager'}</span></SelectItem>
