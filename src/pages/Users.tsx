@@ -18,8 +18,9 @@ import { toast } from '@/hooks/use-toast';
 import { ALL_MODULES, MODULE_LABELS, ModuleKey } from '@/hooks/useModulePermissions';
 import {
   Plus, Search, Shield, Users as UsersIcon, UserCheck, MapPin, User,
-  RefreshCw, Eye, EyeOff, Edit, Trash2, Layers, ShieldCheck, Lock, Settings2,
+  RefreshCw, Eye, EyeOff, Edit, Trash2, Layers, ShieldCheck, Lock, Settings2, Upload,
 } from 'lucide-react';
+import { EMPLOYEE_CREDENTIALS } from '@/data/employeeCredentials';
 
 // ========== TYPES ==========
 interface SystemUser {
@@ -87,6 +88,52 @@ const Users = () => {
   const [profileForm, setProfileForm] = useState({
     name_ar: '', name_en: '', description_ar: '', description_en: '', modules: [] as string[],
   });
+
+  // Bulk creation state
+  const [bulkCreating, setBulkCreating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, created: 0, skipped: 0, errors: 0 });
+
+  const handleBulkCreate = async () => {
+    const confirmed = window.confirm(
+      isAr
+        ? `هل أنت متأكد من إنشاء حسابات لـ ${EMPLOYEE_CREDENTIALS.length} موظف؟ سيتم استخدام البريد: employee_code@linkagency.com`
+        : `Create accounts for ${EMPLOYEE_CREDENTIALS.length} employees? Email format: employee_code@linkagency.com`
+    );
+    if (!confirmed) return;
+
+    setBulkCreating(true);
+    const batchSize = 10;
+    let totalCreated = 0, totalSkipped = 0, totalErrors = 0;
+    const total = EMPLOYEE_CREDENTIALS.length;
+    setBulkProgress({ done: 0, total, created: 0, skipped: 0, errors: 0 });
+
+    for (let i = 0; i < EMPLOYEE_CREDENTIALS.length; i += batchSize) {
+      const batch = EMPLOYEE_CREDENTIALS.slice(i, i + batchSize).map(([employee_code, password]) => ({ employee_code, password }));
+      try {
+        const { data, error } = await supabase.functions.invoke('bulk-create-users', {
+          body: { users: batch, domain: 'linkagency.com' },
+        });
+        if (error) throw error;
+        if (data?.summary) {
+          totalCreated += data.summary.created || 0;
+          totalSkipped += data.summary.skipped || 0;
+          totalErrors += data.summary.errors || 0;
+        }
+      } catch (err: any) {
+        totalErrors += batch.length;
+      }
+      setBulkProgress({ done: Math.min(i + batchSize, total), total, created: totalCreated, skipped: totalSkipped, errors: totalErrors });
+    }
+
+    toast({
+      title: isAr ? 'اكتملت العملية' : 'Bulk Creation Complete',
+      description: isAr
+        ? `تم إنشاء ${totalCreated} | تم تخطي ${totalSkipped} | أخطاء ${totalErrors}`
+        : `Created: ${totalCreated} | Skipped: ${totalSkipped} | Errors: ${totalErrors}`,
+    });
+    setBulkCreating(false);
+    fetchAll();
+  };
 
   // ========== FETCH DATA ==========
   const fetchAll = useCallback(async () => {
@@ -416,6 +463,12 @@ const Users = () => {
               </div>
               <Button onClick={() => setDialogOpen(true)} className={cn("gap-2", isRTL && "flex-row-reverse")}>
                 <Plus className="w-4 h-4" /> {isAr ? 'إضافة مستخدم' : 'Add User'}
+              </Button>
+              <Button onClick={handleBulkCreate} disabled={bulkCreating} variant="outline" className={cn("gap-2", isRTL && "flex-row-reverse")}>
+                <Upload className="w-4 h-4" />
+                {bulkCreating
+                  ? `${bulkProgress.done}/${bulkProgress.total} (${isAr ? 'تم' : 'created'}: ${bulkProgress.created})`
+                  : isAr ? `إنشاء حسابات جماعي (${EMPLOYEE_CREDENTIALS.length})` : `Bulk Create (${EMPLOYEE_CREDENTIALS.length})`}
               </Button>
             </div>
 
