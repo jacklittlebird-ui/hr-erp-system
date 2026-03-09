@@ -71,7 +71,7 @@ export const AssetAssignment = () => {
   const fetchData = useCallback(async () => {
     const [stationsRes, employeesRes, assetsRes] = await Promise.all([
       supabase.from('stations').select('id, name_ar, name_en').eq('is_active', true).order('name_ar'),
-      supabase.from('employees').select('id, name_ar, name_en, employee_code, station_id').eq('status', 'active'),
+      supabase.from('employees').select('id, name_ar, name_en, employee_code, station_id').eq('status', 'active').order('employee_code'),
       supabase.from('assets').select('*').order('created_at', { ascending: false }),
     ]);
 

@@ -75,7 +75,7 @@ export const AttendanceList = () => {
       const [stRes, dRes, eRes] = await Promise.all([
         supabase.from('stations').select('id, name_ar, name_en').eq('is_active', true),
         supabase.from('departments').select('id, name_ar, name_en').eq('is_active', true),
-        supabase.from('employees').select('id, station_id, department_id'),
+        supabase.from('employees').select('id, employee_code, station_id, department_id').order('employee_code'),
       ]);
       if (stRes.data) setStations(stRes.data);
       if (dRes.data) setDepartments(dRes.data);

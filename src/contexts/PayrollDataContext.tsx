@@ -126,7 +126,7 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const { addNotification } = useNotifications();
 
   const fetchEmployeeMap = useCallback(async () => {
-    const { data: emps } = await supabase.from('employees').select('id, employee_code, name_ar, name_en, department_id, station_id');
+    const { data: emps } = await supabase.from('employees').select('id, employee_code, name_ar, name_en, department_id, station_id').order('employee_code');
     const { data: depts } = await supabase.from('departments').select('id, name_ar, name_en');
     const { data: stations } = await supabase.from('stations').select('id, code');
     

@@ -32,7 +32,7 @@ export const InstallmentsList = () => {
 
   const fetchInstallments = async () => {
     const { data } = await supabase.from('loan_installments').select('*, loans(amount, installments_count)').order('due_date', { ascending: true });
-    const { data: employees } = await supabase.from('employees').select('id, name_ar, name_en, department_id');
+    const { data: employees } = await supabase.from('employees').select('id, employee_code, name_ar, name_en, department_id').order('employee_code');
     const { data: departments } = await supabase.from('departments').select('id, name_ar, name_en');
     const empMap = new Map(employees?.map(e => [e.id, e]) || []);
     const deptMap = new Map(departments?.map(d => [d.id, d]) || []);
