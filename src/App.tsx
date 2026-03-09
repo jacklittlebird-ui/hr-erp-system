@@ -69,6 +69,7 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
     if (user?.role === 'station_manager') return <Navigate to="/station-manager" replace />;
     if (user?.role === 'kiosk') return <Navigate to="/attendance/kiosk" replace />;
     if (user?.role === 'training_manager') return <Navigate to="/training-portal" replace />;
+    // admin and hr both go to dashboard
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
