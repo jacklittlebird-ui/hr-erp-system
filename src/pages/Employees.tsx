@@ -24,6 +24,8 @@ const Employees = () => {
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [selectedStations, setSelectedStations] = useState<string[]>([]);
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -226,6 +228,29 @@ const Employees = () => {
     suspended: employees.filter(e => e.status === 'suspended').length,
   }), [employees]);
 
+  const stationOptions = useMemo(() => {
+    const map = new Map<string, { labelAr: string; labelEn: string }>();
+    employees.forEach(e => {
+      if (e.stationLocation && e.stationName) {
+        map.set(e.stationLocation, {
+          labelAr: stationLocations.find(s => s.value === e.stationLocation)?.labelAr || e.stationName,
+          labelEn: stationLocations.find(s => s.value === e.stationLocation)?.labelEn || e.stationName,
+        });
+      }
+    });
+    return Array.from(map.entries()).map(([value, labels]) => ({ value, ...labels }));
+  }, [employees]);
+
+  const departmentOptions = useMemo(() => {
+    const map = new Map<string, { labelAr: string; labelEn: string }>();
+    employees.forEach(e => {
+      if (e.departmentId && e.department && e.department !== '-') {
+        map.set(e.departmentId, { labelAr: e.department, labelEn: e.department });
+      }
+    });
+    return Array.from(map.entries()).map(([value, labels]) => ({ value, ...labels }));
+  }, [employees]);
+
   const departments = useMemo(() => {
     const depts = new Set(employees.map(e => e.department).filter(d => d !== '-'));
     return depts.size;
@@ -240,9 +265,11 @@ const Employees = () => {
         emp.department.includes(searchQuery) ||
         emp.jobTitle.includes(searchQuery);
       const matchesFilter = activeFilter === 'all' || emp.status === activeFilter;
-      return matchesSearch && matchesFilter;
+      const matchesStation = selectedStations.length === 0 || (emp.stationLocation && selectedStations.includes(emp.stationLocation));
+      const matchesDept = selectedDepartments.length === 0 || (emp.departmentId && selectedDepartments.includes(emp.departmentId));
+      return matchesSearch && matchesFilter && matchesStation && matchesDept;
     });
-  }, [employees, searchQuery, activeFilter]);
+  }, [employees, searchQuery, activeFilter, selectedStations, selectedDepartments]);
 
   const boolLabel = (v?: boolean) => v ? (ar ? 'نعم' : 'Yes') : (ar ? 'لا' : 'No');
 
@@ -1010,7 +1037,19 @@ const Employees = () => {
           </div>
         </div>
         <EmployeeStatsCards total={counts.all} active={counts.active} departments={departments} newThisMonth={1} />
-        <EmployeeFilters searchQuery={searchQuery} onSearchChange={setSearchQuery} activeFilter={activeFilter} onFilterChange={setActiveFilter} counts={counts} />
+        <EmployeeFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          counts={counts}
+          stations={stationOptions}
+          departments={departmentOptions}
+          selectedStations={selectedStations}
+          onSelectedStationsChange={setSelectedStations}
+          selectedDepartments={selectedDepartments}
+          onSelectedDepartmentsChange={setSelectedDepartments}
+        />
         <div ref={reportRef}>
           <EmployeeTable employees={filteredEmployees} onDelete={handleDeleteEmployee} />
         </div>
