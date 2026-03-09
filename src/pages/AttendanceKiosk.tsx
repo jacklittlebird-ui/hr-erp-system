@@ -26,7 +26,8 @@ const AttendanceKiosk = () => {
   const { session, logout } = useAuth();
   const ar = language === "ar";
 
-  const [qrSrc, setQrSrc] = useState("");
+  const QR_COUNT = 3;
+  const [qrSrcs, setQrSrcs] = useState<string[]>(["", "", ""]);
   const [locations, setLocations] = useState<any[]>([]);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [countdown, setCountdown] = useState(5);
@@ -126,39 +127,39 @@ const AttendanceKiosk = () => {
     const tick = async () => {
       try {
         const url = `https://${projectId}.supabase.co/functions/v1/generate-qr-token`;
-        console.log("[Kiosk] Fetching QR token from:", url);
-        const res = await fetch(url, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            location_id: selectedLocation,
-            gps_lat: userCoords.lat,
-            gps_lng: userCoords.lng,
-          }),
-        });
-        const json = await res.json();
-        console.log("[Kiosk] QR response:", res.status, json);
-        if (!res.ok) {
-          setError(json.error || `Server error (${res.status})`);
-          setQrSrc("");
-          return;
+        const results = await Promise.all(
+          Array.from({ length: QR_COUNT }, () =>
+            fetch(url, {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                location_id: selectedLocation,
+                gps_lat: userCoords.lat,
+                gps_lng: userCoords.lng,
+              }),
+            }).then(r => r.json().then(j => ({ ok: r.ok, json: j })))
+          )
+        );
+        const srcs: string[] = [];
+        let hasError = false;
+        for (const r of results) {
+          if (!r.ok || !r.json.token) {
+            hasError = true;
+            srcs.push("");
+          } else {
+            const src = await QRCode.toDataURL(r.json.token, {
+              width: 280,
+              margin: 2,
+              color: { dark: "#000000", light: "#ffffff" },
+            });
+            srcs.push(src);
+          }
         }
-        if (json.token) {
-          const src = await QRCode.toDataURL(json.token, {
-            width: 300,
-            margin: 2,
-            color: { dark: "#000000", light: "#ffffff" },
-          });
-          setQrSrc(src);
-          setError("");
-          setCountdown(5);
-        } else {
-          setError(ar ? "لم يتم استلام رمز QR من الخادم" : "No QR token received from server");
-          setQrSrc("");
-        }
+        setQrSrcs(srcs);
+        if (!hasError) { setError(""); setCountdown(5); }
       } catch (e: any) {
         console.error("[Kiosk] QR fetch error:", e);
         setError(e.message);
@@ -181,7 +182,7 @@ const AttendanceKiosk = () => {
   // Clear QR when not allowed
   useEffect(() => {
     if (geoStatus !== "allowed") {
-      setQrSrc("");
+      setQrSrcs(["", "", ""]);
     }
   }, [geoStatus]);
 
@@ -215,15 +216,17 @@ const AttendanceKiosk = () => {
     );
   };
 
+  const hasAnyQr = qrSrcs.some(s => s !== "");
+
   return (
     <div
       className="min-h-screen bg-background flex flex-col items-center justify-center p-4 font-arabic gap-4"
       dir={ar ? "rtl" : "ltr"}
     >
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-4xl">
         <PortalWelcomeBanner />
       </div>
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-4xl">
         <CardHeader className="text-center relative">
           <Button
             variant="ghost"
@@ -267,28 +270,43 @@ const AttendanceKiosk = () => {
           {/* Geo status banner */}
           {renderStatusBanner()}
 
-          {/* QR Code display — only when allowed */}
-          <div className="flex flex-col items-center gap-4">
-            {geoStatus === "allowed" && qrSrc ? (
-              <div className="relative">
-                <img
-                  src={qrSrc}
-                  alt="Attendance QR Code"
-                  className="w-[300px] h-[300px] rounded-lg shadow-lg"
-                />
-                <Badge
-                  variant="secondary"
-                  className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1"
-                >
-                  <RefreshCw className="h-3 w-3 animate-spin" />
-                  {countdown}s
-                </Badge>
+          {/* QR Codes display — 3 side by side */}
+          {geoStatus === "allowed" ? (
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+                {qrSrcs.map((src, i) => (
+                  <div key={i} className="relative">
+                    {src ? (
+                      <>
+                        <img
+                          src={src}
+                          alt={`QR Code ${i + 1}`}
+                          className="w-[220px] h-[220px] sm:w-[250px] sm:h-[250px] rounded-lg shadow-lg"
+                        />
+                        <Badge
+                          variant="secondary"
+                          className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs"
+                        >
+                          <RefreshCw className="h-3 w-3 animate-spin" />
+                          {countdown}s
+                        </Badge>
+                      </>
+                    ) : (
+                      <div className="w-[220px] h-[220px] sm:w-[250px] sm:h-[250px] rounded-lg border-2 border-dashed border-muted flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            ) : geoStatus === "allowed" ? (
-              <div className="w-[300px] h-[300px] rounded-lg border-2 border-dashed border-muted flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
+              <p className="text-sm text-muted-foreground text-center">
+                {ar
+                  ? "امسح أي رمز باستخدام تطبيق HR Link على هاتفك"
+                  : "Scan any code using the HR Link app on your phone"}
+              </p>
+            </div>
+          ) : (
+            <div className="flex justify-center">
               <div className="w-[300px] h-[300px] rounded-lg border-2 border-dashed border-destructive/30 flex items-center justify-center">
                 <div className="text-center space-y-2 p-4">
                   <ShieldAlert className="h-12 w-12 text-destructive/50 mx-auto" />
@@ -299,15 +317,8 @@ const AttendanceKiosk = () => {
                   </p>
                 </div>
               </div>
-            )}
-            {geoStatus === "allowed" && (
-              <p className="text-sm text-muted-foreground text-center">
-                {ar
-                  ? "امسح هذا الرمز باستخدام تطبيق HR Link على هاتفك"
-                  : "Scan this code using the HR Link app on your phone"}
-              </p>
-            )}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
