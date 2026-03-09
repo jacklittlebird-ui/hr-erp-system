@@ -6,7 +6,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
   LayoutDashboard, User, Clock, Calendar, Wallet, HandCoins,
   Star, GraduationCap, Package, FileText, MapPin, Ban,
-  ClipboardList, Bell, Settings, PanelLeftClose, PanelLeftOpen, Shirt,
+  ClipboardList, Bell, Settings, PanelLeftClose, PanelLeftOpen, Shirt, ShieldCheck,
 } from 'lucide-react';
 
 interface SidebarGroup {
@@ -71,6 +71,7 @@ const sidebarGroups: SidebarGroup[] = [
     labelEn: 'System',
     items: [
       { key: 'notifications', labelAr: 'الإشعارات', labelEn: 'Notifications', icon: Bell },
+      { key: 'terms', labelAr: 'شروط الاستخدام', labelEn: 'Terms of Use', icon: ShieldCheck },
       { key: 'settings', labelAr: 'الإعدادات', labelEn: 'Settings', icon: Settings },
     ],
   },
