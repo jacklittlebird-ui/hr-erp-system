@@ -26,7 +26,8 @@ const AttendanceKiosk = () => {
   const { session, logout } = useAuth();
   const ar = language === "ar";
 
-  const [qrSrc, setQrSrc] = useState("");
+  const QR_COUNT = 3;
+  const [qrSrcs, setQrSrcs] = useState<string[]>(["", "", ""]);
   const [locations, setLocations] = useState<any[]>([]);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [countdown, setCountdown] = useState(5);
