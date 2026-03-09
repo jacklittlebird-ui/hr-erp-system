@@ -385,8 +385,20 @@ const Users = () => {
   const filtered = users.filter(u =>
     u.full_name.toLowerCase().includes(search.toLowerCase()) ||
     u.email.toLowerCase().includes(search.toLowerCase()) ||
-    u.role.includes(search.toLowerCase())
-  );
+    u.role.includes(search.toLowerCase()) ||
+    (u.employee_code || '').toLowerCase().includes(search.toLowerCase())
+  ).sort((a, b) => {
+    // Sort by employee_code numerically (emp1001 < emp1002)
+    const codeA = a.employee_code || '';
+    const codeB = b.employee_code || '';
+    const numA = parseInt(codeA.replace(/\D/g, '')) || 0;
+    const numB = parseInt(codeB.replace(/\D/g, '')) || 0;
+    if (numA && numB) return numA - numB;
+    if (numA) return -1;
+    if (numB) return 1;
+    // Non-employee users: sort by role then name
+    return a.role.localeCompare(b.role) || a.full_name.localeCompare(b.full_name);
+  });
 
   const getRoleBadge = (role: string) => {
     switch (role) {
