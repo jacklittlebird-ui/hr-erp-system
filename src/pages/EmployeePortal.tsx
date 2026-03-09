@@ -22,6 +22,7 @@ import { PortalRequests } from '@/components/portal/sections/PortalRequests';
 import { PortalNotifications } from '@/components/portal/sections/PortalNotifications';
 import { PortalSettings } from '@/components/portal/sections/PortalSettings';
 import { PortalUniforms } from '@/components/portal/sections/PortalUniforms';
+import { PortalTerms } from '@/components/portal/sections/PortalTerms';
 import { PortalWelcomeBanner } from '@/components/portal/PortalWelcomeBanner';
 
 export type PortalSection =
