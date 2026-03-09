@@ -130,7 +130,14 @@ const EmployeePortal = () => {
     <>
       {!systemAckDismissed && <SystemUsageAcknowledgmentModal onAcknowledged={() => setSystemAckDismissed(true)} />}
       {systemAckDismissed && !ackDismissed && <TrainingAcknowledgmentModal onAllAcknowledged={() => setAckDismissed(true)} />}
-      <div dir="rtl" className="min-h-screen bg-background flex flex-row-reverse font-arabic">
+      <div
+        dir="rtl"
+        className={cn(
+          "min-h-screen bg-background flex flex-row-reverse font-arabic select-none",
+          hidden && "blur-lg pointer-events-none"
+        )}
+        style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
+      >
       <div className="flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden">
         <PortalHeader onToggleSidebar={() => {
           if (isMobile) {
