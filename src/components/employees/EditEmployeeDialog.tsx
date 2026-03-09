@@ -41,6 +41,11 @@ const allTabs = [
 
 export const EditEmployeeDialog = ({ employee, open, onClose }: EditEmployeeDialogProps) => {
   const { t, isRTL } = useLanguage();
+  const { user } = useAuth();
+  const isHR = user?.role === 'hr';
+
+  // Filter out salary tab for HR users
+  const tabs = isHR ? allTabs.filter(tab => tab.id !== 'salary') : allTabs;
 
   if (!employee) return null;
 

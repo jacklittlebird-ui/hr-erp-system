@@ -79,7 +79,15 @@ const EmployeeDetails = () => {
   const isViewMode = location.pathname.endsWith('/view');
   const { t, isRTL, language } = useLanguage();
   const { getEmployee, updateEmployee } = useEmployeeData();
+  const { user } = useAuth();
+  const isHR = user?.role === 'hr';
   const [activeTab, setActiveTab] = useState('basic');
+
+  // Filter out salary tabs for HR users
+  const detailTabs = useMemo(
+    () => isHR ? allDetailTabs.filter(tab => !HR_HIDDEN_TABS.includes(tab.id)) : allDetailTabs,
+    [isHR]
+  );
 
   // Accumulate all field changes from all tabs
   const pendingUpdates = useRef<Partial<Employee>>({});
