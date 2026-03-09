@@ -286,11 +286,17 @@ export const PortalDashboard = () => {
               </div>
               <h3 className="font-semibold text-right">{ar ? 'أرصدة الإجازات' : 'Leave Balances'}</h3>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {leaveBalances.map((b, i) => (
-                <div key={i} className="flex flex-row-reverse justify-between text-sm">
-                  <span className="text-muted-foreground">{ar ? b.typeAr : b.typeEn}</span>
-                  <span className="font-medium">{b.remaining}/{b.total}</span>
+                <div key={i} className="space-y-1">
+                  <div className="flex flex-row-reverse justify-between text-sm">
+                    <span className="font-medium text-foreground">{ar ? b.typeAr : b.typeEn}</span>
+                  </div>
+                  <div className="flex flex-row-reverse justify-between text-xs text-muted-foreground">
+                    <span>{ar ? 'المستخدم' : 'Used'}: <span className="font-semibold text-destructive">{b.total - b.remaining}</span></span>
+                    <span>{ar ? 'المتبقي' : 'Remaining'}: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{b.remaining}</span></span>
+                    <span>{ar ? 'الإجمالي' : 'Total'}: <span className="font-semibold text-foreground">{b.total}</span></span>
+                  </div>
                 </div>
               ))}
               {leaveBalances.length === 0 && <p className="text-sm text-muted-foreground text-center">{ar ? 'لا توجد أرصدة' : 'No balances'}</p>}
