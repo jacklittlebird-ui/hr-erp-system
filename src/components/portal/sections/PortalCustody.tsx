@@ -93,9 +93,22 @@ export const PortalCustody = () => {
       if (data) setEmployeeName(ar ? data.name_ar : data.name_en);
     };
 
+    const fetchAcknowledgments = async () => {
+      const { data } = await supabase
+        .from('training_acknowledgments')
+        .select('training_record_id, acknowledged_at')
+        .eq('employee_id', PORTAL_EMPLOYEE_ID);
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((a: any) => { map[a.training_record_id] = a.acknowledged_at; });
+        setAckDates(map);
+      }
+    };
+
     fetchAssets();
     fetchTraining();
     fetchEmployeeName();
+    fetchAcknowledgments();
   }, [PORTAL_EMPLOYEE_ID]);
 
   const assigned = assets.filter(a => a.status === 'assigned').length;
