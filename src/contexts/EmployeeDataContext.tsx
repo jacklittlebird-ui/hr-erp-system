@@ -252,7 +252,7 @@ export const EmployeeDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const { data: viewData, error: viewError } = await supabase
           .from('employee_limited_view' as any)
           .select('*')
-          .order('created_at', { ascending: true });
+          .order('employee_code', { ascending: true });
 
         if (viewError) {
           console.error('Error fetching limited employees:', viewError);
