@@ -8,9 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Play, Loader2, Gift, Printer, FileText, FileSpreadsheet, Search, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { Play, Loader2, Gift, Printer, FileText, FileSpreadsheet, Search, X, CalendarIcon } from 'lucide-react';
 import { useReportExport } from '@/hooks/useReportExport';
 
 const JOB_LEVELS = [
@@ -66,6 +69,7 @@ export const EidBonuses = () => {
 
   const [bonusNumber, setBonusNumber] = useState('1');
   const [minMonths, setMinMonths] = useState('3');
+  const [calculationDate, setCalculationDate] = useState<Date>(new Date());
   const [levelAmounts, setLevelAmounts] = useState<Record<string, string>>({});
   const [records, setRecords] = useState<BonusRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -153,8 +157,9 @@ export const EidBonuses = () => {
 
     setLoading(true);
     try {
-      const cutoffDate = new Date();
+      const cutoffDate = new Date(calculationDate);
       cutoffDate.setMonth(cutoffDate.getMonth() - parseInt(minMonths));
+      cutoffDate.setDate(cutoffDate.getDate() + 10);
       const cutoffStr = cutoffDate.toISOString().split('T')[0];
 
       const { data: employees, error: empErr } = await supabase
@@ -267,7 +272,7 @@ export const EidBonuses = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-4", isRTL && "direction-rtl")}>
+          <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-4", isRTL && "direction-rtl")}>
             <div className="space-y-2">
               <Label className={cn(isRTL && "text-right block")}>{ar ? 'اختر العيدية' : 'Select Bonus'}</Label>
               <Select value={bonusNumber} onValueChange={setBonusNumber}>
@@ -292,6 +297,29 @@ export const EidBonuses = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className={cn(isRTL && "text-right block")}>{ar ? 'تاريخ الاحتساب' : 'Calculation Date'}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !calculationDate && "text-muted-foreground")}>
+                    <CalendarIcon className="w-4 h-4 me-2" />
+                    {calculationDate ? format(calculationDate, 'yyyy-MM-dd') : (ar ? 'اختر تاريخ' : 'Pick a date')}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={calculationDate}
+                    onSelect={(d) => d && setCalculationDate(d)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <p className="text-xs text-muted-foreground">
+                {ar ? 'يُستبعد من لم يتم المدة المحددة إلا 10 أيام من هذا التاريخ' : 'Excludes employees under the period minus 10 days from this date'}
+              </p>
             </div>
           </div>
 
