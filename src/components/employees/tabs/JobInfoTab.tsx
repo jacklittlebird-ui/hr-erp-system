@@ -95,6 +95,9 @@ export const JobInfoTab = ({ employee, onUpdate, readOnly }: JobInfoTabProps) =>
               <SelectValue placeholder={t('employees.select')} />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="worker">{t('employees.jobLevel.worker')}</SelectItem>
+              <SelectItem value="driver">{t('employees.jobLevel.driver')}</SelectItem>
+              <SelectItem value="messenger">{t('employees.jobLevel.messenger')}</SelectItem>
               <SelectItem value="junior">{t('employees.jobLevel.junior')}</SelectItem>
               <SelectItem value="mid">{t('employees.jobLevel.mid')}</SelectItem>
               <SelectItem value="senior">{t('employees.jobLevel.senior')}</SelectItem>
