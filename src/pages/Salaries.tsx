@@ -10,6 +10,7 @@ import { SalaryStructure } from '@/components/salaries/SalaryStructure';
 import { PayrollHistory } from '@/components/salaries/PayrollHistory';
 import { MobileBills } from '@/components/salaries/MobileBills';
 import { SalaryTransfer } from '@/components/salaries/SalaryTransfer';
+import { EidBonuses } from '@/components/salaries/EidBonuses';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 
