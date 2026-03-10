@@ -8,9 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Play, Loader2, Gift, Printer, FileText, FileSpreadsheet, Search, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { Play, Loader2, Gift, Printer, FileText, FileSpreadsheet, Search, X, CalendarIcon } from 'lucide-react';
 import { useReportExport } from '@/hooks/useReportExport';
 
 const JOB_LEVELS = [
