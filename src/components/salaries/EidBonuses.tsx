@@ -69,6 +69,7 @@ export const EidBonuses = () => {
 
   const [bonusNumber, setBonusNumber] = useState('1');
   const [minMonths, setMinMonths] = useState('3');
+  const [calculationDate, setCalculationDate] = useState<Date>(new Date());
   const [levelAmounts, setLevelAmounts] = useState<Record<string, string>>({});
   const [records, setRecords] = useState<BonusRecord[]>([]);
   const [loading, setLoading] = useState(false);
