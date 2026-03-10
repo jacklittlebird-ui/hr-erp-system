@@ -10,6 +10,7 @@ import { SalaryStructure } from '@/components/salaries/SalaryStructure';
 import { PayrollHistory } from '@/components/salaries/PayrollHistory';
 import { MobileBills } from '@/components/salaries/MobileBills';
 import { SalaryTransfer } from '@/components/salaries/SalaryTransfer';
+import { EidBonuses } from '@/components/salaries/EidBonuses';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 
@@ -26,6 +27,7 @@ const Salaries = () => {
     { id: 'history', label: t('salaries.tabs.history') },
     { id: 'mobile-bills', label: isRTL ? 'فواتير الموبايل' : 'Mobile Bills' },
     { id: 'transfer', label: isRTL ? 'تحويل الرواتب' : 'Salary Transfer' },
+    { id: 'eid-bonuses', label: isRTL ? 'العيديات' : 'Eid Bonuses' },
   ];
 
   return (
@@ -73,6 +75,9 @@ const Salaries = () => {
         </TabsContent>
         <TabsContent value="transfer">
           <SalaryTransfer />
+        </TabsContent>
+        <TabsContent value="eid-bonuses">
+          <EidBonuses />
         </TabsContent>
       </Tabs>
     </DashboardLayout>
