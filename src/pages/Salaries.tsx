@@ -43,7 +43,7 @@ const Salaries = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
-        <TabsList className="w-full justify-start mb-6 flex-wrap h-auto gap-1 bg-muted/50 p-1">
+        <TabsList className="w-full justify-start mb-6 flex-wrap h-auto gap-1 bg-muted/50 p-1 overflow-x-auto">
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.id}
