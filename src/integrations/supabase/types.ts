@@ -300,6 +300,81 @@ export type Database = {
         }
         Relationships: []
       }
+      eid_bonuses: {
+        Row: {
+          amount: number
+          bank_account_number: string | null
+          bank_account_type: string | null
+          bank_id_number: string | null
+          bank_name: string | null
+          bonus_number: number
+          created_at: string
+          department_name: string | null
+          employee_code: string | null
+          employee_id: string
+          employee_name: string | null
+          hire_date: string | null
+          id: string
+          job_level: string | null
+          job_title: string | null
+          station_name: string | null
+          year: string
+        }
+        Insert: {
+          amount?: number
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_id_number?: string | null
+          bank_name?: string | null
+          bonus_number: number
+          created_at?: string
+          department_name?: string | null
+          employee_code?: string | null
+          employee_id: string
+          employee_name?: string | null
+          hire_date?: string | null
+          id?: string
+          job_level?: string | null
+          job_title?: string | null
+          station_name?: string | null
+          year: string
+        }
+        Update: {
+          amount?: number
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_id_number?: string | null
+          bank_name?: string | null
+          bonus_number?: number
+          created_at?: string
+          department_name?: string | null
+          employee_code?: string | null
+          employee_id?: string
+          employee_name?: string | null
+          hire_date?: string | null
+          id?: string
+          job_level?: string | null
+          job_title?: string | null
+          station_name?: string | null
+          year?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eid_bonuses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_limited_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eid_bonuses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_documents: {
         Row: {
           employee_id: string
