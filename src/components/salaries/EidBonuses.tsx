@@ -157,8 +157,9 @@ export const EidBonuses = () => {
 
     setLoading(true);
     try {
-      const cutoffDate = new Date();
+      const cutoffDate = new Date(calculationDate);
       cutoffDate.setMonth(cutoffDate.getMonth() - parseInt(minMonths));
+      cutoffDate.setDate(cutoffDate.getDate() + 10);
       const cutoffStr = cutoffDate.toISOString().split('T')[0];
 
       const { data: employees, error: empErr } = await supabase
