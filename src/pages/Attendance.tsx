@@ -8,7 +8,7 @@ import { LateArrivals } from '@/components/attendance/LateArrivals';
 import { AttendanceReports } from '@/components/attendance/AttendanceReports';
 import { ShiftManagement } from '@/components/attendance/ShiftManagement';
 import { AttendanceRules } from '@/components/attendance/AttendanceRules';
-
+import { StationCheckinSettings } from '@/components/attendance/StationCheckinSettings';
 import { EmployeeAssignment } from '@/components/attendance/EmployeeAssignment';
 import { useAttendanceData } from '@/contexts/AttendanceDataContext';
 import { Clock, List, AlertTriangle, BarChart3, Calendar, Settings2, Users, RefreshCw } from 'lucide-react';
