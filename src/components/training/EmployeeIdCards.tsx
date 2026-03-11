@@ -34,7 +34,7 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
         borderRadius: '14px',
         overflow: 'hidden',
         position: 'relative',
-        fontFamily: "'Inter', 'Segoe UI', sans-serif",
+        fontFamily: "'Baloo Bhaijaan 2', sans-serif",
         background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #f8fafc 100%)',
         color: '#1e293b',
         boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
@@ -200,11 +200,11 @@ export const EmployeeIdCards = () => {
       <html>
       <head>
         <title>Employee ID - ${emp.name_en}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           @page { size: A4; margin: 20mm; }
-          body { font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: flex-start; padding: 40px; background: #f8fafc; }
+          body { font-family: 'Baloo Bhaijaan 2', sans-serif; display: flex; justify-content: center; align-items: flex-start; padding: 40px; background: #f8fafc; }
           .page-wrapper { text-align: center; }
           .page-title { font-size: 18px; font-weight: 700; color: #0a1628; margin-bottom: 24px; letter-spacing: 1px; }
           .card {
