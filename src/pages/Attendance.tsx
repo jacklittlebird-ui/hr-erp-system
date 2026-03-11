@@ -259,6 +259,10 @@ const Attendance = () => {
               <Users className="w-4 h-4" />
               <span className="hidden lg:inline">{t('attendance.tabs.assignment')}</span>
             </TabsTrigger>
+            <TabsTrigger value="station-settings" className="flex items-center gap-2">
+              <Navigation className="w-4 h-4" />
+              <span className="hidden lg:inline">{language === 'ar' ? 'إعدادات المحطات' : 'Station Settings'}</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="checkin">
