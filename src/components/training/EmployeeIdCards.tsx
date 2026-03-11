@@ -35,22 +35,22 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
         overflow: 'hidden',
         position: 'relative',
         fontFamily: "'Inter', 'Segoe UI', sans-serif",
-        background: 'linear-gradient(135deg, #0a1628 0%, #1a2d4a 50%, #0f2035 100%)',
-        color: '#fff',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #f8fafc 100%)',
+        color: '#1e293b',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+        border: '1px solid #e2e8f0',
       }}
     >
       {/* Decorative elements */}
       <div style={{
         position: 'absolute', top: '-30px', right: '-30px',
         width: '120px', height: '120px', borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%)',
       }} />
       <div style={{
         position: 'absolute', bottom: '-20px', left: '-20px',
         width: '80px', height: '80px', borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 70%)',
       }} />
 
       {/* Top bar with logo */}
@@ -61,11 +61,11 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
         <img
           src="/images/company-logo.png"
           alt="Company Logo"
-          style={{ height: '32px', objectFit: 'contain', filter: 'brightness(1.1)' }}
+          style={{ height: '32px', objectFit: 'contain' }}
         />
         <div style={{
           fontSize: '8px', letterSpacing: '2px', textTransform: 'uppercase',
-          color: 'rgba(147,197,253,0.8)', fontWeight: 600,
+          color: '#2563eb', fontWeight: 700,
         }}>
           EMPLOYEE ID
         </div>
@@ -73,8 +73,8 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
 
       {/* Divider line */}
       <div style={{
-        height: '1px', margin: '0 16px',
-        background: 'linear-gradient(90deg, transparent, rgba(59,130,246,0.4), transparent)',
+        height: '2px', margin: '0 16px',
+        background: 'linear-gradient(90deg, transparent, #2563eb, transparent)',
       }} />
 
       {/* Main content */}
@@ -86,15 +86,15 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
         <div style={{
           width: '72px', height: '88px', borderRadius: '8px',
           overflow: 'hidden', flexShrink: 0,
-          border: '2px solid rgba(59,130,246,0.3)',
-          background: 'linear-gradient(135deg, #1e3a5f, #0d2137)',
+          border: '2px solid #2563eb',
+          background: '#e2e8f0',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           {emp.avatar ? (
             <img src={emp.avatar} alt={emp.name_en}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            <User style={{ width: '32px', height: '32px', color: 'rgba(147,197,253,0.5)' }} />
+            <User style={{ width: '32px', height: '32px', color: '#94a3b8' }} />
           )}
         </div>
 
@@ -102,24 +102,24 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '5px' }}>
           <div style={{
             fontSize: '14px', fontWeight: 700, lineHeight: 1.2,
-            letterSpacing: '0.3px',
+            letterSpacing: '0.3px', color: '#0f172a',
           }}>
             {emp.name_en}
           </div>
           <div style={{
-            fontSize: '10px', color: 'rgba(147,197,253,0.9)', fontWeight: 500,
+            fontSize: '10px', color: '#2563eb', fontWeight: 600,
           }}>
             {emp.job_title_en || 'N/A'}
           </div>
           
           <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
             <div>
-              <div style={{ fontSize: '7px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px' }}>ID No.</div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#60a5fa', fontFamily: 'monospace' }}>{emp.employee_code}</div>
+              <div style={{ fontSize: '7px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>ID No.</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e40af', fontFamily: 'monospace' }}>{emp.employee_code}</div>
             </div>
             <div>
-              <div style={{ fontSize: '7px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px' }}>Dept</div>
-              <div style={{ fontSize: '10px', fontWeight: 500 }}>{(emp.departments as any)?.name_en || 'N/A'}</div>
+              <div style={{ fontSize: '7px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Dept</div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#334155' }}>{(emp.departments as any)?.name_en || 'N/A'}</div>
             </div>
           </div>
         </div>
@@ -130,20 +130,20 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
         position: 'absolute', bottom: 0, left: 0, right: 0,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '6px 16px',
-        background: 'linear-gradient(90deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))',
-        borderTop: '1px solid rgba(59,130,246,0.15)',
+        background: 'linear-gradient(90deg, rgba(37,99,235,0.06), rgba(37,99,235,0.02))',
+        borderTop: '1px solid #e2e8f0',
       }}>
         <div style={{ display: 'flex', gap: '16px' }}>
           <div>
-            <span style={{ fontSize: '7px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px' }}>Hired </span>
-            <span style={{ fontSize: '9px', fontWeight: 600 }}>{emp.hire_date || 'N/A'}</span>
+            <span style={{ fontSize: '7px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Hired </span>
+            <span style={{ fontSize: '9px', fontWeight: 600, color: '#334155' }}>{emp.hire_date || 'N/A'}</span>
           </div>
           <div>
-            <span style={{ fontSize: '7px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px' }}>Valid Until </span>
-            <span style={{ fontSize: '9px', fontWeight: 600 }}>{ID_EXPIRY}</span>
+            <span style={{ fontSize: '7px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Valid Until </span>
+            <span style={{ fontSize: '9px', fontWeight: 600, color: '#334155' }}>{ID_EXPIRY}</span>
           </div>
         </div>
-        <div style={{ fontSize: '7px', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.5px' }}>
+        <div style={{ fontSize: '7px', color: '#94a3b8', letterSpacing: '0.5px' }}>
           {(emp.stations as any)?.name_en || ''}
         </div>
       </div>
