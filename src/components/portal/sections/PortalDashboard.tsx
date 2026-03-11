@@ -41,11 +41,11 @@ export const PortalDashboard = () => {
 
   useEffect(() => {
     const fetchMethod = async () => {
-      if (!employee?.station_id) { setMethodLoading(false); return; }
+      if (!employee?.stationId) { setMethodLoading(false); return; }
       const { data } = await supabase
         .from('stations')
         .select('checkin_method')
-        .eq('id', employee.station_id)
+        .eq('id', employee.stationId)
         .single();
       if (data && (data as any).checkin_method) {
         setCheckinMethod((data as any).checkin_method);
@@ -53,7 +53,7 @@ export const PortalDashboard = () => {
       setMethodLoading(false);
     };
     fetchMethod();
-  }, [employee?.station_id]);
+  }, [employee?.stationId]);
 
   const showQr = checkinMethod === 'qr' || checkinMethod === 'both';
   const showGps = checkinMethod === 'gps' || checkinMethod === 'both';
