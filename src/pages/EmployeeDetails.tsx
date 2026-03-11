@@ -61,6 +61,7 @@ const allDetailTabs = [
   { id: 'salaryRecord', icon: Receipt, labelKey: 'employees.tabs.salaryRecord' },
   { id: 'loansAdvances', icon: HandCoins, labelKey: 'employees.tabs.loansAdvances' },
   { id: 'training', icon: GraduationCap, labelKey: 'employees.tabs.training' },
+  { id: 'companyCard', icon: IdCard, labelKey: 'employees.tabs.companyCard' },
   { id: 'notes', icon: StickyNote, labelKey: 'employees.tabs.notes' },
 ];
 
