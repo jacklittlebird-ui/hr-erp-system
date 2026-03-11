@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     const { data: roles } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id);
+      .eq("user_id", userId);
     const userRoles = (roles || []).map((r: any) => r.role);
     if (!userRoles.includes("admin") && !userRoles.includes("training_manager")) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
