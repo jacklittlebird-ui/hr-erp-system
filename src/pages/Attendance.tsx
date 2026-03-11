@@ -293,6 +293,10 @@ const Attendance = () => {
           <TabsContent value="assignment">
             <EmployeeAssignment />
           </TabsContent>
+
+          <TabsContent value="station-settings">
+            <StationCheckinSettings />
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
