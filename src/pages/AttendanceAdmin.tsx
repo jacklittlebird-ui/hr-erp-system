@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Shield, AlertTriangle, MapPin, Plus, RefreshCw, Smartphone, Trash2, Edit2 } from "lucide-react";
+import { Shield, AlertTriangle, MapPin, Plus, RefreshCw, Smartphone, Trash2, Edit2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 const AttendanceAdmin = () => {
@@ -31,6 +31,7 @@ const AttendanceAdmin = () => {
   const [newLocation, setNewLocation] = useState({
     name_ar: "", name_en: "", station_id: "", latitude: "", longitude: "", radius_m: "150",
   });
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchAll = async () => {
     setLoading(true);
@@ -150,7 +151,7 @@ const AttendanceAdmin = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="events" dir={ar ? "rtl" : "ltr"}>
+        <Tabs defaultValue="events" dir={ar ? "rtl" : "ltr"} onValueChange={() => setSearchQuery("")}>
           <TabsList>
             <TabsTrigger value="events">{ar ? "السجلات" : "Events"}</TabsTrigger>
             <TabsTrigger value="alerts">
@@ -166,13 +167,24 @@ const AttendanceAdmin = () => {
             </TabsTrigger>
           </TabsList>
 
+          {/* Search Bar */}
+          <div className="relative mt-3 mb-2">
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={ar ? "بحث بالاسم أو الكود أو الجهاز..." : "Search by name, code, or device..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="ps-9"
+            />
+          </div>
+
           <TabsContent value="events">
             <Card>
               <CardHeader>
                 <CardTitle>{ar ? "سجلات المسح" : "Scan Events"}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-auto max-h-[600px]">
+              <div className="overflow-auto max-h-[600px]">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -183,7 +195,17 @@ const AttendanceAdmin = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {events.map((ev) => (
+                      {events.filter((ev) => {
+                        if (!searchQuery) return true;
+                        const q = searchQuery.toLowerCase();
+                        const emp = (ev.employees as any);
+                        return (
+                          emp?.name_ar?.toLowerCase().includes(q) ||
+                          emp?.name_en?.toLowerCase().includes(q) ||
+                          emp?.employee_code?.toLowerCase().includes(q) ||
+                          ev.device_id?.toLowerCase().includes(q)
+                        );
+                      }).map((ev) => (
                         <TableRow key={ev.id}>
                           <TableCell>
                             {ar
@@ -240,7 +262,18 @@ const AttendanceAdmin = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {alerts.map((al) => {
+                      {alerts.filter((al) => {
+                        if (!searchQuery) return true;
+                        const q = searchQuery.toLowerCase();
+                        const emp = employeeMap[al.user_id];
+                        return (
+                          emp?.name_ar?.toLowerCase().includes(q) ||
+                          emp?.name_en?.toLowerCase().includes(q) ||
+                          emp?.employee_code?.toLowerCase().includes(q) ||
+                          al.device_id?.toLowerCase().includes(q) ||
+                          al.reason?.toLowerCase().includes(q)
+                        );
+                      }).map((al) => {
                         const emp = employeeMap[al.user_id];
                         return (
                         <TableRow key={al.id}>
@@ -347,7 +380,16 @@ const AttendanceAdmin = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {locations.map((loc) => (
+                    {locations.filter((loc) => {
+                        if (!searchQuery) return true;
+                        const q = searchQuery.toLowerCase();
+                        return (
+                          loc.name_ar?.toLowerCase().includes(q) ||
+                          loc.name_en?.toLowerCase().includes(q) ||
+                          (loc.stations as any)?.name_ar?.toLowerCase().includes(q) ||
+                          (loc.stations as any)?.name_en?.toLowerCase().includes(q)
+                        );
+                      }).map((loc) => (
                       <TableRow key={loc.id}>
                         <TableCell>{ar ? loc.name_ar : loc.name_en}</TableCell>
                         <TableCell>
@@ -465,7 +507,17 @@ const AttendanceAdmin = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {devices.map((dev) => {
+                      {devices.filter((dev) => {
+                        if (!searchQuery) return true;
+                        const q = searchQuery.toLowerCase();
+                        const emp = employeeMap[dev.user_id];
+                        return (
+                          emp?.name_ar?.toLowerCase().includes(q) ||
+                          emp?.name_en?.toLowerCase().includes(q) ||
+                          emp?.employee_code?.toLowerCase().includes(q) ||
+                          dev.device_id?.toLowerCase().includes(q)
+                        );
+                      }).map((dev) => {
                         const emp = employeeMap[dev.user_id];
                         return (
                           <TableRow key={`${dev.user_id}-${dev.device_id}`}>
