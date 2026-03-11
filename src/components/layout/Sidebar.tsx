@@ -39,6 +39,9 @@ const mainNavItems: NavItem[] = [
 ];
 
 const configNavItems: NavItem[] = [
+  { key: 'nav.attendanceScan', icon: ScanLine, path: '/attendance/scan', moduleKey: 'attendance' },
+  { key: 'nav.attendanceAdmin', icon: ShieldCheck, path: '/attendance/admin', moduleKey: 'attendance' },
+  { key: 'nav.attendanceKiosk', icon: Tv, path: '/attendance/kiosk', moduleKey: 'attendance' },
   { key: 'nav.users', icon: UserCog, path: '/users', moduleKey: 'users' },
   { key: 'nav.settings', icon: Settings, path: '/settings', moduleKey: 'settings' },
 ];
