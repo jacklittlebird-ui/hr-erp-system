@@ -59,7 +59,7 @@ export const NotificationDropdown = ({ variant = 'header', employeeId, portalFil
           </Button>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align={isRTL ? 'start' : 'end'}>
+      <PopoverContent className="w-96 p-0" align={isRTL ? 'start' : 'end'}>
         <div className={cn("flex items-center justify-between p-3 border-b", isRTL && "flex-row-reverse")}>
           <h3 className="font-semibold text-sm">{language === 'ar' ? 'الإشعارات' : 'Notifications'}</h3>
           <div className={cn("flex gap-1", isRTL && "flex-row-reverse")}>
@@ -76,7 +76,7 @@ export const NotificationDropdown = ({ variant = 'header', employeeId, portalFil
             )}
           </div>
         </div>
-        <ScrollArea className="max-h-80">
+        <ScrollArea className="max-h-[60vh]">
           {filteredNotifications.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground text-sm">
               {language === 'ar' ? 'لا توجد إشعارات' : 'No notifications'}
