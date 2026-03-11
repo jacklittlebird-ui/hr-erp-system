@@ -183,19 +183,19 @@ Deno.serve(async (req) => {
     });
 
     if (event_type === "check_in") {
-      // Check for existing record today
-      const { data: existing } = await supabaseAdmin
+      // Close any open record (no check_out) for today before creating a new one
+      const { data: openRecord } = await supabaseAdmin
         .from("attendance_records")
         .select("id")
         .eq("employee_id", employeeId)
         .eq("date", dateStr)
+        .is("check_out", null)
         .maybeSingle();
 
-      if (existing) {
-        return new Response(
-          JSON.stringify({ error: "تم تسجيل الحضور بالفعل / Already checked in today" }),
-          { status: 409, headers: { ...corsHeaders, "content-type": "application/json" } }
-        );
+      if (openRecord) {
+        await supabaseAdmin.from("attendance_records").update({
+          check_out: now.toISOString(),
+        }).eq("id", openRecord.id);
       }
 
       const isLate = now.getHours() >= 9;
@@ -208,13 +208,15 @@ Deno.serve(async (req) => {
         notes: `GPS - ${matchedLocation.name_ar}`,
       });
     } else {
-      // check_out
+      // check_out — find the latest open record for today
       const { data: openRecord } = await supabaseAdmin
         .from("attendance_records")
         .select("id")
         .eq("employee_id", employeeId)
         .eq("date", dateStr)
         .is("check_out", null)
+        .order("check_in", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (!openRecord) {
