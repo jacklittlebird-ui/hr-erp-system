@@ -24,19 +24,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify caller
+    // Verify caller using getUser
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { authorization: authHeader } },
     });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      console.error("Auth error:", authError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "content-type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
 
     const adminClient = createClient(supabaseUrl, serviceKey);
 
@@ -44,9 +43,9 @@ Deno.serve(async (req) => {
     const { data: roles } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId);
+      .eq("user_id", user.id);
     const userRoles = (roles || []).map((r: any) => r.role);
-    if (!userRoles.includes("admin") && !userRoles.includes("training_manager")) {
+    if (!userRoles.includes("admin") && !userRoles.includes("training_manager") && !userRoles.includes("hr")) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "content-type": "application/json" },

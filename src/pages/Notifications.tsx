@@ -107,6 +107,7 @@ const NotificationsPage = () => {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           authorization: `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({
