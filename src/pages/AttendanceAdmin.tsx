@@ -507,7 +507,17 @@ const AttendanceAdmin = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {devices.map((dev) => {
+                      {devices.filter((dev) => {
+                        if (!searchQuery) return true;
+                        const q = searchQuery.toLowerCase();
+                        const emp = employeeMap[dev.user_id];
+                        return (
+                          emp?.name_ar?.toLowerCase().includes(q) ||
+                          emp?.name_en?.toLowerCase().includes(q) ||
+                          emp?.employee_code?.toLowerCase().includes(q) ||
+                          dev.device_id?.toLowerCase().includes(q)
+                        );
+                      }).map((dev) => {
                         const emp = employeeMap[dev.user_id];
                         return (
                           <TableRow key={`${dev.user_id}-${dev.device_id}`}>
