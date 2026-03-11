@@ -162,6 +162,7 @@ const EmployeeDetails = () => {
       case 'salaryRecord': return <SalaryRecordTab employee={employee} />;
       case 'loansAdvances': return <LoansAdvancesTab employee={employee} />;
       case 'training': return <TrainingTab employee={employee} />;
+      case 'companyCard': return <EmployeeIdCards filterEmployeeId={employee.id} />;
       case 'notes': return <NotesTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
       default: return null;
     }
