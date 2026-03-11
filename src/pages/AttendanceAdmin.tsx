@@ -262,7 +262,18 @@ const AttendanceAdmin = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {alerts.map((al) => {
+                      {alerts.filter((al) => {
+                        if (!searchQuery) return true;
+                        const q = searchQuery.toLowerCase();
+                        const emp = employeeMap[al.user_id];
+                        return (
+                          emp?.name_ar?.toLowerCase().includes(q) ||
+                          emp?.name_en?.toLowerCase().includes(q) ||
+                          emp?.employee_code?.toLowerCase().includes(q) ||
+                          al.device_id?.toLowerCase().includes(q) ||
+                          al.reason?.toLowerCase().includes(q)
+                        );
+                      }).map((al) => {
                         const emp = employeeMap[al.user_id];
                         return (
                         <TableRow key={al.id}>
