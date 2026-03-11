@@ -208,76 +208,85 @@ export const SalaryTab = ({ employee, onUpdate, readOnly }: SalaryTabProps) => {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div>
-            <h4 className={cn("font-semibold text-sm mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-              {ar ? 'مكونات الراتب' : 'Salary Components'}
-            </h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {fieldRow(ar ? 'الراتب الأساسي' : 'Basic Salary', 'basicSalary')}
-              {fieldRow(ar ? 'بدل المواصلات' : 'Transport Allowance', 'transportAllowance')}
-              {fieldRow(ar ? 'حوافز' : 'Incentives', 'incentives')}
-              {fieldRow(ar ? 'بدل معيشة' : 'Living Allowance', 'livingAllowance')}
-              {fieldRow(ar ? 'بدل محطات' : 'Station Allowance', 'stationAllowance')}
-              {fieldRow(ar ? 'بدل محمول' : 'Mobile Allowance', 'mobileAllowance')}
+          {!selectedYear ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">{ar ? 'اختر السنة لعرض وتعديل مكونات الراتب' : 'Select a year to view and edit salary components'}</p>
             </div>
-          </div>
+          ) : (
+            <>
+              <div>
+                <h4 className={cn("font-semibold text-sm mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                  {ar ? 'مكونات الراتب' : 'Salary Components'}
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {fieldRow(ar ? 'الراتب الأساسي' : 'Basic Salary', 'basicSalary')}
+                  {fieldRow(ar ? 'بدل المواصلات' : 'Transport Allowance', 'transportAllowance')}
+                  {fieldRow(ar ? 'حوافز' : 'Incentives', 'incentives')}
+                  {fieldRow(ar ? 'بدل معيشة' : 'Living Allowance', 'livingAllowance')}
+                  {fieldRow(ar ? 'بدل محطات' : 'Station Allowance', 'stationAllowance')}
+                  {fieldRow(ar ? 'بدل محمول' : 'Mobile Allowance', 'mobileAllowance')}
+                </div>
+              </div>
 
-          <Separator />
+              <Separator />
 
-          <div>
-            <h4 className={cn("font-semibold text-sm mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
-              <TrendingDown className="h-4 w-4 text-destructive" />
-              {ar ? 'الخصومات (حصة الموظف)' : 'Deductions (Employee Share)'}
-            </h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {fieldRow(ar ? 'تأمينات (حصة موظف)' : 'Insurance (Employee)', 'employeeInsurance')}
-            </div>
-          </div>
+              <div>
+                <h4 className={cn("font-semibold text-sm mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                  <TrendingDown className="h-4 w-4 text-destructive" />
+                  {ar ? 'الخصومات (حصة الموظف)' : 'Deductions (Employee Share)'}
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {fieldRow(ar ? 'تأمينات (حصة موظف)' : 'Insurance (Employee)', 'employeeInsurance')}
+                </div>
+              </div>
 
-          <Separator />
+              <Separator />
 
-          <div>
-            <h4 className={cn("font-semibold text-sm mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
-              <Building2 className="h-4 w-4 text-blue-600" />
-              {ar ? 'مساهمات الشركة' : 'Company Contributions'}
-            </h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {fieldRow(ar ? 'التأمينات الاجتماعية - الشركة' : 'Social Insurance - Company', 'employerSocialInsurance')}
-              {fieldRow(ar ? 'التأمين الصحي' : 'Health Insurance', 'healthInsurance')}
-              {fieldRow(ar ? 'ضريبة الدخل' : 'Income Tax', 'incomeTax')}
-            </div>
-          </div>
+              <div>
+                <h4 className={cn("font-semibold text-sm mb-3 flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                  <Building2 className="h-4 w-4 text-blue-600" />
+                  {ar ? 'مساهمات الشركة' : 'Company Contributions'}
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {fieldRow(ar ? 'التأمينات الاجتماعية - الشركة' : 'Social Insurance - Company', 'employerSocialInsurance')}
+                  {fieldRow(ar ? 'التأمين الصحي' : 'Health Insurance', 'healthInsurance')}
+                  {fieldRow(ar ? 'ضريبة الدخل' : 'Income Tax', 'incomeTax')}
+                </div>
+              </div>
 
-          <Separator />
+              <Separator />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-green-50 border-green-200">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-muted-foreground mb-1">{ar ? 'الراتب الإجمالي' : 'Gross Salary'}</p>
-                <p className="text-2xl font-bold text-green-700">{gross.toLocaleString()} <span className="text-sm">{ar ? 'ج.م' : 'EGP'}</span></p>
-              </CardContent>
-            </Card>
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-muted-foreground mb-1">{ar ? 'الراتب الصافي' : 'Net Salary'}</p>
-                <p className="text-2xl font-bold text-blue-700">{net.toLocaleString()} <span className="text-sm">{ar ? 'ج.م' : 'EGP'}</span></p>
-              </CardContent>
-            </Card>
-            <Card className="bg-purple-50 border-purple-200">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-muted-foreground mb-1">{ar ? 'مساهمات الشركة' : 'Company Contributions'}</p>
-                <p className="text-2xl font-bold text-purple-700">{employerTotal.toLocaleString()} <span className="text-sm">{ar ? 'ج.م' : 'EGP'}</span></p>
-              </CardContent>
-            </Card>
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-green-50 border-green-200">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-xs text-muted-foreground mb-1">{ar ? 'الراتب الإجمالي' : 'Gross Salary'}</p>
+                    <p className="text-2xl font-bold text-green-700">{gross.toLocaleString()} <span className="text-sm">{ar ? 'ج.م' : 'EGP'}</span></p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-xs text-muted-foreground mb-1">{ar ? 'الراتب الصافي' : 'Net Salary'}</p>
+                    <p className="text-2xl font-bold text-blue-700">{net.toLocaleString()} <span className="text-sm">{ar ? 'ج.م' : 'EGP'}</span></p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-purple-50 border-purple-200">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-xs text-muted-foreground mb-1">{ar ? 'مساهمات الشركة' : 'Company Contributions'}</p>
+                    <p className="text-2xl font-bold text-purple-700">{employerTotal.toLocaleString()} <span className="text-sm">{ar ? 'ج.م' : 'EGP'}</span></p>
+                  </CardContent>
+                </Card>
+              </div>
 
-          <div className={cn("flex", isRTL ? "justify-start" : "justify-end")}>
-            <Button onClick={handleSaveSalary} className="gap-1" disabled={!selectedYear}>
-              <Save className="h-4 w-4" />
-              {existingRecord ? (ar ? 'تحديث الراتب' : 'Update Salary') : (ar ? 'حفظ الراتب' : 'Save Salary')}
-            </Button>
-          </div>
+              <div className={cn("flex", isRTL ? "justify-start" : "justify-end")}>
+                <Button onClick={handleSaveSalary} className="gap-1">
+                  <Save className="h-4 w-4" />
+                  {existingRecord ? (ar ? 'تحديث الراتب' : 'Update Salary') : (ar ? 'حفظ الراتب' : 'Save Salary')}
+                </Button>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
