@@ -9,6 +9,7 @@ import { CoursesList } from '@/components/training/CoursesList';
 import { TrainingPlan } from '@/components/training/TrainingPlan';
 import { TrainingRecordsReport } from '@/components/training/TrainingRecordsReport';
 import { TrainingStatsCards } from '@/components/training/TrainingStatsCards';
+import { EmployeeIdCards } from '@/components/training/EmployeeIdCards';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
