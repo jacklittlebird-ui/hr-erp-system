@@ -13,16 +13,27 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  const { email, password } = await req.json();
+  const { user_id, email, password } = await req.json();
 
-  // Find user by email
-  const { data: { users }, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
-  if (listErr) return new Response(JSON.stringify({ error: listErr.message }), { status: 400, headers: corsHeaders });
+  let targetId = user_id;
 
-  const user = users.find(u => u.email === email);
-  if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: corsHeaders });
+  if (!targetId && email) {
+    // Search across pages
+    let page = 1;
+    const perPage = 1000;
+    while (true) {
+      const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
+      const found = users.find(u => u.email === email);
+      if (found) { targetId = found.id; break; }
+      if (users.length < perPage) break;
+      page++;
+    }
+  }
 
-  const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, { password });
+  if (!targetId) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: corsHeaders });
+
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(targetId, { password });
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
 
   return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
