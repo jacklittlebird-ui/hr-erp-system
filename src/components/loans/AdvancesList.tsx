@@ -60,12 +60,18 @@ export const AdvancesList = () => {
     deducted: { ar: 'تم الخصم', en: 'Deducted', color: 'bg-green-100 text-green-700 border-green-300' },
   };
 
+  const uniqueDeductionMonths = useMemo(() => {
+    const months = [...new Set(advances.map(a => a.deductionMonth).filter(Boolean))].sort();
+    return months;
+  }, [advances]);
+
   const filteredAdvances = advances.filter(a => {
     const matchesSearch = a.employeeName.includes(searchQuery) || a.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
     const empStation = getEmployeeStation(a.employeeId);
     const matchesStation = stationFilter === 'all' || empStation === stationFilter || a.station === stationFilter;
-    return matchesSearch && matchesStatus && matchesStation;
+    const matchesMonth = monthFilter === 'all' || a.deductionMonth === monthFilter;
+    return matchesSearch && matchesStatus && matchesStation && matchesMonth;
   });
 
   const stats = {
