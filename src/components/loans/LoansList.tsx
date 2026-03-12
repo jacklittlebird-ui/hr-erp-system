@@ -97,13 +97,19 @@ export const LoansList = () => {
     return emp?.stationLocation || '';
   };
 
+  const uniqueStartDates = useMemo(() => {
+    const dates = [...new Set(loans.map(l => l.startDate?.slice(0, 7)).filter(Boolean))].sort();
+    return dates;
+  }, [loans]);
+
   const filteredLoans = loans.filter(loan => {
     const matchesSearch = loan.employeeName.includes(searchQuery) ||
       loan.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || loan.status === statusFilter;
     const empStation = getEmployeeStation(loan.employeeId);
     const matchesStation = stationFilter === 'all' || empStation === stationFilter || loan.station === stationFilter;
-    return matchesSearch && matchesStatus && matchesStation;
+    const matchesStartDate = startDateFilter === 'all' || loan.startDate?.startsWith(startDateFilter);
+    return matchesSearch && matchesStatus && matchesStation && matchesStartDate;
   });
 
   const stats = {
