@@ -513,7 +513,7 @@ const translations: Record<string, Record<Language, string>> = {
   'attendance.locations.nameAr': { en: 'Name (Arabic)', ar: 'الاسم (عربي)' },
   'attendance.locations.code': { en: 'Code', ar: 'الرمز' },
   'attendance.locations.type': { en: 'Type', ar: 'النوع' },
-  'attendance.locations.headquarters': { en: 'Headquarters', ar: 'المقر الرئيسي' },
+  'attendance.locations.headquarters': { en: 'Link Cargo', ar: 'لينك كارجو' },
   'attendance.locations.airport': { en: 'Airport', ar: 'مطار' },
   'attendance.locations.airports': { en: 'Airports', ar: 'المطارات' },
   'attendance.locations.address': { en: 'Address', ar: 'العنوان' },
