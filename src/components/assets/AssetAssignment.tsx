@@ -224,19 +224,36 @@ export const AssetAssignment = () => {
                   {/* Employee selection (filtered by station) */}
                   <div className="space-y-2">
                     <Label>{ar ? 'الموظف' : 'Employee'}</Label>
-                    <Select value={selectedEmployee} onValueChange={setSelectedEmployee} disabled={!selectedStation}>
-                      <SelectTrigger><SelectValue placeholder={selectedStation ? (ar ? 'اختر الموظف...' : 'Select employee...') : (ar ? 'اختر المحطة أولاً' : 'Select station first')} /></SelectTrigger>
-                      <SelectContent>
-                        {filteredEmployees.map(e => (
-                          <SelectItem key={e.id} value={e.id}>
-                            {ar ? e.nameAr : e.nameEn} ({e.employeeCode})
-                          </SelectItem>
-                        ))}
-                        {filteredEmployees.length === 0 && selectedStation && (
-                          <div className="p-2 text-sm text-muted-foreground text-center">{ar ? 'لا يوجد موظفين في هذه المحطة' : 'No employees in this station'}</div>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={employeePopoverOpen} onOpenChange={setEmployeePopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={employeePopoverOpen} disabled={!selectedStation} className="w-full justify-between font-normal">
+                          {selectedEmployee
+                            ? (() => { const emp = filteredEmployees.find(e => e.id === selectedEmployee); return emp ? `${ar ? emp.nameAr : emp.nameEn} (${emp.employeeCode})` : ''; })()
+                            : (selectedStation ? (ar ? 'اختر الموظف...' : 'Select employee...') : (ar ? 'اختر المحطة أولاً' : 'Select station first'))}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder={ar ? 'ابحث بالاسم أو الكود...' : 'Search by name or code...'} />
+                          <CommandList>
+                            <CommandEmpty>{ar ? 'لا توجد نتائج' : 'No results found'}</CommandEmpty>
+                            <CommandGroup>
+                              {filteredEmployees.map(e => (
+                                <CommandItem
+                                  key={e.id}
+                                  value={`${e.nameAr} ${e.nameEn} ${e.employeeCode}`}
+                                  onSelect={() => { setSelectedEmployee(e.id); setEmployeePopoverOpen(false); }}
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", selectedEmployee === e.id ? "opacity-100" : "opacity-0")} />
+                                  {ar ? e.nameAr : e.nameEn} ({e.employeeCode})
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   {/* Notes */}
