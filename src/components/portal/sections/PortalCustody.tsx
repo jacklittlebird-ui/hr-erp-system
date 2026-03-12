@@ -46,6 +46,7 @@ export const PortalCustody = () => {
   const [trainingDebts, setTrainingDebts] = useState<TrainingDebt[]>([]);
   const [employeeName, setEmployeeName] = useState('');
   const [ackDates, setAckDates] = useState<Record<string, string>>({});
+  const [assetAckDates, setAssetAckDates] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!PORTAL_EMPLOYEE_ID) return;
@@ -109,10 +110,23 @@ export const PortalCustody = () => {
       }
     };
 
+    const fetchAssetAcknowledgments = async () => {
+      const { data } = await supabase
+        .from('asset_acknowledgments')
+        .select('asset_id, acknowledged_at')
+        .eq('employee_id', PORTAL_EMPLOYEE_ID);
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((a: any) => { map[a.asset_id] = a.acknowledged_at; });
+        setAssetAckDates(map);
+      }
+    };
+
     fetchAssets();
     fetchTraining();
     fetchEmployeeName();
     fetchAcknowledgments();
+    fetchAssetAcknowledgments();
   }, [PORTAL_EMPLOYEE_ID]);
 
   const assigned = assets.filter(a => a.status === 'assigned').length;
@@ -235,9 +249,15 @@ This is my acknowledgment of receipt, with full knowledge of the laws governing 
                           <p className="text-sm font-semibold text-foreground">
                             {ar ? 'المقر بما فيه:' : 'Acknowledged by:'} <span className="text-primary">{employeeName}</span>
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            {ar ? 'تاريخ الإقرار:' : 'Acknowledgment date:'} {a.assignedDate ? new Date(a.assignedDate).toLocaleDateString(ar ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
-                          </p>
+                          {assetAckDates[a.id] ? (
+                            <p className="text-xs text-muted-foreground">
+                              {ar ? 'تاريخ الإقرار:' : 'Acknowledgment date:'} {new Date(assetAckDates[a.id]).toLocaleDateString(ar ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-destructive">
+                              {ar ? 'لم يتم الإقرار بعد' : 'Not acknowledged yet'}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );
