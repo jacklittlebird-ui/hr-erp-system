@@ -35,6 +35,8 @@ export const LoansList = () => {
   const activeEmployees = employees.filter(e => e.status === 'active');
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [stationFilter, setStationFilter] = useState<string>('all');
   const [showDialog, setShowDialog] = useState(false);
@@ -57,6 +59,16 @@ export const LoansList = () => {
     activeEmployees.find(e => e.id === formData.employeeId),
     [formData.employeeId, activeEmployees]
   );
+
+  const filteredEmployees = useMemo(() => {
+    if (!employeeSearch.trim()) return activeEmployees;
+    const q = employeeSearch.toLowerCase();
+    return activeEmployees.filter(e =>
+      e.employeeId?.toLowerCase().includes(q) ||
+      e.nameAr?.includes(employeeSearch) ||
+      e.nameEn?.toLowerCase().includes(q)
+    );
+  }, [employeeSearch, activeEmployees]);
 
   const autoMonthlyPayment = useMemo(() => {
     const amount = parseFloat(formData.amount);
@@ -103,6 +115,8 @@ export const LoansList = () => {
   const resetForm = () => {
     setFormData({ employeeId: '', amount: '', installments: '', startDate: '', notes: '', calculationMethod: 'auto', monthlyPayment: '' });
     setEditingLoan(null);
+    setEmployeeSearch('');
+    setShowEmployeeDropdown(false);
   };
 
   const openAddDialog = () => { resetForm(); setShowDialog(true); };
@@ -118,6 +132,8 @@ export const LoansList = () => {
       calculationMethod: loan.calculationMethod,
       monthlyPayment: loan.calculationMethod === 'manual' ? String(loan.monthlyPayment) : '',
     });
+    const emp = activeEmployees.find(e => e.id === loan.employeeId);
+    setEmployeeSearch(emp ? `${emp.employeeId} - ${isRTL ? emp.nameAr : emp.nameEn}` : loan.employeeName);
     setShowDialog(true);
   };
 
@@ -338,12 +354,39 @@ export const LoansList = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>{isRTL ? 'اختر الموظف *' : 'Select Employee *'}</Label>
-              <Select value={formData.employeeId} onValueChange={v => setFormData({ ...formData, employeeId: v })}>
-                <SelectTrigger><SelectValue placeholder={isRTL ? '-- اختر الموظف --' : '-- Select --'} /></SelectTrigger>
-                <SelectContent>
-                  {activeEmployees.map(emp => <SelectItem key={emp.id} value={emp.id}>{isRTL ? emp.nameAr : emp.nameEn}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Input
+                  placeholder={isRTL ? 'ابحث بكود الموظف أو الاسم...' : 'Search by employee code or name...'}
+                  value={employeeSearch}
+                  onChange={e => { setEmployeeSearch(e.target.value); setShowEmployeeDropdown(true); if (!e.target.value) setFormData({ ...formData, employeeId: '' }); }}
+                  onFocus={() => setShowEmployeeDropdown(true)}
+                  className={isRTL ? 'pr-9' : 'pl-9'}
+                />
+                <Search className={`absolute top-3 h-4 w-4 text-muted-foreground ${isRTL ? 'right-3' : 'left-3'}`} />
+                {showEmployeeDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {filteredEmployees.length === 0 ? (
+                      <p className="p-3 text-sm text-muted-foreground text-center">{isRTL ? 'لا توجد نتائج' : 'No results'}</p>
+                    ) : (
+                      filteredEmployees.map(emp => (
+                        <button
+                          key={emp.id}
+                          type="button"
+                          className="w-full text-right px-3 py-2 hover:bg-accent text-sm flex items-center justify-between gap-2"
+                          onClick={() => {
+                            setFormData({ ...formData, employeeId: emp.id });
+                            setEmployeeSearch(`${emp.employeeId} - ${isRTL ? emp.nameAr : emp.nameEn}`);
+                            setShowEmployeeDropdown(false);
+                          }}
+                        >
+                          <span className="font-semibold">{isRTL ? emp.nameAr : emp.nameEn}</span>
+                          <span className="text-muted-foreground text-xs">{emp.employeeId}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
               {selectedEmployee && <p className="text-sm text-muted-foreground">{isRTL ? 'المحطة/الموقع: ' : 'Station: '}{getStationLabel(selectedEmployee.id)}</p>}
             </div>
             <div className="space-y-2">
