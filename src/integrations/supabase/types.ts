@@ -1982,6 +1982,49 @@ export type Database = {
           },
         ]
       }
+      uniform_acknowledgments: {
+        Row: {
+          acknowledged_at: string
+          employee_id: string
+          id: string
+          uniform_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          employee_id: string
+          id?: string
+          uniform_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          employee_id?: string
+          id?: string
+          uniform_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uniform_acknowledgments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_limited_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uniform_acknowledgments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uniform_acknowledgments_uniform_id_fkey"
+            columns: ["uniform_id"]
+            isOneToOne: false
+            referencedRelation: "uniforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       uniforms: {
         Row: {
           created_at: string

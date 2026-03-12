@@ -4,6 +4,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { TrainingAcknowledgmentModal } from '@/components/portal/TrainingAcknowledgmentModal';
 import { SystemUsageAcknowledgmentModal } from '@/components/portal/SystemUsageAcknowledgmentModal';
 import { AssetAcknowledgmentModal } from '@/components/portal/AssetAcknowledgmentModal';
+import { UniformAcknowledgmentModal } from '@/components/portal/UniformAcknowledgmentModal';
 import { cn } from '@/lib/utils';
 import { PortalSidebar } from '@/components/portal/PortalSidebar';
 import { PortalHeader } from '@/components/portal/PortalHeader';
@@ -61,6 +62,7 @@ const EmployeePortal = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [ackDismissed, setAckDismissed] = useState(false);
   const [assetAckDismissed, setAssetAckDismissed] = useState(false);
+  const [uniformAckDismissed, setUniformAckDismissed] = useState(false);
   const [systemAckDismissed, setSystemAckDismissed] = useState(false);
 
   // Apply saved portal color on mount
@@ -147,6 +149,7 @@ const EmployeePortal = () => {
       {!systemAckDismissed && <SystemUsageAcknowledgmentModal onAcknowledged={() => setSystemAckDismissed(true)} />}
       {systemAckDismissed && !ackDismissed && <TrainingAcknowledgmentModal onAllAcknowledged={() => setAckDismissed(true)} />}
       {systemAckDismissed && ackDismissed && !assetAckDismissed && <AssetAcknowledgmentModal onAllAcknowledged={() => setAssetAckDismissed(true)} />}
+      {systemAckDismissed && ackDismissed && assetAckDismissed && !uniformAckDismissed && <UniformAcknowledgmentModal onAllAcknowledged={() => setUniformAckDismissed(true)} />}
       <div
         dir="rtl"
         className={cn(
