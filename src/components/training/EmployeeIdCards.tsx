@@ -36,7 +36,7 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
         overflow: 'hidden',
         position: 'relative',
         direction: 'ltr',
-        fontFamily: "'Baloo Bhaijaan 2', sans-serif",
+        fontFamily: "'Baloo Bhaijaan 2', 'Cairo', sans-serif",
         background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #f8fafc 100%)',
         color: '#1e293b',
         boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
@@ -117,7 +117,7 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
           <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
             <div>
               <div style={{ fontSize: '7px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>ID No.</div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e40af', fontFamily: 'monospace' }}>{emp.employee_code}</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e40af' }}>{emp.employee_code}</div>
             </div>
             <div>
               <div style={{ fontSize: '7px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Dept</div>
@@ -210,14 +210,15 @@ export const EmployeeIdCards = ({ filterEmployeeId }: { filterEmployeeId?: strin
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           @page { size: A4; margin: 20mm; }
-          body { font-family: 'Baloo Bhaijaan 2', sans-serif; display: flex; justify-content: center; align-items: flex-start; padding: 40px; background: #f8fafc; }
-          .page-wrapper { text-align: center; }
+          html, body { direction: ltr; text-align: left; }
+          body { font-family: 'Baloo Bhaijaan 2', 'Cairo', sans-serif; display: flex; justify-content: center; align-items: flex-start; padding: 40px; background: #f8fafc; min-height: 100vh; }
+          .page-wrapper { text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center; }
           .page-title { font-size: 18px; font-weight: 700; color: #0a1628; margin-bottom: 24px; letter-spacing: 1px; }
           .card {
             width: 680px; height: 430px; border-radius: 28px; overflow: hidden;
             position: relative; background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #f8fafc 100%);
             color: #1e293b; box-shadow: 0 4px 24px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;
-            margin: 0 auto;
+            direction: ltr; text-align: left;
           }
           .deco1 { position: absolute; top: -60px; right: -60px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%); }
           .deco2 { position: absolute; bottom: -40px; left: -40px; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 70%); }
@@ -234,13 +235,13 @@ export const EmployeeIdCards = ({ filterEmployeeId }: { filterEmployeeId?: strin
           .title { font-size: 16px; color: #2563eb; font-weight: 600; }
           .fields { display: flex; gap: 32px; margin-top: 8px; }
           .field-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; }
-          .field-value { font-size: 18px; font-weight: 700; color: #1e40af; font-family: monospace; }
-          .field-value.normal { font-size: 15px; color: #334155; font-family: 'Inter', sans-serif; font-weight: 500; }
+          .field-value { font-size: 18px; font-weight: 700; color: #1e40af; }
+          .field-value.normal { font-size: 15px; color: #334155; font-weight: 500; }
           .bottom { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 12px 32px; background: linear-gradient(90deg, rgba(37,99,235,0.06), rgba(37,99,235,0.02)); border-top: 1px solid #e2e8f0; }
           .bottom .pair span:first-child { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; }
           .bottom .pair span:last-child { font-size: 14px; font-weight: 600; color: #334155; margin-left: 4px; }
           .bottom .station { font-size: 10px; color: #94a3b8; }
-          @media print { body { background: #fff; padding: 0; } }
+          @media print { body { background: #fff; padding: 0; } .page-wrapper { align-items: center; } }
         </style>
       </head>
       <body>
