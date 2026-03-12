@@ -36,7 +36,7 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
         overflow: 'hidden',
         position: 'relative',
         direction: 'ltr',
-        fontFamily: "'Baloo Bhaijaan 2', sans-serif",
+        fontFamily: "'Baloo Bhaijaan 2', 'Cairo', sans-serif",
         background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #f8fafc 100%)',
         color: '#1e293b',
         boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
