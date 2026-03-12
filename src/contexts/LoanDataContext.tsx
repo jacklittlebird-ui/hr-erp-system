@@ -120,6 +120,7 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       employee_id: loan.employeeId,
       amount: loan.amount,
       installments_count: loan.installments,
+      monthly_installment: loan.monthlyPayment && loan.monthlyPayment > 0 ? loan.monthlyPayment : undefined,
       start_date: loan.startDate.length === 7 ? `${loan.startDate}-01` : loan.startDate,
       reason: loan.notes,
       status: loan.status || 'active',
