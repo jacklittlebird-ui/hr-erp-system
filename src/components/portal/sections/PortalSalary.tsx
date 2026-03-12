@@ -381,9 +381,6 @@ export const PortalSalary = () => {
                 <span>{ar ? 'صافي الراتب' : 'Net Salary'}</span>
                 <span className="text-primary">{selectedSlip.netSalary.toLocaleString()} {ar ? 'ج.م' : 'EGP'}</span>
               </div>
-              <Button onClick={() => printSlip(selectedSlip)} className="w-full gap-2">
-                <Printer className="w-4 h-4" />{ar ? 'طباعة' : 'Print'}
-              </Button>
             </div>
           )}
         </DialogContent>
