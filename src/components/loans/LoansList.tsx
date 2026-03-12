@@ -39,6 +39,7 @@ export const LoansList = () => {
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [stationFilter, setStationFilter] = useState<string>('all');
+  const [startDateFilter, setStartDateFilter] = useState<string>('all');
   const [showDialog, setShowDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
