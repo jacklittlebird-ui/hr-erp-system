@@ -381,9 +381,9 @@ export const sampleAttendanceRules: AttendanceRule[] = [
   {
     id: 'rule-hq-fixed',
     name: 'HQ Fixed Schedule',
-    nameAr: 'دوام ثابت - المقر الرئيسي',
-    description: 'Standard 8AM to 6PM schedule for headquarters employees',
-    descriptionAr: 'دوام ثابت من 8 صباحاً حتى 6 مساءً لموظفي المقر الرئيسي',
+    nameAr: 'دوام ثابت - لينك كارجو',
+    description: 'Standard 8AM to 6PM schedule for Link Cargo employees',
+    descriptionAr: 'دوام ثابت من 8 صباحاً حتى 6 مساءً لموظفي لينك كارجو',
     scheduleType: 'fixed',
     isActive: true,
     fixedSchedule: {
