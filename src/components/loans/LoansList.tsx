@@ -371,7 +371,7 @@ export const LoansList = () => {
                           className="w-full text-right px-3 py-2 hover:bg-accent text-sm flex items-center justify-between gap-2"
                           onClick={() => {
                             setFormData({ ...formData, employeeId: emp.id });
-                            setEmployeeSearch(`${emp.employeeCode} - ${isRTL ? emp.nameAr : emp.nameEn}`);
+                            setEmployeeSearch(`${emp.employeeId} - ${isRTL ? emp.nameAr : emp.nameEn}`);
                             setShowEmployeeDropdown(false);
                           }}
                         >
