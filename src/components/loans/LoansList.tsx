@@ -35,6 +35,8 @@ export const LoansList = () => {
   const activeEmployees = employees.filter(e => e.status === 'active');
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [stationFilter, setStationFilter] = useState<string>('all');
   const [showDialog, setShowDialog] = useState(false);
@@ -57,6 +59,16 @@ export const LoansList = () => {
     activeEmployees.find(e => e.id === formData.employeeId),
     [formData.employeeId, activeEmployees]
   );
+
+  const filteredEmployees = useMemo(() => {
+    if (!employeeSearch.trim()) return activeEmployees;
+    const q = employeeSearch.toLowerCase();
+    return activeEmployees.filter(e =>
+      e.employeeCode?.toLowerCase().includes(q) ||
+      e.nameAr?.includes(employeeSearch) ||
+      e.nameEn?.toLowerCase().includes(q)
+    );
+  }, [employeeSearch, activeEmployees]);
 
   const autoMonthlyPayment = useMemo(() => {
     const amount = parseFloat(formData.amount);
