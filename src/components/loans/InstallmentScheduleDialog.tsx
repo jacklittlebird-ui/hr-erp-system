@@ -93,7 +93,7 @@ export const InstallmentScheduleDialog = ({ open, onOpenChange, loan }: Installm
     ? (paidInstallmentsCount / totalInstallmentsCount) * 100
     : 0;
 
-  const installments = useMemo(() => {
+  const installments = (() => {
     if (scheduleRows.length > 0) {
       const firstPendingIndex = scheduleRows.findIndex((row) => row.status !== 'paid');
       let cumulative = 0;
@@ -140,7 +140,7 @@ export const InstallmentScheduleDialog = ({ open, onOpenChange, loan }: Installm
         status,
       };
     });
-  }, [scheduleRows, loan]);
+  })();
 
   const statusConfig: Record<InstallmentStatus, { label: string; labelEn: string; icon: typeof CheckCircle; color: string }> = {
     paid: { label: 'مدفوع', labelEn: 'Paid', icon: CheckCircle, color: 'bg-green-100 text-green-700 border-green-300' },
