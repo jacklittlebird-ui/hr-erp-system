@@ -165,7 +165,7 @@ export const PortalCustody = () => {
             <CardContent>
               {assets.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">{ar ? 'لا توجد أصول معيّنة' : 'No assets assigned'}</p>
-              ) : (
+                <>
                 <div className="overflow-x-auto">
                 <Table className="min-w-[500px]">
                   <TableHeader><TableRow>
