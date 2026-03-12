@@ -220,6 +220,7 @@ export const EmployeeIdCards = ({ filterEmployeeId }: { filterEmployeeId?: strin
             color: #1e293b; box-shadow: 0 4px 24px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;
             direction: ltr; text-align: left;
           }
+          .card * { text-align: left; }
           .deco1 { position: absolute; top: -60px; right: -60px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%); }
           .deco2 { position: absolute; bottom: -40px; left: -40px; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 70%); }
           .top-bar { display: flex; align-items: center; justify-content: space-between; padding: 24px 32px 16px; position: relative; z-index: 1; }
