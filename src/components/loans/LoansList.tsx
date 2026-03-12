@@ -227,7 +227,13 @@ export const LoansList = () => {
     { header: isRTL ? 'المتبقي' : 'Remaining', key: 'remainingAmount' },
     { header: isRTL ? 'الحالة' : 'Status', key: 'status' },
   ];
-  const exportData = filteredLoans.map(l => ({ ...l, stationLabel: getStationLabel(l.employeeId), status: isRTL ? statusLabels[l.status].ar : statusLabels[l.status].en }));
+  const exportData = filteredLoans
+    .map(l => ({ ...l, stationLabel: getStationLabel(l.employeeId), status: isRTL ? statusLabels[l.status].ar : statusLabels[l.status].en }))
+    .sort((a, b) => {
+      const stationCompare = a.stationLabel.localeCompare(b.stationLabel, isRTL ? 'ar' : 'en');
+      if (stationCompare !== 0) return stationCompare;
+      return a.employeeName.localeCompare(b.employeeName, isRTL ? 'ar' : 'en');
+    });
   const exportTitle = isRTL ? 'تقرير القروض' : 'Loans Report';
 
   return (
