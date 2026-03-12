@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
     const { data: existingDevice } = await supabaseAdmin
       .from("user_devices")
       .select("device_id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
 
     if (existingDevice) {
