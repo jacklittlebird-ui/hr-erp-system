@@ -175,8 +175,9 @@ export const LoansList = () => {
       }
       setShowDialog(false);
       resetForm();
-    } catch (err) {
-      toast({ title: isRTL ? 'خطأ' : 'Error', description: isRTL ? 'حدث خطأ أثناء الحفظ' : 'Error saving', variant: 'destructive' });
+    } catch (err: any) {
+      console.error('Loan save error:', err);
+      toast({ title: isRTL ? 'خطأ' : 'Error', description: err?.message || (isRTL ? 'حدث خطأ أثناء الحفظ' : 'Error saving'), variant: 'destructive' });
     }
   };
 
