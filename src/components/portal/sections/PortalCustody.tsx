@@ -18,6 +18,9 @@ interface AssignedAsset {
   model: string;
   condition: string;
   status: string;
+  category: string;
+  purchasePrice: number | null;
+  assignedDate: string;
 }
 
 interface TrainingDebt {
