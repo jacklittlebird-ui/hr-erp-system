@@ -161,6 +161,7 @@ export const LoansList = () => {
           employeeId: formData.employeeId,
           amount,
           installments,
+          monthlyPayment: isManual ? monthlyPayment : undefined,
           startDate: formData.startDate,
           notes: formData.notes,
         });
@@ -172,6 +173,7 @@ export const LoansList = () => {
           station: employee?.stationLocation || '',
           amount,
           installments,
+          monthlyPayment: isManual ? monthlyPayment : undefined,
           startDate: formData.startDate,
           status: 'active',
           notes: formData.notes,
