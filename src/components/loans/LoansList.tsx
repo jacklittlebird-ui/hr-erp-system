@@ -39,6 +39,7 @@ export const LoansList = () => {
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [stationFilter, setStationFilter] = useState<string>('all');
+  const [startDateFilter, setStartDateFilter] = useState<string>('all');
   const [showDialog, setShowDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
@@ -96,13 +97,19 @@ export const LoansList = () => {
     return emp?.stationLocation || '';
   };
 
+  const uniqueStartDates = useMemo(() => {
+    const dates = [...new Set(loans.map(l => l.startDate?.slice(0, 7)).filter(Boolean))].sort();
+    return dates;
+  }, [loans]);
+
   const filteredLoans = loans.filter(loan => {
     const matchesSearch = loan.employeeName.includes(searchQuery) ||
       loan.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || loan.status === statusFilter;
     const empStation = getEmployeeStation(loan.employeeId);
     const matchesStation = stationFilter === 'all' || empStation === stationFilter || loan.station === stationFilter;
-    return matchesSearch && matchesStatus && matchesStation;
+    const matchesStartDate = startDateFilter === 'all' || loan.startDate?.startsWith(startDateFilter);
+    return matchesSearch && matchesStatus && matchesStation && matchesStartDate;
   });
 
   const stats = {
@@ -282,6 +289,13 @@ export const LoansList = () => {
                 <SelectContent>
                   <SelectItem value="all">{isRTL ? 'جميع المحطات' : 'All Stations'}</SelectItem>
                   {stationLocations.map(s => <SelectItem key={s.value} value={s.value}>{isRTL ? s.labelAr : s.labelEn}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={startDateFilter} onValueChange={setStartDateFilter}>
+                <SelectTrigger className="w-44"><SelectValue placeholder={isRTL ? 'تاريخ بدء الخصم' : 'Start Date'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{isRTL ? 'جميع التواريخ' : 'All Dates'}</SelectItem>
+                  {uniqueStartDates.map(d => <SelectItem key={d} value={d}>{getMonthName(d, language)}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="icon" onClick={() => handlePrint(exportTitle)}><Printer className="h-4 w-4" /></Button>
