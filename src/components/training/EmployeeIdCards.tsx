@@ -117,7 +117,7 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
           <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
             <div>
               <div style={{ fontSize: '7px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>ID No.</div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e40af', fontFamily: 'monospace' }}>{emp.employee_code}</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e40af' }}>{emp.employee_code}</div>
             </div>
             <div>
               <div style={{ fontSize: '7px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Dept</div>
