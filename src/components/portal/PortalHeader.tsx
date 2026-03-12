@@ -35,9 +35,14 @@ export const PortalHeader = ({ onToggleSidebar, onRefresh }: PortalHeaderProps) 
           <Menu className="w-5 h-5" />
         </Button>
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-            <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-primary-foreground" />
-          </div>
+          <Avatar className="w-7 h-7 md:w-8 md:h-8 shrink-0 border border-primary/30">
+            {employee?.avatar ? (
+              <AvatarImage src={employee.avatar} alt={displayName} />
+            ) : null}
+            <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+              {(displayName || '?')[0]}
+            </AvatarFallback>
+          </Avatar>
           <div className="min-w-0 text-right">
             <p className="text-xs md:text-sm font-semibold leading-tight truncate">{displayName}</p>
             <p className="text-[10px] md:text-xs text-muted-foreground truncate">{employeeId}</p>
