@@ -376,7 +376,7 @@ export const LoansList = () => {
                           }}
                         >
                           <span className="font-semibold">{isRTL ? emp.nameAr : emp.nameEn}</span>
-                          <span className="text-muted-foreground text-xs">{emp.employeeCode}</span>
+                          <span className="text-muted-foreground text-xs">{emp.employeeId}</span>
                         </button>
                       ))
                     )}
