@@ -294,7 +294,7 @@ export const AdvancesList = () => {
                         {activeEmployees.map(emp => (
                           <CommandItem
                             key={emp.id}
-                            value={`${emp.nameAr} ${emp.nameEn} ${emp.employeeCode}`}
+                            value={`${emp.nameAr} ${emp.nameEn} ${emp.employeeId}`}
                             onSelect={() => {
                               setFormData({ ...formData, employeeId: emp.id });
                               setEmployeePopoverOpen(false);
