@@ -115,6 +115,8 @@ export const LoansList = () => {
   const resetForm = () => {
     setFormData({ employeeId: '', amount: '', installments: '', startDate: '', notes: '', calculationMethod: 'auto', monthlyPayment: '' });
     setEditingLoan(null);
+    setEmployeeSearch('');
+    setShowEmployeeDropdown(false);
   };
 
   const openAddDialog = () => { resetForm(); setShowDialog(true); };
