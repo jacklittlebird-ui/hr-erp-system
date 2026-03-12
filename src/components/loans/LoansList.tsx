@@ -110,6 +110,8 @@ export const LoansList = () => {
     activeLoans: loans.filter(l => l.status === 'active').length,
     pendingLoans: loans.filter(l => l.status === 'pending').length,
     totalAmount: loans.filter(l => l.status === 'active').reduce((sum, l) => sum + l.remainingAmount, 0),
+    totalLoanValue: loans.reduce((sum, l) => sum + l.amount, 0),
+    totalRemaining: loans.reduce((sum, l) => sum + l.remainingAmount, 0),
   };
 
   const resetForm = () => {
