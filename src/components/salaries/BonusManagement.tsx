@@ -189,28 +189,13 @@ export const BonusManagement = () => {
         return;
       }
 
-      // Get latest payroll entries to find gross salary
+      // Get gross salary from salary_records (Salary & Allowances tab) - PRIMARY source
       const empIds = employees.map(e => e.id);
-      const { data: payrollData } = await supabase
-        .from('payroll_entries')
-        .select('employee_id, gross')
-        .in('employee_id', empIds)
-        .order('processed_at', { ascending: false });
-
-      // Build a map: employee_id -> latest gross salary
-      const grossMap = new Map<string, number>();
-      (payrollData || []).forEach(p => {
-        if (!grossMap.has(p.employee_id)) {
-          grossMap.set(p.employee_id, p.gross || 0);
-        }
-      });
-
-      // Also get from salary_records as fallback
       const { data: salaryData } = await supabase
         .from('salary_records')
         .select('employee_id, basic_salary, transport_allowance, incentives, station_allowance, mobile_allowance, living_allowance')
         .in('employee_id', empIds)
-        .order('created_at', { ascending: false });
+        .order('year', { ascending: false });
 
       const salaryGrossMap = new Map<string, number>();
       (salaryData || []).forEach(s => {
@@ -218,6 +203,20 @@ export const BonusManagement = () => {
           const gross = (s.basic_salary || 0) + (s.transport_allowance || 0) + (s.incentives || 0) +
             (s.station_allowance || 0) + (s.mobile_allowance || 0) + (s.living_allowance || 0);
           salaryGrossMap.set(s.employee_id, gross);
+        }
+      });
+
+      // Fallback: payroll entries
+      const { data: payrollData } = await supabase
+        .from('payroll_entries')
+        .select('employee_id, gross')
+        .in('employee_id', empIds)
+        .order('processed_at', { ascending: false });
+
+      const grossMap = new Map<string, number>();
+      (payrollData || []).forEach(p => {
+        if (!grossMap.has(p.employee_id)) {
+          grossMap.set(p.employee_id, p.gross || 0);
         }
       });
 
