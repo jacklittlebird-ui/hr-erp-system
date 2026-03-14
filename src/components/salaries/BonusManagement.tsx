@@ -27,6 +27,7 @@ const JOB_LEVELS = [
   { value: 'supervisor', label: 'Supervisor' },
   { value: 'manager', label: 'Manager' },
   { value: 'director', label: 'Director' },
+  { value: '__unspecified__', label: 'غير محدد / Unspecified' },
 ];
 
 interface BonusRecord {
