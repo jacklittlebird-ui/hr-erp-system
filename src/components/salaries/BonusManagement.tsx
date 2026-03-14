@@ -67,7 +67,7 @@ export const BonusManagement = () => {
   const [bonusNumber, setBonusNumber] = useState('1');
   const [minMonths, setMinMonths] = useState('3');
   const [calculationDate, setCalculationDate] = useState<Date>(new Date());
-  const [levelPercentages, setLevelPercentages] = useState<Record<string, string>>({});
+  const [bonusPercentage, setBonusPercentage] = useState('');
   const [records, setRecords] = useState<BonusRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingRecords, setLoadingRecords] = useState(false);
