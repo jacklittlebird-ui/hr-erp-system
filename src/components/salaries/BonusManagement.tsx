@@ -16,11 +16,6 @@ import { format } from 'date-fns';
 import { Play, Loader2, Award, Printer, FileText, FileSpreadsheet, Search, X, CalendarIcon } from 'lucide-react';
 import { useReportExport } from '@/hooks/useReportExport';
 
-const JOB_LEVELS_LABELS: Record<string, string> = {
-  worker: 'Worker', driver: 'Driver', messenger: 'Messenger', junior: 'Junior',
-  mid: 'Med Level', senior: 'Senior', shiftLeader: 'Shift Leader',
-  supervisor: 'Supervisor', manager: 'Manager', director: 'Director',
-};
 
 interface BonusRecord {
   id?: string;
