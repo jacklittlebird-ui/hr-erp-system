@@ -27,6 +27,7 @@ const JOB_LEVELS = [
   { value: 'supervisor', label: 'Supervisor' },
   { value: 'manager', label: 'Manager' },
   { value: 'director', label: 'Director' },
+  { value: '__unspecified__', label: 'غير محدد / Unspecified' },
 ];
 
 interface BonusRecord {
@@ -223,7 +224,8 @@ export const BonusManagement = () => {
       const bonusRecords: any[] = [];
       for (const emp of employees) {
         const level = emp.job_level || '';
-        const pct = parseFloat(levelPercentages[level] || '0');
+        const levelKey = level || '__unspecified__';
+        const pct = parseFloat(levelPercentages[levelKey] || '0');
         if (pct <= 0) continue;
 
         // Get gross: prefer salary_records, fallback to payroll, fallback to basic_salary
