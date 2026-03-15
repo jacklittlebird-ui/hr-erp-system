@@ -263,6 +263,8 @@ export const TrainingRecords = () => {
       location: newRecord.location || null,
       has_cert: newRecord.hasCert,
       has_cr: newRecord.hasCr,
+      has_ss: newRecord.hasSs,
+      has_cb: newRecord.hasCb,
       planned_date: newRecord.plannedDate || null,
       cost: costVal,
       total_cost: totalCostVal,
@@ -270,7 +272,7 @@ export const TrainingRecords = () => {
     toast({ title: ar ? 'تم التعديل' : 'Updated' });
     setIsAddRecordOpen(false);
     setEditingRecordId(null);
-    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, plannedDate: '', cost: '' });
+    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, hasSs: false, hasCb: false, plannedDate: '', cost: '' });
     // Refresh
     const { data } = await supabase
       .from('training_records')
@@ -284,6 +286,7 @@ export const TrainingRecords = () => {
       percentage: r.score || undefined,
       provider: r.provider || '', location: r.location || '',
       hasCert: r.has_cert || false, hasCr: r.has_cr || false,
+      hasSs: r.has_ss || false, hasCb: r.has_cb || false,
       plannedDate: r.planned_date || '', isFavorite: r.is_favorite || false,
       cost: r.cost || 0, totalCost: r.total_cost || 0,
     })));
