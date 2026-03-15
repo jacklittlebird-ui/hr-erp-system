@@ -110,7 +110,7 @@ export const AttendanceRecordTab = ({ employee }: AttendanceRecordTabProps) => {
             ) : (
               filteredLogs.map((log, idx) => (
                 <TableRow key={idx}>
-                  <TableCell>{log.date}</TableCell>
+                  <TableCell>{formatDate(log.date)}</TableCell>
                   <TableCell>
                     <span className="flex items-center gap-1">
                       <LogIn className="w-3 h-3 text-green-500" />

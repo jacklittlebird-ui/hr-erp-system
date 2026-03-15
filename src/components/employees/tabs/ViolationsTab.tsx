@@ -115,7 +115,7 @@ export const ViolationsTab = ({ employee }: ViolationsTabProps) => {
                 const typeLabel = violationTypes.find(t => t.value === v.type);
                 return (
                   <TableRow key={v.id}>
-                    <TableCell>{v.date}</TableCell>
+                    <TableCell>{formatDate(v.date)}</TableCell>
                     <TableCell>{ar ? typeLabel?.ar : typeLabel?.en}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{v.description}</TableCell>
                     <TableCell>{v.penalty}</TableCell>

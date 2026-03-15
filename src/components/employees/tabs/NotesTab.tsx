@@ -92,7 +92,7 @@ export const NotesTab = ({ employee, onUpdate, readOnly }: NotesTabProps) => {
               <div className={cn("flex items-start justify-between", isRTL && "flex-row-reverse")}>
                 <div className={cn("flex-1", isRTL && "text-right")}>
                   <h4 className="font-semibold text-foreground">{note.title}</h4>
-                  <p className="text-xs text-muted-foreground mt-1">{note.date}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{formatDate(note.date)}</p>
                   <p className="text-sm text-foreground mt-2 whitespace-pre-wrap">{note.content}</p>
                 </div>
                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive shrink-0" onClick={() => handleDelete(note.id)}>

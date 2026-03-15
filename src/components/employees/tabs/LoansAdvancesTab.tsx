@@ -85,7 +85,7 @@ export const LoansAdvancesTab = ({ employee }: LoansAdvancesTabProps) => {
               empAdvances.map(a => (
                 <TableRow key={a.id}>
                   <TableCell className="font-bold">{a.amount.toLocaleString()}</TableCell>
-                  <TableCell>{a.requestDate}</TableCell>
+                  <TableCell>{formatDate(a.requestDate)}</TableCell>
                   <TableCell>{a.reason}</TableCell>
                   <TableCell>{statusBadge(a.status)}</TableCell>
                 </TableRow>

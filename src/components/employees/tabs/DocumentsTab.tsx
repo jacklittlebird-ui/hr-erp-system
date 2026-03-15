@@ -114,8 +114,8 @@ export const DocumentsTab = ({ employee }: DocumentsTabProps) => {
                   <TableRow key={doc.id}>
                     <TableCell className="font-medium">{doc.name}</TableCell>
                     <TableCell>{ar ? typeLabel?.ar : typeLabel?.en}</TableCell>
-                    <TableCell>{doc.date}</TableCell>
-                    <TableCell>{doc.expiryDate || '-'}</TableCell>
+                    <TableCell>{formatDate(doc.date)}</TableCell>
+                    <TableCell>{formatDate(doc.expiryDate)}</TableCell>
                     <TableCell className="max-w-[150px] truncate">{doc.notes || '-'}</TableCell>
                     <TableCell>
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(doc.id)}>

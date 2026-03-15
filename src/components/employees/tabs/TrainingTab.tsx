@@ -102,8 +102,8 @@ export const TrainingTab = ({ employee }: TrainingTabProps) => {
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{ar ? r.courseNameAr : r.courseNameEn}</TableCell>
                     <TableCell>{r.provider}</TableCell>
-                    <TableCell>{r.startDate || '-'}</TableCell>
-                    <TableCell>{r.endDate || '-'}</TableCell>
+                    <TableCell>{formatDate(r.startDate)}</TableCell>
+                    <TableCell>{formatDate(r.endDate)}</TableCell>
                     <TableCell>
                       <span className={cn("px-2 py-1 rounded-md text-xs font-semibold border", sl.color)}>
                         {ar ? sl.ar : sl.en}

@@ -75,7 +75,7 @@ export const EvaluationsTab = ({ employee }: EvaluationsTabProps) => {
             ) : (
               empEvals.map(ev => (
                 <TableRow key={ev.id}>
-                  <TableCell>{ev.reviewDate}</TableCell>
+                  <TableCell>{formatDate(ev.reviewDate)}</TableCell>
                   <TableCell>{ev.quarter}</TableCell>
                   <TableCell>{ev.year}</TableCell>
                   <TableCell>
