@@ -1,26 +1,21 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, Save, X, Edit2, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 
 interface Trainer {
   id: string;
   provider: string;
-  title: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   jobTitle: string;
   email: string;
-  officeNumber: string;
   mobNumber: string;
   siteAddress: string;
   status: 'active' | 'inactive';
@@ -28,20 +23,22 @@ interface Trainer {
 }
 
 export const Trainers = () => {
-  const { t, language, isRTL } = useLanguage();
+  const { t, language } = useLanguage();
   const { toast } = useToast();
+  const ar = language === 'ar';
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [selectedTrainer, setSelectedTrainer] = useState<Trainer | null>(null);
   const [isAddMode, setIsAddMode] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [formData, setFormData] = useState<Partial<Trainer>>({
-    id: '', provider: '', title: 'Mr.', firstName: '', lastName: '',
-    jobTitle: '', email: '', officeNumber: '', mobNumber: '', siteAddress: '', status: 'active',
+    id: '', provider: '', name: '',
+    jobTitle: '', email: '', mobNumber: '', siteAddress: '', status: 'active',
   });
 
   const handleNewTrainer = () => {
     setIsAddMode(true); setSelectedTrainer(null);
-    setFormData({ id: String(trainers.length + 1), provider: '', title: 'Mr.', firstName: '', lastName: '', jobTitle: '', email: '', officeNumber: '', mobNumber: '', siteAddress: '', status: 'active' });
+    setFormData({ id: String(trainers.length + 1), provider: '', name: '', jobTitle: '', email: '', mobNumber: '', siteAddress: '', status: 'active' });
   };
 
   const handleEditTrainer = (trainer: Trainer) => {
@@ -50,7 +47,7 @@ export const Trainers = () => {
   };
 
   const handleSave = () => {
-    if (!formData.firstName || !formData.lastName || !formData.provider) {
+    if (!formData.name || !formData.provider) {
       toast({ title: t('common.error'), description: t('training.fillRequired'), variant: 'destructive' }); return;
     }
     if (isAddMode) {
@@ -78,10 +75,33 @@ export const Trainers = () => {
     setCurrentIndex(newIndex); setFormData(trainers[newIndex]); setSelectedTrainer(trainers[newIndex]);
   };
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxSize = 200;
+        let w = img.width, h = img.height;
+        if (w > h) { h = (h / w) * maxSize; w = maxSize; } else { w = (w / h) * maxSize; h = maxSize; }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        setFormData({ ...formData, photo: dataUrl });
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const showForm = isAddMode || selectedTrainer;
 
   return (
     <div dir="rtl" className="space-y-6">
+      <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handlePhotoUpload} />
       {!showForm ? (
         <>
           <div className="flex justify-between items-center">
@@ -101,11 +121,11 @@ export const Trainers = () => {
               </TableRow></TableHeader>
               <TableBody>
                 {trainers.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{language === 'ar' ? 'لا يوجد مدربون' : 'No trainers'}</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{ar ? 'لا يوجد مدربون' : 'No trainers'}</TableCell></TableRow>
                 ) : trainers.map(trainer => (
                   <TableRow key={trainer.id}>
-                    <TableCell><Avatar><AvatarImage src={trainer.photo} /><AvatarFallback>{trainer.firstName.charAt(0)}{trainer.lastName.charAt(0)}</AvatarFallback></Avatar></TableCell>
-                    <TableCell className="font-medium">{trainer.title} {trainer.firstName} {trainer.lastName}</TableCell>
+                    <TableCell><Avatar><AvatarImage src={trainer.photo} /><AvatarFallback>{trainer.name?.charAt(0)}</AvatarFallback></Avatar></TableCell>
+                    <TableCell className="font-medium">{trainer.name}</TableCell>
                     <TableCell>{trainer.provider}</TableCell>
                     <TableCell>{trainer.jobTitle}</TableCell>
                     <TableCell>{trainer.email}</TableCell>
@@ -131,22 +151,19 @@ export const Trainers = () => {
           <CardContent className="space-y-6">
             <div className="flex gap-6">
               <div className="flex flex-col items-center gap-2">
-                <Avatar className="w-32 h-32"><AvatarImage src={formData.photo} /><AvatarFallback className="text-3xl">{formData.firstName?.charAt(0)}{formData.lastName?.charAt(0)}</AvatarFallback></Avatar>
-                <Button variant="outline" size="sm"><Camera className="h-4 w-4 mr-2" />{t('training.trainers.uploadPhoto')}</Button>
+                <Avatar className="w-32 h-32 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                  <AvatarImage src={formData.photo} />
+                  <AvatarFallback className="text-3xl">{formData.name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  <Camera className="h-4 w-4 mr-2" />{ar ? 'رفع صورة' : 'Upload Photo'}
+                </Button>
               </div>
               <div className="flex-1 grid grid-cols-3 gap-4">
                 <div><Label>{t('training.trainers.provider')}</Label><Input value={formData.provider} onChange={(e) => setFormData({ ...formData, provider: e.target.value })} /></div>
-                <div><Label>{t('training.trainers.title')}</Label>
-                  <Select value={formData.title} onValueChange={(val) => setFormData({ ...formData, title: val })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Mr.">Mr.</SelectItem><SelectItem value="Mrs.">Mrs.</SelectItem><SelectItem value="Dr.">Dr.</SelectItem><SelectItem value="Eng.">Eng.</SelectItem></SelectContent>
-                  </Select>
-                </div>
-                <div><Label>{t('training.trainers.firstName')}</Label><Input value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} /></div>
-                <div><Label>{t('training.trainers.lastName')}</Label><Input value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} /></div>
+                <div className="col-span-2"><Label>{ar ? 'الاسم' : 'Name'}</Label><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                 <div className="col-span-2"><Label>{t('training.trainers.jobTitle')}</Label><Input value={formData.jobTitle} onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })} /></div>
                 <div><Label>{t('training.trainers.email')}</Label><Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} /></div>
-                <div><Label>{t('training.trainers.officeNumber')}</Label><Input value={formData.officeNumber} onChange={(e) => setFormData({ ...formData, officeNumber: e.target.value })} /></div>
                 <div><Label>{t('training.trainers.mobNumber')}</Label><Input value={formData.mobNumber} onChange={(e) => setFormData({ ...formData, mobNumber: e.target.value })} /></div>
               </div>
             </div>
