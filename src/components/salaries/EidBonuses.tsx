@@ -172,6 +172,7 @@ export const EidBonuses = () => {
           departments:department_id (name_ar, name_en)
         `)
         .eq('status', 'active')
+        .eq('employment_status', 'active')
         .or('resigned.is.null,resigned.eq.false')
         .lte('hire_date', cutoffStr);
 
