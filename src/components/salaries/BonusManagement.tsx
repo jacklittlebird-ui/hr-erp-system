@@ -537,7 +537,7 @@ export const BonusManagement = () => {
                   {filteredRecords.map((r, i) => (
                     <TableRow key={r.id || r.employee_id}>
                       <TableCell>{i + 1}</TableCell>
-                      <TableCell className="font-medium whitespace-nowrap">{r.employee_name}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{ar ? r.employee_name : (r.employee_name_en || r.employee_name)}</TableCell>
                       <TableCell>{r.employee_code}</TableCell>
                       <TableCell>{r.station_name}</TableCell>
                       <TableCell>{r.department_name}</TableCell>
