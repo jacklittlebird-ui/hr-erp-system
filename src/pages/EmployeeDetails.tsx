@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   ArrowRight, Save, Edit, Eye, User, Phone, CreditCard, Briefcase, Wallet, Calendar,
   Shield, FileCheck, Award, Building2, Clock, CalendarDays, MapPin,
-  BarChart3, AlertTriangle, FileText, Receipt, HandCoins, GraduationCap, StickyNote, IdCard,
+  BarChart3, AlertTriangle, FileText, Receipt, HandCoins, GraduationCap, StickyNote, IdCard, Gift,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BasicInfoTab } from '@/components/employees/tabs/BasicInfoTab';
@@ -34,6 +34,7 @@ import { SalaryRecordTab } from '@/components/employees/tabs/SalaryRecordTab';
 import { LoansAdvancesTab } from '@/components/employees/tabs/LoansAdvancesTab';
 import { TrainingTab } from '@/components/employees/tabs/TrainingTab';
 import { NotesTab } from '@/components/employees/tabs/NotesTab';
+import { BonusesEidTab } from '@/components/employees/tabs/BonusesEidTab';
 import { EmployeeIdCards } from '@/components/training/EmployeeIdCards';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { toast } from '@/hooks/use-toast';
@@ -41,7 +42,7 @@ import { Employee } from '@/types/employee';
 
 // Tabs hidden from HR role (salary-related)
 const HR_HIDDEN_TABS = ['salary', 'salaryRecord'];
-
+const ADMIN_ONLY_TABS = ['bonusesEid'];
 const allDetailTabs = [
   { id: 'basic', icon: User, labelKey: 'employees.tabs.basicInfo' },
   { id: 'contact', icon: Phone, labelKey: 'employees.tabs.contactInfo' },
@@ -63,6 +64,7 @@ const allDetailTabs = [
   { id: 'loansAdvances', icon: HandCoins, labelKey: 'employees.tabs.loansAdvances' },
   { id: 'training', icon: GraduationCap, labelKey: 'employees.tabs.training' },
   { id: 'companyCard', icon: IdCard, labelKey: 'employees.tabs.companyCard' },
+  { id: 'bonusesEid', icon: Gift, labelKey: 'employees.tabs.bonusesEid' },
   { id: 'notes', icon: StickyNote, labelKey: 'employees.tabs.notes' },
 ];
 
@@ -83,12 +85,18 @@ const EmployeeDetails = () => {
   const { getEmployee, updateEmployee } = useEmployeeData();
   const { user } = useAuth();
   const isHR = user?.role === 'hr';
+  const isAdmin = user?.role === 'admin';
   const [activeTab, setActiveTab] = useState('basic');
 
   // Filter out salary tabs for HR users
   const detailTabs = useMemo(
-    () => isHR ? allDetailTabs.filter(tab => !HR_HIDDEN_TABS.includes(tab.id)) : allDetailTabs,
-    [isHR]
+    () => {
+      let tabs = allDetailTabs;
+      if (isHR) tabs = tabs.filter(tab => !HR_HIDDEN_TABS.includes(tab.id));
+      if (!isAdmin) tabs = tabs.filter(tab => !ADMIN_ONLY_TABS.includes(tab.id));
+      return tabs;
+    },
+    [isHR, isAdmin]
   );
 
   // Accumulate all field changes from all tabs
@@ -163,6 +171,7 @@ const EmployeeDetails = () => {
       case 'loansAdvances': return <LoansAdvancesTab employee={employee} />;
       case 'training': return <TrainingTab employee={employee} />;
       case 'companyCard': return <EmployeeIdCards filterEmployeeId={employee.id} />;
+      case 'bonusesEid': return <BonusesEidTab employee={employee} />;
       case 'notes': return <NotesTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
       default: return null;
     }
