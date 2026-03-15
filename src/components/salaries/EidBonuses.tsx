@@ -92,28 +92,32 @@ export const EidBonuses = () => {
     setLoadingRecords(true);
     const { data, error } = await supabase
       .from('eid_bonuses')
-      .select('*')
+      .select('*, employees:employee_id (name_ar, name_en)')
       .eq('bonus_number', parseInt(bonusNumber))
       .eq('year', currentYear)
       .order('employee_code');
     
     if (!error && data) {
-      setRecords(data.map(r => ({
-        id: r.id,
-        employee_id: r.employee_id,
-        employee_name: r.employee_name || '',
-        employee_code: r.employee_code || '',
-        station_name: r.station_name || '',
-        department_name: r.department_name || '',
-        job_title: r.job_title || '',
-        hire_date: r.hire_date || '',
-        bank_account_number: r.bank_account_number || '',
-        bank_id_number: r.bank_id_number || '',
-        bank_name: r.bank_name || '',
-        bank_account_type: r.bank_account_type || '',
-        job_level: r.job_level || '',
-        amount: r.amount,
-      })));
+      setRecords(data.map(r => {
+        const emp = r.employees as any;
+        return {
+          id: r.id,
+          employee_id: r.employee_id,
+          employee_name: emp?.name_ar || r.employee_name || '',
+          employee_name_en: emp?.name_en || '',
+          employee_code: r.employee_code || '',
+          station_name: r.station_name || '',
+          department_name: r.department_name || '',
+          job_title: r.job_title || '',
+          hire_date: r.hire_date || '',
+          bank_account_number: r.bank_account_number || '',
+          bank_id_number: r.bank_id_number || '',
+          bank_name: r.bank_name || '',
+          bank_account_type: r.bank_account_type || '',
+          job_level: r.job_level || '',
+          amount: r.amount,
+        };
+      }));
     }
     setLoadingRecords(false);
   };
