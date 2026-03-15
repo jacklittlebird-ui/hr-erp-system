@@ -64,6 +64,7 @@ const allDetailTabs = [
   { id: 'loansAdvances', icon: HandCoins, labelKey: 'employees.tabs.loansAdvances' },
   { id: 'training', icon: GraduationCap, labelKey: 'employees.tabs.training' },
   { id: 'companyCard', icon: IdCard, labelKey: 'employees.tabs.companyCard' },
+  { id: 'bonusesEid', icon: Gift, labelKey: 'employees.tabs.bonusesEid' },
   { id: 'notes', icon: StickyNote, labelKey: 'employees.tabs.notes' },
 ];
 
