@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Save, X, Edit2, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
+import { Plus, Trash2, Save, X, Edit2, ChevronLeft, ChevronRight, Camera, Search, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Trainer {
@@ -116,8 +116,21 @@ export const Trainers = () => {
     id: '', provider: '', name: '',
     jobTitle: '', email: '', mobNumber: '', siteAddress: '', status: 'active',
   });
+  const [searchName, setSearchName] = useState('');
+  const [searchProvider, setSearchProvider] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+
+  const filtered = useMemo(() => {
+    return trainers.filter(t => {
+      const n = searchName.toLowerCase();
+      const p = searchProvider.toLowerCase();
+      return (!n || t.name.toLowerCase().includes(n) || t.jobTitle.toLowerCase().includes(n))
+        && (!p || t.provider.toLowerCase().includes(p));
+    });
+  }, [trainers, searchName, searchProvider]);
 
   const handleNewTrainer = () => {
+
     setIsAddMode(true); setSelectedTrainer(null);
     setFormData({ id: String(trainers.length + 1), provider: '', name: '', jobTitle: '', email: '', mobNumber: '', siteAddress: '', status: 'active' });
   };
@@ -185,25 +198,49 @@ export const Trainers = () => {
       <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handlePhotoUpload} />
       {!showForm ? (
         <>
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">{t('training.trainers.list')}</h2>
-            <Button onClick={handleNewTrainer}><Plus className="h-4 w-4 mr-2" />{t('training.trainers.add')}</Button>
-          </div>
-          <Card><CardContent className="p-0">
-            <Table>
-              <TableHeader><TableRow>
-                <TableHead>{t('training.trainers.photo')}</TableHead>
-                <TableHead>{t('training.trainers.name')}</TableHead>
-                <TableHead>{t('training.trainers.provider')}</TableHead>
-                <TableHead>{t('training.trainers.jobTitle')}</TableHead>
-                <TableHead>{t('training.trainers.email')}</TableHead>
-                <TableHead>{t('training.trainers.status')}</TableHead>
-                <TableHead>{t('common.actions')}</TableHead>
-              </TableRow></TableHeader>
-              <TableBody>
-                {trainers.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{ar ? 'لا يوجد مدربون' : 'No trainers'}</TableCell></TableRow>
-                ) : trainers.map(trainer => (
+           <div className="flex justify-between items-center">
+             <h2 className="text-xl font-semibold">{t('training.trainers.list')}</h2>
+             <div className="flex gap-2">
+               <Button variant={showFilters ? 'default' : 'outline'} onClick={() => setShowFilters(!showFilters)}>
+                 <Search className="h-4 w-4 mr-2" />{ar ? 'بحث' : 'Search'} {(searchName || searchProvider) && `(${filtered.length})`}
+               </Button>
+               <Button onClick={handleNewTrainer}><Plus className="h-4 w-4 mr-2" />{t('training.trainers.add')}</Button>
+             </div>
+           </div>
+           {showFilters && (
+             <Card><CardContent className="p-4">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                 <div>
+                   <Label>{ar ? 'الاسم / المسمى الوظيفي' : 'Name / Job Title'}</Label>
+                   <Input placeholder={ar ? 'بحث...' : 'Search...'} value={searchName} onChange={e => setSearchName(e.target.value)} />
+                 </div>
+                 <div>
+                   <Label>{ar ? 'الجهة' : 'Provider'}</Label>
+                   <Input placeholder={ar ? 'بحث...' : 'Search...'} value={searchProvider} onChange={e => setSearchProvider(e.target.value)} />
+                 </div>
+                 {(searchName || searchProvider) && (
+                   <Button variant="ghost" size="sm" onClick={() => { setSearchName(''); setSearchProvider(''); }}>
+                     <XCircle className="h-4 w-4 mr-1" />{ar ? 'مسح الفلاتر' : 'Clear'}
+                   </Button>
+                 )}
+               </div>
+             </CardContent></Card>
+           )}
+           <Card><CardContent className="p-0">
+             <Table>
+               <TableHeader><TableRow>
+                 <TableHead>{t('training.trainers.photo')}</TableHead>
+                 <TableHead>{t('training.trainers.name')}</TableHead>
+                 <TableHead>{t('training.trainers.provider')}</TableHead>
+                 <TableHead>{t('training.trainers.jobTitle')}</TableHead>
+                 <TableHead>{t('training.trainers.email')}</TableHead>
+                 <TableHead>{t('training.trainers.status')}</TableHead>
+                 <TableHead>{t('common.actions')}</TableHead>
+               </TableRow></TableHeader>
+               <TableBody>
+                 {filtered.length === 0 ? (
+                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{ar ? 'لا توجد نتائج' : 'No results'}</TableCell></TableRow>
+                 ) : filtered.map(trainer => (
                   <TableRow key={trainer.id}>
                     <TableCell><Avatar><AvatarImage src={trainer.photo} /><AvatarFallback>{trainer.name?.charAt(0)}</AvatarFallback></Avatar></TableCell>
                     <TableCell className="font-medium">{trainer.name}</TableCell>
