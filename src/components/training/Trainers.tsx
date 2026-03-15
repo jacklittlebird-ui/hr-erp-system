@@ -19,7 +19,6 @@ interface Trainer {
   mobNumber: string;
   siteAddress: string;
 }
-}
 
 export const Trainers = () => {
   const { t, language } = useLanguage();
