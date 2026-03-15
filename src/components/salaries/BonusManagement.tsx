@@ -279,7 +279,7 @@ export const BonusManagement = () => {
 
   const totalAmount = useMemo(() => filteredRecords.reduce((s, r) => s + r.amount, 0), [filteredRecords]);
 
-  const getExportData = () => filteredRecords.map((r, i) => ({ ...r, _index: i + 1 }));
+  const getExportData = () => filteredRecords.map((r, i) => ({ ...r, _index: i + 1, employee_name: ar ? r.employee_name : (r.employee_name_en || r.employee_name) }));
 
   const reportTitle = ar ? `سجل المكافأة ${bonusNumber} - ${currentYear}` : `Bonus ${bonusNumber} - ${currentYear}`;
 
