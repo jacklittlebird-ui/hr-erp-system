@@ -64,9 +64,25 @@ const LoginPage = () => {
       toast({ title: t('يرجى ملء جميع الحقول', 'Please fill all fields'), variant: 'destructive' });
       return;
     }
+    
+    // Rate limiting check
+    const rateCheck = checkRateLimit(email.trim());
+    if (!rateCheck.allowed) {
+      const mins = Math.ceil((rateCheck.remainingMs || 0) / 60000);
+      toast({ 
+        title: t('تم تجاوز عدد المحاولات المسموحة', 'Too many login attempts'), 
+        description: t(`يرجى المحاولة بعد ${mins} دقيقة`, `Please try again in ${mins} minutes`),
+        variant: 'destructive' 
+      });
+      return;
+    }
+    
     setLoading(true);
     const result = await login({ email: email.trim(), password });
     setLoading(false);
+    
+    recordLoginAttempt(email.trim(), result.success);
+    
     if (result.success) {
       toast({ title: t('تم تسجيل الدخول بنجاح', 'Login successful') });
     } else {
