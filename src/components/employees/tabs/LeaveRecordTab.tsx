@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
-import { cn } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 import { CalendarDays, Clock, PlusCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
