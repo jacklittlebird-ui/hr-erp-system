@@ -116,8 +116,19 @@ export const Trainers = () => {
     id: '', provider: '', name: '',
     jobTitle: '', email: '', mobNumber: '', siteAddress: '', status: 'active',
   });
+  const [searchName, setSearchName] = useState('');
+  const [searchProvider, setSearchProvider] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
-  const handleNewTrainer = () => {
+  const filtered = useMemo(() => {
+    return trainers.filter(t => {
+      const n = searchName.toLowerCase();
+      const p = searchProvider.toLowerCase();
+      return (!n || t.name.toLowerCase().includes(n) || t.jobTitle.toLowerCase().includes(n))
+        && (!p || t.provider.toLowerCase().includes(p));
+    });
+  }, [trainers, searchName, searchProvider]);
+
     setIsAddMode(true); setSelectedTrainer(null);
     setFormData({ id: String(trainers.length + 1), provider: '', name: '', jobTitle: '', email: '', mobNumber: '', siteAddress: '', status: 'active' });
   };
