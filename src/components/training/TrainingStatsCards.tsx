@@ -17,25 +17,51 @@ export const TrainingStatsCards = () => {
   });
 
   useEffect(() => {
-    const fetch = async () => {
-      const [recRes, activeRes, courseRes, plannedRes] = await Promise.all([
-        supabase.from('training_records').select('id, employee_id, cost'),
-        supabase.from('planned_courses').select('id').in('status', ['planned', 'in_progress']),
-        supabase.from('training_courses').select('id'),
-        supabase.from('planned_courses').select('id').eq('status', 'planned'),
+    const fetchStats = async () => {
+      const [recCountRes, recCostRes, empCountRes, activeRes, courseRes, plannedRes] = await Promise.all([
+        supabase.from('training_records').select('id', { count: 'exact', head: true }),
+        supabase.from('training_records').select('cost'),
+        supabase.from('training_records').select('employee_id'),
+        supabase.from('planned_courses').select('id', { count: 'exact', head: true }).in('status', ['scheduled', 'in_progress']),
+        supabase.from('training_courses').select('id', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('planned_courses').select('id', { count: 'exact', head: true }).eq('status', 'scheduled'),
       ]);
-      const uniqueEmps = new Set(recRes.data?.map(r => r.employee_id) || []);
-      const totalCost = recRes.data?.reduce((s, r) => s + (r.cost || 0), 0) || 0;
+      
+      // For cost and unique employees, we need all rows - use pagination if needed
+      const allCosts: number[] = [];
+      const allEmpIds = new Set<string>();
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const { data } = await supabase.from('training_records')
+          .select('employee_id, cost')
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+        if (data && data.length > 0) {
+          data.forEach(r => {
+            allCosts.push(r.cost || 0);
+            allEmpIds.add(r.employee_id);
+          });
+          if (data.length < pageSize) hasMore = false;
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      const totalCost = allCosts.reduce((s, c) => s + c, 0);
+      
       setStats({
-        totalRecords: recRes.data?.length || 0,
-        activeCourses: activeRes.data?.length || 0,
-        totalCourses: courseRes.data?.length || 0,
-        trainedEmployees: uniqueEmps.size,
-        upcomingPlanned: plannedRes.data?.length || 0,
+        totalRecords: recCountRes.count || 0,
+        activeCourses: activeRes.count || 0,
+        totalCourses: courseRes.count || 0,
+        trainedEmployees: allEmpIds.size,
+        upcomingPlanned: plannedRes.count || 0,
         totalCost,
       });
     };
-    fetch();
+    fetchStats();
   }, []);
 
   const cards = [
