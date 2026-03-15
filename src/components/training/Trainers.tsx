@@ -19,7 +19,7 @@ interface Trainer {
   mobNumber: string;
   siteAddress: string;
   status: 'active' | 'inactive';
-  photo?: string;
+  
 }
 
 export const Trainers = () => {
