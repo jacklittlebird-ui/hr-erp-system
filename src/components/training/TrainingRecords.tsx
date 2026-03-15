@@ -549,6 +549,8 @@ export const TrainingRecords = () => {
             <div className="col-span-2 flex gap-6 items-center pt-2">
               <label className="flex items-center gap-2 text-sm"><Checkbox checked={newRecord.hasCert} onCheckedChange={(v) => setNewRecord({ ...newRecord, hasCert: !!v })} /><span>Cert</span></label>
               <label className="flex items-center gap-2 text-sm"><Checkbox checked={newRecord.hasCr} onCheckedChange={(v) => setNewRecord({ ...newRecord, hasCr: !!v })} /><span>CR</span></label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={newRecord.hasSs} onCheckedChange={(v) => setNewRecord({ ...newRecord, hasSs: !!v })} /><span>SS</span></label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={newRecord.hasCb} onCheckedChange={(v) => setNewRecord({ ...newRecord, hasCb: !!v })} /><span>CB</span></label>
             </div>
           </div>
           <DialogFooter>
