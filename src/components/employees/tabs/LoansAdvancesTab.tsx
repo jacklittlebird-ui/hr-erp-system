@@ -55,7 +55,7 @@ export const LoansAdvancesTab = ({ employee }: LoansAdvancesTabProps) => {
                   <TableCell className="font-bold">{l.amount.toLocaleString()}</TableCell>
                   <TableCell>{l.installments}</TableCell>
                   <TableCell>{l.remainingAmount.toLocaleString()}</TableCell>
-                  <TableCell>{l.startDate}</TableCell>
+                  <TableCell>{formatDate(l.startDate)}</TableCell>
                   <TableCell>{statusBadge(l.status)}</TableCell>
                 </TableRow>
               ))
