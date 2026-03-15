@@ -206,11 +206,11 @@ export const Trainers = () => {
            <Card><CardContent className="p-0">
              <Table>
                <TableHeader><TableRow>
-                 <TableHead>{t('training.trainers.photo')}</TableHead>
-                 <TableHead>{t('training.trainers.name')}</TableHead>
                  <TableHead>{t('training.trainers.provider')}</TableHead>
+                 <TableHead>{t('training.trainers.name')}</TableHead>
                  <TableHead>{t('training.trainers.jobTitle')}</TableHead>
                  <TableHead>{t('training.trainers.email')}</TableHead>
+                 <TableHead>{t('training.trainers.mobNumber')}</TableHead>
                  <TableHead>{t('training.trainers.status')}</TableHead>
                  <TableHead>{t('common.actions')}</TableHead>
                </TableRow></TableHeader>
