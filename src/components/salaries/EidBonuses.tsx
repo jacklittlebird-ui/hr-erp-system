@@ -203,7 +203,7 @@ export const EidBonuses = () => {
           year: currentYear,
           amount,
           job_level: level,
-          employee_name: ar ? emp.name_ar : emp.name_en,
+          employee_name: emp.name_ar,
           employee_code: emp.employee_code,
           station_name: station ? (ar ? station.name_ar : station.name_en) : '',
           department_name: dept ? (ar ? dept.name_ar : dept.name_en) : '',
