@@ -222,7 +222,7 @@ export const Trainers = () => {
                      <TableCell>{trainer.jobTitle || '-'}</TableCell>
                      <TableCell>{trainer.email || '-'}</TableCell>
                      <TableCell>{trainer.mobNumber || '-'}</TableCell>
-                     <TableCell><Badge variant={trainer.status === 'active' ? 'default' : 'secondary'}>{trainer.status === 'active' ? t('training.status.onJob') : t('training.status.inactive')}</Badge></TableCell>
+                     
                      <TableCell><Button variant="ghost" size="icon" onClick={() => handleEditTrainer(trainer)}><Edit2 className="h-4 w-4" /></Button></TableCell>
                    </TableRow>
                 ))}</TableBody>
