@@ -197,7 +197,7 @@ export const TrainingRecords = () => {
     } as any);
     toast({ title: ar ? 'تمت الإضافة' : 'Added' });
     setIsAddRecordOpen(false);
-    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, plannedDate: '', cost: '' });
+    setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, hasSs: false, hasCb: false, plannedDate: '', cost: '' });
     // Refresh
     const { data } = await supabase
       .from('training_records')
