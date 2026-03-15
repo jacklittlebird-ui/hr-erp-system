@@ -363,8 +363,8 @@ const LeavesContent = ({ leaves, summary }: {
                 return (
                   <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
                     <td className="px-4 py-3 text-sm text-foreground">{language === 'ar' ? typeLabel?.ar : typeLabel?.en}</td>
-                    <td className="px-4 py-3 text-sm text-foreground">{record.startDate}</td>
-                    <td className="px-4 py-3 text-sm text-foreground">{record.endDate}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{formatDate(record.startDate)}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{formatDate(record.endDate)}</td>
                     <td className="px-4 py-3 text-sm text-foreground font-medium">{record.days}</td>
                     <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
                     <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
