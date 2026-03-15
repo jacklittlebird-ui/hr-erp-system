@@ -30,7 +30,7 @@ export const PortalEidBonuses = () => {
       const { data } = await supabase
         .from('eid_bonuses')
         .select('id, year, bonus_number, amount, station_name, created_at')
-        .eq('employee_id', employee.id)
+        .eq('employee_id', employeeId)
         .order('year', { ascending: false })
         .order('bonus_number', { ascending: false });
       setRecords(data || []);
