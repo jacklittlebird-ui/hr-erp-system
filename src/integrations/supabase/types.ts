@@ -1991,8 +1991,10 @@ export type Database = {
           created_at: string
           employee_id: string
           end_date: string | null
+          has_cb: boolean | null
           has_cert: boolean | null
           has_cr: boolean | null
+          has_ss: boolean | null
           id: string
           is_favorite: boolean | null
           location: string | null
@@ -2009,8 +2011,10 @@ export type Database = {
           created_at?: string
           employee_id: string
           end_date?: string | null
+          has_cb?: boolean | null
           has_cert?: boolean | null
           has_cr?: boolean | null
+          has_ss?: boolean | null
           id?: string
           is_favorite?: boolean | null
           location?: string | null
@@ -2027,8 +2031,10 @@ export type Database = {
           created_at?: string
           employee_id?: string
           end_date?: string | null
+          has_cb?: boolean | null
           has_cert?: boolean | null
           has_cr?: boolean | null
+          has_ss?: boolean | null
           id?: string
           is_favorite?: boolean | null
           location?: string | null
