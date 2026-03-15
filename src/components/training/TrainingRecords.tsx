@@ -152,6 +152,8 @@ export const TrainingRecords = () => {
         location: r.location || '',
         hasCert: r.has_cert || false,
         hasCr: r.has_cr || false,
+        hasSs: r.has_ss || false,
+        hasCb: r.has_cb || false,
         plannedDate: r.planned_date || '',
         isFavorite: r.is_favorite || false,
         cost: r.cost || 0,
