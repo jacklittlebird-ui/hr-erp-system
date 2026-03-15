@@ -446,7 +446,7 @@ export const TrainingRecords = () => {
         )}
       </div>
 
-      <Dialog open={isAddRecordOpen} onOpenChange={(open) => { setIsAddRecordOpen(open); if (!open) { setEditingRecordId(null); setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, plannedDate: '', cost: '' }); } }}>
+      <Dialog open={isAddRecordOpen} onOpenChange={(open) => { setIsAddRecordOpen(open); if (!open) { setEditingRecordId(null); setNewRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, hasSs: false, hasCb: false, plannedDate: '', cost: '' }); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editingRecordId ? (ar ? 'تعديل سجل التدريب' : 'Edit Training Record') : t('training.records.add')}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
