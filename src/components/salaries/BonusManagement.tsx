@@ -21,6 +21,7 @@ interface BonusRecord {
   id?: string;
   employee_id: string;
   employee_name: string;
+  employee_name_en: string;
   employee_code: string;
   station_name: string;
   department_name: string;
