@@ -218,15 +218,15 @@ export const Trainers = () => {
                  {filtered.length === 0 ? (
                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{ar ? 'لا توجد نتائج' : 'No results'}</TableCell></TableRow>
                  ) : filtered.map(trainer => (
-                  <TableRow key={trainer.id}>
-                    <TableCell><Avatar><AvatarImage src={trainer.photo} /><AvatarFallback>{trainer.name?.charAt(0)}</AvatarFallback></Avatar></TableCell>
-                    <TableCell className="font-medium">{trainer.name}</TableCell>
-                    <TableCell>{trainer.provider}</TableCell>
-                    <TableCell>{trainer.jobTitle}</TableCell>
-                    <TableCell>{trainer.email}</TableCell>
-                    <TableCell><Badge variant={trainer.status === 'active' ? 'default' : 'secondary'}>{trainer.status === 'active' ? t('training.status.onJob') : t('training.status.inactive')}</Badge></TableCell>
-                    <TableCell><Button variant="ghost" size="icon" onClick={() => handleEditTrainer(trainer)}><Edit2 className="h-4 w-4" /></Button></TableCell>
-                  </TableRow>
+                   <TableRow key={trainer.id}>
+                     <TableCell>{trainer.provider}</TableCell>
+                     <TableCell className="font-medium">{trainer.name || '-'}</TableCell>
+                     <TableCell>{trainer.jobTitle || '-'}</TableCell>
+                     <TableCell>{trainer.email || '-'}</TableCell>
+                     <TableCell>{trainer.mobNumber || '-'}</TableCell>
+                     <TableCell><Badge variant={trainer.status === 'active' ? 'default' : 'secondary'}>{trainer.status === 'active' ? t('training.status.onJob') : t('training.status.inactive')}</Badge></TableCell>
+                     <TableCell><Button variant="ghost" size="icon" onClick={() => handleEditTrainer(trainer)}><Edit2 className="h-4 w-4" /></Button></TableCell>
+                   </TableRow>
                 ))}</TableBody>
             </Table>
           </CardContent></Card>
