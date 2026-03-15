@@ -33,6 +33,7 @@ const Training = () => {
           </Button>
         </div>
 
+        <BulkTrainingImport />
         <TrainingStatsCards key={`stats-${refreshKey}`} />
 
         <Tabs defaultValue="records" className="w-full">
