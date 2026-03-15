@@ -38,7 +38,7 @@ export const PortalBonuses = () => {
       setLoading(false);
     };
     fetch();
-  }, [employee?.id]);
+  }, [employeeId]);
 
   if (loading) {
     return (
