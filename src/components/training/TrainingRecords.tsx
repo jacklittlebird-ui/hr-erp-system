@@ -417,6 +417,8 @@ export const TrainingRecords = () => {
                         <TableCell>{record.percentage ? `${record.percentage}%` : '-'}</TableCell>
                         <TableCell><Checkbox checked={record.hasCert} disabled /></TableCell>
                         <TableCell><Checkbox checked={record.hasCr} disabled /></TableCell>
+                        <TableCell><Checkbox checked={record.hasSs} disabled /></TableCell>
+                        <TableCell><Checkbox checked={record.hasCb} disabled /></TableCell>
                         <TableCell>{record.cost ? record.cost.toLocaleString() : '-'}</TableCell>
                         <TableCell>{record.totalCost ? record.totalCost.toLocaleString() : '-'}</TableCell>
                         <TableCell>{record.plannedDate || '-'}</TableCell>
