@@ -85,6 +85,7 @@ const EmployeeDetails = () => {
   const { getEmployee, updateEmployee } = useEmployeeData();
   const { user } = useAuth();
   const isHR = user?.role === 'hr';
+  const isAdmin = user?.role === 'admin';
   const [activeTab, setActiveTab] = useState('basic');
 
   // Filter out salary tabs for HR users
