@@ -240,6 +240,8 @@ export const TrainingRecords = () => {
       location: record.location || '',
       hasCert: record.hasCert || false,
       hasCr: record.hasCr || false,
+      hasSs: record.hasSs || false,
+      hasCb: record.hasCb || false,
       plannedDate: record.plannedDate || '',
       cost: record.cost ? String(record.cost) : '',
     });
