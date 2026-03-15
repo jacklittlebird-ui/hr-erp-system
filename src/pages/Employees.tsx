@@ -333,7 +333,11 @@ const Employees = () => {
     governorate: e.governorate || '-',
     militaryStatus: militaryLabel(e.militaryStatus),
     contractType: contractLabel(e.contractType),
-    employmentStatus: e.employmentStatus || '-',
+    employmentStatus: (() => {
+      const val = e.employmentStatus && e.employmentStatus !== 'active' && e.employmentStatus !== 'inactive' && e.employmentStatus !== 'suspended' ? e.employmentStatus : e.status;
+      const map: Record<string, string> = { active: ar ? 'نشط' : 'Active', inactive: ar ? 'غير نشط' : 'Inactive', suspended: ar ? 'موقوف' : 'Suspended' };
+      return map[val] || val || '-';
+    })(),
     hireDate: e.hireDate || '-',
     recruitedBy: e.recruitedBy || '-',
     resigned: boolLabel(e.resigned),
