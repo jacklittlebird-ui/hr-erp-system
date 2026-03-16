@@ -12,6 +12,7 @@ export interface SalaryRecord {
   livingAllowance: number;
   stationAllowance: number;
   mobileAllowance: number;
+  rosterAllowance: number;
   employeeInsurance: number;
   employerSocialInsurance: number;
   healthInsurance: number;
