@@ -340,6 +340,12 @@ export const MobileBills = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {monthFilter !== 'all' && entries.some(e => e.deductionMonth === monthFilter && e.status === 'pending') && (
+                <Button variant="default" size="sm" className="gap-1" onClick={handleBulkDeduct}>
+                  <Banknote className="h-4 w-4" />
+                  {isRTL ? 'خصم جماعي' : 'Bulk Deduct'}
+                </Button>
+              )}
               <Button variant="outline" size="icon" onClick={() => handlePrint(exportTitle)}><Printer className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" onClick={() => exportToPDF({ title: exportTitle, data: exportData, columns: exportColumns })}><FileText className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" onClick={() => exportToCSV({ title: exportTitle, data: exportData, columns: exportColumns, fileName: 'mobile-bills' })}><FileSpreadsheet className="h-4 w-4" /></Button>
