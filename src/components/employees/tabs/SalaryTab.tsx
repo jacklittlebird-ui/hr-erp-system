@@ -82,7 +82,7 @@ export const SalaryTab = ({ employee, onUpdate, readOnly }: SalaryTabProps) => {
     } else {
       setFormData({
         basicSalary: 0, transportAllowance: 0, incentives: 0, livingAllowance: 0,
-        stationAllowance: 0, mobileAllowance: 0, employeeInsurance: 0,
+        stationAllowance: 0, mobileAllowance: 0, rosterAllowance: 0, employeeInsurance: 0,
         employerSocialInsurance: 0, healthInsurance: 0, incomeTax: 0,
       });
     }
