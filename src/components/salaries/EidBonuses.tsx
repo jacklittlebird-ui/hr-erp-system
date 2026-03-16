@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Play, Loader2, Gift, Printer, FileText, FileSpreadsheet, Search, X, CalendarIcon } from 'lucide-react';
+import { Play, Loader2, Gift, Printer, FileText, FileSpreadsheet, Search, X, CalendarIcon, Users, Building2, Wallet, Landmark } from 'lucide-react';
 import { useReportExport } from '@/hooks/useReportExport';
 
 const JOB_LEVELS = [
