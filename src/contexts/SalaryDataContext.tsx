@@ -52,6 +52,7 @@ const mapRow = (row: any): SalaryRecord => ({
   livingAllowance: row.living_allowance ?? 0,
   stationAllowance: row.station_allowance ?? 0,
   mobileAllowance: row.mobile_allowance ?? 0,
+  rosterAllowance: row.roster_allowance ?? 0,
   employeeInsurance: row.employee_insurance ?? 0,
   employerSocialInsurance: row.employer_social_insurance ?? 0,
   healthInsurance: row.health_insurance ?? 0,
