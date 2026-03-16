@@ -259,6 +259,16 @@ export const EidBonuses = () => {
 
   const totalAmount = useMemo(() => filteredRecords.reduce((s, r) => s + r.amount, 0), [filteredRecords]);
 
+  const uniqueStationsCount = useMemo(() => new Set(filteredRecords.map(r => r.station_name).filter(Boolean)).size, [filteredRecords]);
+  const uniqueBanksCount = useMemo(() => new Set(filteredRecords.map(r => r.bank_name).filter(Boolean)).size, [filteredRecords]);
+
+  const statsCards = useMemo(() => [
+    { label: ar ? 'عدد الموظفين' : 'Employees', value: String(filteredRecords.length), icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: ar ? 'إجمالي المبلغ' : 'Total Amount', value: totalAmount.toLocaleString() + (ar ? ' ج.م' : ' EGP'), icon: Wallet, color: 'text-green-600', bg: 'bg-green-100' },
+    { label: ar ? 'عدد المحطات' : 'Stations', value: String(uniqueStationsCount), icon: Building2, color: 'text-blue-600', bg: 'bg-blue-100' },
+    { label: ar ? 'عدد البنوك' : 'Banks', value: String(uniqueBanksCount), icon: Landmark, color: 'text-amber-600', bg: 'bg-amber-100' },
+  ], [filteredRecords, totalAmount, uniqueStationsCount, uniqueBanksCount, ar]);
+
   const getExportData = () => filteredRecords.map((r, i) => ({ ...r, _index: i + 1, employee_name: ar ? r.employee_name : (r.employee_name_en || r.employee_name) }));
 
   const reportTitle = ar ? `سجل العيدية ${bonusNumber} - ${currentYear}` : `Eid Bonus ${bonusNumber} - ${currentYear}`;
