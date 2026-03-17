@@ -293,7 +293,13 @@ export const EidBonuses = () => {
 
   const reportTitle = ar ? `سجل العيدية ${bonusNumber} - ${currentYear}` : `Eid Bonus ${bonusNumber} - ${currentYear}`;
 
-  const getExportSummaryCards = () => statsCards.map(c => ({ label: c.label, value: c.value }));
+  const getExportSummaryCards = () => [
+    ...statsCards.map(c => ({ label: c.label, value: c.value })),
+    ...stationBreakdown.map(([name, data]) => ({
+      label: `${name} (${data.count})`,
+      value: data.total.toLocaleString(),
+    })),
+  ];
 
   const handleExportPDF = () => {
     exportBilingualPDF({

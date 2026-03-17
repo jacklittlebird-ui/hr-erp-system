@@ -314,7 +314,13 @@ export const BonusManagement = () => {
 
   const reportTitle = ar ? `سجل المكافأة ${bonusNumber} - ${currentYear}` : `Bonus ${bonusNumber} - ${currentYear}`;
 
-  const getExportSummaryCards = () => statsCards.map(c => ({ label: c.label, value: c.value }));
+  const getExportSummaryCards = () => [
+    ...statsCards.map(c => ({ label: c.label, value: c.value })),
+    ...stationBreakdown.map(([name, data]) => ({
+      label: `${name} (${data.count})`,
+      value: data.total.toLocaleString(),
+    })),
+  ];
 
   const handleExportPDF = () => {
     exportBilingualPDF({
