@@ -440,7 +440,28 @@ export const EidBonuses = () => {
         </div>
       )}
 
-      {/* Results Card */}
+      {/* Station Breakdown Cards */}
+      {records.length > 0 && stationBreakdown.length > 1 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className={cn("text-sm flex items-center gap-2", isRTL && "flex-row-reverse")}>
+              <Building2 className="w-4 h-4 text-primary" />
+              {ar ? 'إجمالي كل محطة' : 'Station Totals'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {stationBreakdown.map(([name, data]) => (
+                <div key={name} className="border rounded-lg p-3 bg-muted/30">
+                  <p className="text-xs text-muted-foreground truncate">{name}</p>
+                  <p className="text-base font-bold text-primary mt-1">{data.total.toLocaleString()}</p>
+                  <p className="text-[11px] text-muted-foreground">{data.count} {ar ? 'موظف' : 'employees'}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader>
           <div className={cn("flex flex-col gap-4")}>
