@@ -291,7 +291,15 @@ export const BonusManagement = () => {
     { label: ar ? 'عدد البنوك' : 'Banks', value: String(uniqueBanksCount), icon: Landmark, color: 'text-amber-600', bg: 'bg-amber-100' },
   ], [filteredRecords, totalAmount, uniqueStationsCount, uniqueBanksCount, ar]);
 
-  const getExportData = () => filteredRecords.map((r, i) => ({ ...r, _index: i + 1, employee_name: ar ? r.employee_name : (r.employee_name_en || r.employee_name) }));
+  const stationGroupedRows = useMemo(() => buildStationGroupRows(filteredRecords), [filteredRecords]);
+
+  const getExportData = () => buildStationSubtotalExportRows(
+    filteredRecords.map((r) => ({
+      ...r,
+      employee_name: ar ? r.employee_name : (r.employee_name_en || r.employee_name),
+    })),
+    { isArabic: ar, includeGrossSalary: true },
+  );
 
   const reportTitle = ar ? `سجل المكافأة ${bonusNumber} - ${currentYear}` : `Bonus ${bonusNumber} - ${currentYear}`;
 
