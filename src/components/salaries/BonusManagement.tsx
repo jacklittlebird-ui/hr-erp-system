@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Play, Loader2, Award, Printer, FileText, FileSpreadsheet, Search, X, CalendarIcon, Users, Building2, Wallet, Landmark } from 'lucide-react';
 import { useReportExport } from '@/hooks/useReportExport';
+import { buildStationGroupRows, buildStationSubtotalExportRows } from '@/lib/stationReportGrouping';
 
 
 interface BonusRecord {
@@ -290,7 +291,15 @@ export const BonusManagement = () => {
     { label: ar ? 'عدد البنوك' : 'Banks', value: String(uniqueBanksCount), icon: Landmark, color: 'text-amber-600', bg: 'bg-amber-100' },
   ], [filteredRecords, totalAmount, uniqueStationsCount, uniqueBanksCount, ar]);
 
-  const getExportData = () => filteredRecords.map((r, i) => ({ ...r, _index: i + 1, employee_name: ar ? r.employee_name : (r.employee_name_en || r.employee_name) }));
+  const stationGroupedRows = useMemo(() => buildStationGroupRows(filteredRecords), [filteredRecords]);
+
+  const getExportData = () => buildStationSubtotalExportRows(
+    filteredRecords.map((r) => ({
+      ...r,
+      employee_name: ar ? r.employee_name : (r.employee_name_en || r.employee_name),
+    })),
+    { isArabic: ar, includeGrossSalary: true },
+  );
 
   const reportTitle = ar ? `سجل المكافأة ${bonusNumber} - ${currentYear}` : `Bonus ${bonusNumber} - ${currentYear}`;
 
@@ -571,44 +580,28 @@ export const BonusManagement = () => {
                 </TableHeader>
                 <TableBody>
                   {(() => {
-                    const rows: React.ReactNode[] = [];
-                    let globalIndex = 0;
-                    let currentStation = '';
-                    let stationTotal = 0;
-                    let stationGross = 0;
-                    let stationCount = 0;
+                    let detailIndex = 0;
 
-                    const flushStation = () => {
-                      if (stationCount > 0) {
-                        rows.push(
-                          <TableRow key={`subtotal-${currentStation}`} className="bg-primary/5 font-semibold border-t-2 border-primary/20">
-                            <TableCell colSpan={12} className={cn(isRTL ? "text-right" : "text-left")}>
-                              {ar ? `مجموع ${currentStation || 'بدون محطة'}` : `${currentStation || 'No Station'} Subtotal`} ({stationCount})
+                    return stationGroupedRows.map((row) => {
+                      if (row.type === 'subtotal') {
+                        return (
+                          <TableRow key={row.key} className="bg-primary/5 font-semibold border-t-2 border-primary/20">
+                            <TableCell colSpan={12} className={cn(isRTL ? 'text-right' : 'text-left')}>
+                              {ar ? `مجموع ${row.stationName || 'بدون محطة'}` : `${row.stationName || 'No Station'} Subtotal`} ({row.count})
                             </TableCell>
-                            <TableCell>{stationGross.toLocaleString()}</TableCell>
+                            <TableCell>{row.grossSalary.toLocaleString()}</TableCell>
                             <TableCell></TableCell>
-                            <TableCell className="font-semibold">{stationTotal.toLocaleString()}</TableCell>
+                            <TableCell className="font-semibold">{row.amount.toLocaleString()}</TableCell>
                           </TableRow>
                         );
                       }
-                    };
 
-                    filteredRecords.forEach((r, i) => {
-                      if (r.station_name !== currentStation && i > 0) {
-                        flushStation();
-                        stationTotal = 0;
-                        stationGross = 0;
-                        stationCount = 0;
-                      }
-                      currentStation = r.station_name;
-                      stationTotal += r.amount;
-                      stationGross += r.gross_salary;
-                      stationCount++;
-                      globalIndex++;
+                      detailIndex += 1;
+                      const r = row.record;
 
-                      rows.push(
-                        <TableRow key={r.id || r.employee_id}>
-                          <TableCell>{globalIndex}</TableCell>
+                      return (
+                        <TableRow key={row.key}>
+                          <TableCell>{detailIndex}</TableCell>
                           <TableCell className="font-medium whitespace-nowrap">{ar ? r.employee_name : (r.employee_name_en || r.employee_name)}</TableCell>
                           <TableCell>{r.employee_code}</TableCell>
                           <TableCell>{r.station_name}</TableCell>
@@ -626,9 +619,6 @@ export const BonusManagement = () => {
                         </TableRow>
                       );
                     });
-                    flushStation();
-
-                    return rows;
                   })()}
                   {/* Grand Totals row */}
                   <TableRow className="bg-muted/70 font-bold border-t-2">
