@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { Wallet, Gift, TrendingDown, Building2, Save, X, FileText, Users, Clock, Search, PlayCircle, Zap } from 'lucide-react';
+import { Wallet, Gift, TrendingDown, Building2, Save, X, FileText, Users, Clock, Search, PlayCircle, Zap, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
@@ -23,7 +23,7 @@ export const PayrollProcessing = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const { getSalaryRecord, salaryRecords } = useSalaryData();
-  const { savePayrollEntry, savePayrollEntries, getPayrollEntry, getMonthlyPayroll } = usePayrollData();
+  const { savePayrollEntry, savePayrollEntries, deletePayrollEntry, getPayrollEntry, getMonthlyPayroll } = usePayrollData();
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
@@ -597,6 +597,20 @@ export const PayrollProcessing = () => {
                 <Button variant="outline" onClick={handleReset} className="gap-2 flex-1 md:flex-none md:min-w-[150px]" size="lg">
                   <X className="h-5 w-5" />{ar ? 'إلغاء' : 'Cancel'}
                 </Button>
+                {getPayrollEntry(selectedEmployee, selectedMonth, selectedYear) && (
+                  <Button
+                    variant="destructive"
+                    onClick={async () => {
+                      await deletePayrollEntry(selectedEmployee, selectedMonth, selectedYear);
+                      handleReset();
+                      toast({ title: ar ? 'تم الحذف' : 'Deleted', description: ar ? 'تم حذف كشف الراتب لهذا الشهر' : 'Payroll entry deleted' });
+                    }}
+                    className="gap-2 flex-1 md:flex-none md:min-w-[150px]"
+                    size="lg"
+                  >
+                    <Trash2 className="h-5 w-5" />{ar ? 'حذف الراتب' : 'Delete Salary'}
+                  </Button>
+                )}
               </div>
             </>
           )}
