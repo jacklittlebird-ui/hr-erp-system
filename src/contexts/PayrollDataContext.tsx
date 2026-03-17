@@ -231,8 +231,23 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return payrollEntries.filter(e => e.employeeId === employeeId).sort((a, b) => `${b.year}-${b.month}`.localeCompare(`${a.year}-${a.month}`));
   }, [payrollEntries]);
 
+  const deletePayrollEntry = useCallback(async (employeeId: string, month: string, year: string) => {
+    const { error } = await supabase
+      .from('payroll_entries')
+      .delete()
+      .eq('employee_id', employeeId)
+      .eq('month', month)
+      .eq('year', year);
+    if (error) {
+      console.error('Error deleting payroll entry:', error);
+      return;
+    }
+    await fetchEntries();
+    addNotification({ titleAr: 'تم حذف كشف الراتب', titleEn: 'Payroll entry deleted', type: 'warning', module: 'payroll' });
+  }, [addNotification, fetchEntries]);
+
   return (
-    <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll: fetchEntries, savePayrollEntry, savePayrollEntries, getPayrollEntry, getMonthlyPayroll, getEmployeePayroll }}>
+    <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll: fetchEntries, savePayrollEntry, savePayrollEntries, deletePayrollEntry, getPayrollEntry, getMonthlyPayroll, getEmployeePayroll }}>
       {children}
     </PayrollDataContext.Provider>
   );

@@ -597,6 +597,20 @@ export const PayrollProcessing = () => {
                 <Button variant="outline" onClick={handleReset} className="gap-2 flex-1 md:flex-none md:min-w-[150px]" size="lg">
                   <X className="h-5 w-5" />{ar ? 'إلغاء' : 'Cancel'}
                 </Button>
+                {getPayrollEntry(selectedEmployee, selectedMonth, selectedYear) && (
+                  <Button
+                    variant="destructive"
+                    onClick={async () => {
+                      await deletePayrollEntry(selectedEmployee, selectedMonth, selectedYear);
+                      handleReset();
+                      toast({ title: ar ? 'تم الحذف' : 'Deleted', description: ar ? 'تم حذف كشف الراتب لهذا الشهر' : 'Payroll entry deleted' });
+                    }}
+                    className="gap-2 flex-1 md:flex-none md:min-w-[150px]"
+                    size="lg"
+                  >
+                    <Trash2 className="h-5 w-5" />{ar ? 'حذف الراتب' : 'Delete Salary'}
+                  </Button>
+                )}
               </div>
             </>
           )}
