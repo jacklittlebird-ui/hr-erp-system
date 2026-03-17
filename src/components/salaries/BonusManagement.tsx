@@ -284,6 +284,17 @@ export const BonusManagement = () => {
   const uniqueStationsCount = useMemo(() => new Set(filteredRecords.map(r => r.station_name).filter(Boolean)).size, [filteredRecords]);
   const uniqueBanksCount = useMemo(() => new Set(filteredRecords.map(r => r.bank_name).filter(Boolean)).size, [filteredRecords]);
 
+  // Per-station breakdown
+  const stationBreakdown = useMemo(() => {
+    const map = new Map<string, { count: number; total: number }>();
+    filteredRecords.forEach(r => {
+      const key = r.station_name || (ar ? 'بدون محطة' : 'No Station');
+      const prev = map.get(key) || { count: 0, total: 0 };
+      map.set(key, { count: prev.count + 1, total: prev.total + r.amount });
+    });
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'ar'));
+  }, [filteredRecords, ar]);
+
   const statsCards = useMemo(() => [
     { label: ar ? 'عدد الموظفين' : 'Employees', value: String(filteredRecords.length), icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
     { label: ar ? 'إجمالي المكافآت' : 'Total Bonuses', value: totalAmount.toLocaleString() + (ar ? ' ج.م' : ' EGP'), icon: Wallet, color: 'text-green-600', bg: 'bg-green-100' },
