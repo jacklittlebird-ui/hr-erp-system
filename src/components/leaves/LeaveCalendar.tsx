@@ -158,9 +158,14 @@ export const LeaveCalendar = ({ requests }: LeaveCalendarProps) => {
                       </div>
                     ))}
                     {leavesForDay.length > 2 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{leavesForDay.length - 2} {t('leaves.calendar.more')}
-                      </Badge>
+                      <button
+                        onClick={() => setExpandedDay(day)}
+                        className="w-full text-start"
+                      >
+                        <Badge variant="outline" className="text-xs cursor-pointer hover:bg-muted">
+                          +{leavesForDay.length - 2} {t('leaves.calendar.more')}
+                        </Badge>
+                      </button>
                     )}
                   </div>
                 </div>
