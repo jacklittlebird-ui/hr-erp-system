@@ -112,6 +112,7 @@ export const LeaveBalanceOverview = ({ balances }: LeaveBalanceOverviewProps) =>
                 <TableRow>
                   <TableHead className={cn(isRTL && "text-right")}>{t('leaves.balance.employee')}</TableHead>
                   <TableHead className={cn(isRTL && "text-right")}>{t('leaves.balance.department')}</TableHead>
+                  <TableHead className={cn(isRTL && "text-right")}>{language === 'ar' ? 'المكان' : 'Station'}</TableHead>
                   <TableHead className={cn("text-center", isRTL && "text-right")}>{t('leaves.balance.annualLeave')}</TableHead>
                   <TableHead className={cn("text-center", isRTL && "text-right")}>{t('leaves.balance.sickLeave')}</TableHead>
                   <TableHead className={cn("text-center", isRTL && "text-right")}>{t('leaves.balance.casualLeave')}</TableHead>
@@ -125,6 +126,7 @@ export const LeaveBalanceOverview = ({ balances }: LeaveBalanceOverviewProps) =>
                       {language === 'ar' ? balance.employeeNameAr : balance.employeeName}
                     </TableCell>
                     <TableCell>{t(`dept.${balance.department.toLowerCase()}`)}</TableCell>
+                    <TableCell>{balance.station}</TableCell>
                     <TableCell>
                       <div className="flex flex-col items-center">
                         <span className="text-sm font-medium text-stat-blue">
