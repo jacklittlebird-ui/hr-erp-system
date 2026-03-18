@@ -3,7 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, User, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LeaveRequest } from '@/types/leaves';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isWithinInterval, parseISO } from 'date-fns';
@@ -16,6 +16,7 @@ interface LeaveCalendarProps {
 export const LeaveCalendar = ({ requests }: LeaveCalendarProps) => {
   const { t, isRTL, language } = useLanguage();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [expandedDay, setExpandedDay] = useState<Date | null>(null);
 
   const locale = language === 'ar' ? ar : enUS;
 
@@ -157,9 +158,14 @@ export const LeaveCalendar = ({ requests }: LeaveCalendarProps) => {
                       </div>
                     ))}
                     {leavesForDay.length > 2 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{leavesForDay.length - 2} {t('leaves.calendar.more')}
-                      </Badge>
+                      <button
+                        onClick={() => setExpandedDay(day)}
+                        className="w-full text-start"
+                      >
+                        <Badge variant="outline" className="text-xs cursor-pointer hover:bg-muted">
+                          +{leavesForDay.length - 2} {t('leaves.calendar.more')}
+                        </Badge>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -167,6 +173,38 @@ export const LeaveCalendar = ({ requests }: LeaveCalendarProps) => {
             })}
           </div>
         </div>
+
+        {/* Expanded day popup */}
+        {expandedDay && (() => {
+          const allLeaves = getLeaveForDay(expandedDay);
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setExpandedDay(null)}>
+              <div className="bg-card rounded-xl shadow-lg p-4 min-w-[300px] max-w-[400px] max-h-[60vh] overflow-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-foreground">
+                    {format(expandedDay, 'dd MMMM yyyy', { locale })}
+                  </h4>
+                  <button onClick={() => setExpandedDay(null)} className="text-muted-foreground hover:text-foreground">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {allLeaves.map((leave, i) => {
+                    const cfg = { icon: User, color: getLeaveTypeColor(leave.leaveType) };
+                    return (
+                      <div key={i} className={cn("text-sm p-2 rounded text-white", cfg.color)}>
+                        <span className="flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          {language === 'ar' ? leave.employeeNameAr : leave.employeeName} — {t(`leaves.types.${leave.leaveType}`)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </CardContent>
     </Card>
   );
