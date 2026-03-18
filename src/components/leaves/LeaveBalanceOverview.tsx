@@ -126,6 +126,7 @@ export const LeaveBalanceOverview = ({ balances }: LeaveBalanceOverviewProps) =>
                       {language === 'ar' ? balance.employeeNameAr : balance.employeeName}
                     </TableCell>
                     <TableCell>{t(`dept.${balance.department.toLowerCase()}`)}</TableCell>
+                    <TableCell>{balance.station}</TableCell>
                     <TableCell>
                       <div className="flex flex-col items-center">
                         <span className="text-sm font-medium text-stat-blue">
