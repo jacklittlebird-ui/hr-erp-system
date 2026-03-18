@@ -57,6 +57,8 @@ export const MobileBills = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingEntry, setEditingEntry] = useState<MobileBillEntry | null>(null);
   const [editAmount, setEditAmount] = useState('');
+  const [showBulkDeductDialog, setShowBulkDeductDialog] = useState(false);
+  const [bulkDeductMonth, setBulkDeductMonth] = useState('');
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
