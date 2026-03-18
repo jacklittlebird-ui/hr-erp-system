@@ -194,6 +194,32 @@ export const MobileBills = () => {
     toast({ title: isRTL ? 'تم الخصم الجماعي' : 'Bulk Deduction Done', description: isRTL ? `تم خصم ${pendingCount} فاتورة لشهر ${getMonthLabel(monthFilter, language)}` : `${pendingCount} bills deducted for ${getMonthLabel(monthFilter, language)}` });
   };
 
+  const handleBulkDeductForMonth = () => {
+    if (!bulkDeductMonth) {
+      toast({ title: isRTL ? 'خطأ' : 'Error', description: isRTL ? 'يرجى اختيار الشهر' : 'Please select a month', variant: 'destructive' });
+      return;
+    }
+    const pendingForMonth = entries.filter(e => e.deductionMonth === bulkDeductMonth && e.status === 'pending');
+    if (pendingForMonth.length === 0) {
+      toast({ title: isRTL ? 'تنبيه' : 'Notice', description: isRTL ? 'لا توجد فواتير قيد الخصم لهذا الشهر' : 'No pending bills for this month' });
+      return;
+    }
+    const totalAmount = pendingForMonth.reduce((s, e) => s + e.billAmount, 0);
+    setEntries(prev => prev.map(e => e.deductionMonth === bulkDeductMonth && e.status === 'pending' ? { ...e, status: 'deducted' as const } : e));
+    setShowBulkDeductDialog(false);
+    setBulkDeductMonth('');
+    toast({
+      title: isRTL ? 'تم الخصم الإجمالي' : 'Total Deduction Done',
+      description: isRTL
+        ? `تم خصم ${pendingForMonth.length} فاتورة بإجمالي ${totalAmount.toLocaleString()} ج.م لشهر ${getMonthLabel(bulkDeductMonth, language)}`
+        : `${pendingForMonth.length} bills totaling ${totalAmount.toLocaleString()} EGP deducted for ${getMonthLabel(bulkDeductMonth, language)}`,
+    });
+  };
+
+  const bulkDeductMonthPending = bulkDeductMonth
+    ? entries.filter(e => e.deductionMonth === bulkDeductMonth && e.status === 'pending')
+    : [];
+
   const filteredEntries = entries.filter(e => {
     const matchesSearch = e.employeeName.includes(searchQuery) || e.employeeId.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || e.status === statusFilter;
