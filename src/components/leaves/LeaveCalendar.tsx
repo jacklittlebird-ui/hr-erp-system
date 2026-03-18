@@ -16,6 +16,7 @@ interface LeaveCalendarProps {
 export const LeaveCalendar = ({ requests }: LeaveCalendarProps) => {
   const { t, isRTL, language } = useLanguage();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [expandedDay, setExpandedDay] = useState<Date | null>(null);
 
   const locale = language === 'ar' ? ar : enUS;
 
