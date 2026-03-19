@@ -111,7 +111,7 @@ const AppRoutes = () => (
     <Route path="/employee-portal" element={<ProtectedRoute allowedRoles={['employee']}><EmployeePortal /></ProtectedRoute>} />
     
     {/* Station manager portal */}
-    <Route path="/station-manager" element={<ProtectedRoute allowedRoles={['station_manager']}><StationManagerPortal /></ProtectedRoute>} />
+    <Route path="/station-manager" element={<ProtectedRoute allowedRoles={['station_manager', 'area_manager']}><StationManagerPortal /></ProtectedRoute>} />
     
     {/* Training portal */}
     <Route path="/training-portal" element={<ProtectedRoute allowedRoles={['training_manager']}><TrainingPortal /></ProtectedRoute>} />

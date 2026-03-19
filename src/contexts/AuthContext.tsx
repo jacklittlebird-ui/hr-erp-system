@@ -108,6 +108,8 @@ async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
     role,
     station: stationCode,
     stationId: userRole.station_id || undefined,
+    stations: stationCodes,
+    stationIds: stationUuids,
     supabaseUserId: supabaseUser.id,
   };
 }
