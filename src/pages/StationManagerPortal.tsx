@@ -140,6 +140,7 @@ const StationManagerPortal = () => {
   const [attMonth, setAttMonth] = useState(new Date().getMonth());
   const [attYear, setAttYear] = useState(new Date().getFullYear());
   const [attSearch, setAttSearch] = useState('');
+  const [attDeptFilter, setAttDeptFilter] = useState('all');
   const [attRecords, setAttRecords] = useState<any[]>([]);
   const [attLoading, setAttLoading] = useState(false);
 
