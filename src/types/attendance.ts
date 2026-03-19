@@ -87,6 +87,12 @@ export interface AttendanceRule {
     coreHoursStart?: string; // mandatory presence start
     coreHoursEnd?: string; // mandatory presence end
   };
+
+  // For Fully Flexible Schedule (monthly hours tracking)
+  fullyFlexibleSchedule?: {
+    monthlyTargetHours: number; // e.g., 192 hours per month
+    allowAnyTime: boolean; // check in/out anytime
+  };
   
   // For Shift-based Schedule
   shiftSchedule?: {
