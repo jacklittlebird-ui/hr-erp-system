@@ -117,8 +117,8 @@ const AppRoutes = () => (
     <Route path="/training-portal" element={<ProtectedRoute allowedRoles={['training_manager']}><TrainingPortal /></ProtectedRoute>} />
     
     {/* QR Attendance */}
-    <Route path="/attendance/scan" element={<ProtectedRoute allowedRoles={['employee', 'station_manager', 'admin', 'hr']}><AttendanceScan /></ProtectedRoute>} />
-    <Route path="/attendance/kiosk" element={<ProtectedRoute allowedRoles={['admin', 'station_manager', 'kiosk']}><AttendanceKiosk /></ProtectedRoute>} />
+    <Route path="/attendance/scan" element={<ProtectedRoute allowedRoles={['employee', 'station_manager', 'area_manager', 'admin', 'hr']}><AttendanceScan /></ProtectedRoute>} />
+    <Route path="/attendance/kiosk" element={<ProtectedRoute allowedRoles={['admin', 'station_manager', 'area_manager', 'kiosk']}><AttendanceKiosk /></ProtectedRoute>} />
     <Route path="/attendance/admin" element={<ProtectedRoute allowedRoles={['admin', 'hr']}><AttendanceAdmin /></ProtectedRoute>} />
     
     <Route path="*" element={<NotFound />} />
