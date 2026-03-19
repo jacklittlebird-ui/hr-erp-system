@@ -97,6 +97,7 @@ export const EmployeeAssignment = () => {
       case 'fixed': return 'bg-blue-100 text-blue-700 border-blue-300';
       case 'flexible': return 'bg-green-100 text-green-700 border-green-300';
       case 'shift': return 'bg-purple-100 text-purple-700 border-purple-300';
+      case 'fully-flexible': return 'bg-amber-100 text-amber-700 border-amber-300';
     }
   };
 
@@ -107,6 +108,7 @@ export const EmployeeAssignment = () => {
       case 'fixed': return <Building2 className="w-4 h-4" />;
       case 'flexible': return <Timer className="w-4 h-4" />;
       case 'shift': return <Plane className="w-4 h-4" />;
+      case 'fully-flexible': return <Clock className="w-4 h-4" />;
     }
   };
 
