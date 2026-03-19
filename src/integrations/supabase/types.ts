@@ -203,6 +203,68 @@ export type Database = {
           },
         ]
       }
+      attendance_assignments: {
+        Row: {
+          created_at: string
+          effective_from: string
+          employee_id: string
+          id: string
+          is_active: boolean
+          rule_id: string
+          shift_id: string | null
+          station_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          effective_from?: string
+          employee_id: string
+          id?: string
+          is_active?: boolean
+          rule_id: string
+          shift_id?: string | null
+          station_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          employee_id?: string
+          id?: string
+          is_active?: boolean
+          rule_id?: string
+          shift_id?: string | null
+          station_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_limited_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_assignments_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_assignments_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_events: {
         Row: {
           device_id: string
@@ -320,6 +382,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      attendance_rules: {
+        Row: {
+          created_at: string
+          description: string | null
+          description_ar: string | null
+          fixed_schedule: Json | null
+          flexible_schedule: Json | null
+          fully_flexible_schedule: Json | null
+          id: string
+          is_active: boolean
+          max_overtime_hours_daily: number | null
+          max_overtime_hours_weekly: number | null
+          name: string
+          name_ar: string
+          schedule_type: string
+          shift_schedule: Json | null
+          weekend_days: Json | null
+          working_days_per_week: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          description_ar?: string | null
+          fixed_schedule?: Json | null
+          flexible_schedule?: Json | null
+          fully_flexible_schedule?: Json | null
+          id?: string
+          is_active?: boolean
+          max_overtime_hours_daily?: number | null
+          max_overtime_hours_weekly?: number | null
+          name: string
+          name_ar: string
+          schedule_type?: string
+          shift_schedule?: Json | null
+          weekend_days?: Json | null
+          working_days_per_week?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          description_ar?: string | null
+          fixed_schedule?: Json | null
+          flexible_schedule?: Json | null
+          fully_flexible_schedule?: Json | null
+          id?: string
+          is_active?: boolean
+          max_overtime_hours_daily?: number | null
+          max_overtime_hours_weekly?: number | null
+          name?: string
+          name_ar?: string
+          schedule_type?: string
+          shift_schedule?: Json | null
+          weekend_days?: Json | null
+          working_days_per_week?: number | null
+        }
+        Relationships: []
       }
       audit_logs: {
         Row: {
