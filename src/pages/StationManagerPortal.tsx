@@ -747,6 +747,38 @@ const StationManagerPortal = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Today Present Card */}
+          <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg">
+            <div className="absolute top-0 end-0 w-20 h-20 rounded-full bg-white/10 -translate-y-1/2 translate-x-1/2" />
+            <CardContent className="p-4 md:p-5 relative z-10">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm"><LogIn className="h-5 w-5" /></div>
+                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">{t('اليوم', 'Today')}</span>
+              </div>
+              <p className="text-3xl font-bold">{todayPresentCount}</p>
+              <p className="text-sm text-white/80 mt-1">{t('الحضور', 'Present')}</p>
+              <div className="mt-3 h-2 rounded-full overflow-hidden bg-white/20">
+                <div className="bg-white h-full rounded-full transition-all" style={{ width: `${stationEmployees.filter(e => e.status === 'active').length > 0 ? (todayPresentCount / stationEmployees.filter(e => e.status === 'active').length) * 100 : 0}%` }} />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Today Absent Card */}
+          <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-lg">
+            <div className="absolute top-0 end-0 w-20 h-20 rounded-full bg-white/10 -translate-y-1/2 translate-x-1/2" />
+            <CardContent className="p-4 md:p-5 relative z-10">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm"><UserX className="h-5 w-5" /></div>
+                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">{t('اليوم', 'Today')}</span>
+              </div>
+              <p className="text-3xl font-bold">{todayAbsentCount}</p>
+              <p className="text-sm text-white/80 mt-1">{t('الغياب', 'Absent')}</p>
+              <div className="mt-3 h-2 rounded-full overflow-hidden bg-white/20">
+                <div className="bg-white h-full rounded-full transition-all" style={{ width: `${stationEmployees.filter(e => e.status === 'active').length > 0 ? (todayAbsentCount / stationEmployees.filter(e => e.status === 'active').length) * 100 : 0}%` }} />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Quick Stats Row */}
