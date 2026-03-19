@@ -442,6 +442,23 @@ export const sampleAttendanceRules: AttendanceRule[] = [
     maxOvertimeHoursDaily: 4,
     maxOvertimeHoursWeekly: 24,
   },
+  {
+    id: 'rule-fully-flexible',
+    name: 'Fully Flexible (Monthly Hours)',
+    nameAr: 'حضور مرن بالكامل (ساعات شهرية)',
+    description: 'Employee can check in/out at any time. Work hours are accumulated monthly.',
+    descriptionAr: 'يمكن للموظف الحضور والانصراف في أي وقت خلال اليوم ويتم احتساب ساعات العمل على مدار الشهر',
+    scheduleType: 'fully-flexible',
+    isActive: true,
+    fullyFlexibleSchedule: {
+      monthlyTargetHours: 192,
+      allowAnyTime: true,
+    },
+    weekendDays: [5, 6],
+    workingDaysPerWeek: 5,
+    maxOvertimeHoursDaily: 4,
+    maxOvertimeHoursWeekly: 20,
+  },
 ];
 
 export const sampleEmployeeAssignments: EmployeeAttendanceAssignment[] = [
