@@ -409,7 +409,7 @@ export const EmployeeAssignment = () => {
                       <SelectTrigger><SelectValue placeholder={ar ? 'جميع الأقسام' : 'All Departments'} /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">{ar ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
-                        {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                        {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
