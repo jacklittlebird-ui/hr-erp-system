@@ -140,6 +140,7 @@ const StationManagerPortal = () => {
   const [attMonth, setAttMonth] = useState(new Date().getMonth());
   const [attYear, setAttYear] = useState(new Date().getFullYear());
   const [attSearch, setAttSearch] = useState('');
+  const [attDeptFilter, setAttDeptFilter] = useState('all');
   const [attRecords, setAttRecords] = useState<any[]>([]);
   const [attLoading, setAttLoading] = useState(false);
 
@@ -168,13 +169,20 @@ const StationManagerPortal = () => {
   useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
 
   const filteredAttRecords = useMemo(() => {
-    if (!attSearch.trim()) return attRecords;
-    const q = attSearch.trim().toLowerCase();
-    return attRecords.filter(r => {
-      const emp = stationEmployees.find(e => e.id === r.employee_id);
-      return emp && (emp.nameAr.toLowerCase().includes(q) || emp.nameEn.toLowerCase().includes(q) || emp.employeeId.toLowerCase().includes(q));
-    });
-  }, [attRecords, attSearch, stationEmployees]);
+    let list = attRecords;
+    if (attDeptFilter !== 'all') {
+      const deptEmpIds = new Set(stationEmployees.filter(e => e.department === attDeptFilter).map(e => e.id));
+      list = list.filter(r => deptEmpIds.has(r.employee_id));
+    }
+    if (attSearch.trim()) {
+      const q = attSearch.trim().toLowerCase();
+      list = list.filter(r => {
+        const emp = stationEmployees.find(e => e.id === r.employee_id);
+        return emp && (emp.nameAr.toLowerCase().includes(q) || emp.nameEn.toLowerCase().includes(q) || emp.employeeId.toLowerCase().includes(q));
+      });
+    }
+    return list;
+  }, [attRecords, attSearch, attDeptFilter, stationEmployees]);
 
   const attStats = useMemo(() => {
     const present = attRecords.filter(r => r.status === 'present' || r.status === 'late').length;
@@ -838,6 +846,13 @@ const StationManagerPortal = () => {
                     <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input placeholder={t('بحث بالاسم أو الرقم...', 'Search by name or ID...')} value={attSearch} onChange={e => setAttSearch(e.target.value)} className="ps-9" />
                   </div>
+                  <Select value={attDeptFilter} onValueChange={setAttDeptFilter}>
+                    <SelectTrigger className="w-[160px] h-9 text-sm"><SelectValue placeholder={t('القسم', 'Department')} /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('جميع الأقسام', 'All Departments')}</SelectItem>
+                      {stationDepartments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                   <Select value={attMonth.toString()} onValueChange={v => setAttMonth(+v)}>
                     <SelectTrigger className="w-[120px] h-9 text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>{attMonths.map((m, i) => <SelectItem key={i} value={i.toString()}>{m}</SelectItem>)}</SelectContent>
