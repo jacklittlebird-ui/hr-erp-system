@@ -603,6 +603,39 @@ const StationManagerPortal = () => {
 
       <main className="p-4 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6">
         <PortalWelcomeBanner />
+
+        {/* Area Manager Station Selector */}
+        {isAreaManager && managedStations.length > 0 && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-3 md:p-4 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">{t('اختر المحطة:', 'Select Station:')}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={selectedStation === 'all' ? 'default' : 'outline'}
+                  onClick={() => setSelectedStation('all')}
+                  className="h-8 text-xs"
+                >
+                  {t('جميع المحطات', 'All Stations')}
+                </Button>
+                {managedStations.map(s => (
+                  <Button
+                    key={s.code}
+                    size="sm"
+                    variant={selectedStation === s.code ? 'default' : 'outline'}
+                    onClick={() => setSelectedStation(s.code)}
+                    className="h-8 text-xs"
+                  >
+                    {language === 'ar' ? s.labelAr : s.labelEn}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-[hsl(var(--stat-blue))] to-[hsl(var(--stat-blue)/0.8)] text-white shadow-lg">
