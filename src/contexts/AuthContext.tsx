@@ -16,6 +16,9 @@ export interface AuthUser {
   role: UserRole;
   station?: string;
   stationId?: string;
+  /** For area_manager: list of station codes they manage */
+  stations?: string[];
+  stationIds?: string[];
   supabaseUserId: string;
 }
 
