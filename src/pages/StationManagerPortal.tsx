@@ -21,7 +21,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Users, Star, AlertTriangle, LogOut, Globe, MapPin, Target, TrendingUp, Lightbulb, MessageSquare, Save, Send, Plus, Trash2, Search, Filter, Pencil, Clock, UserCheck, UserX, FileText, ShieldCheck, Building2, BarChart3, CheckCircle, Circle, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Users, Star, AlertTriangle, LogOut, Globe, MapPin, Target, TrendingUp, Lightbulb, MessageSquare, Save, Send, Plus, Trash2, Search, Filter, Pencil, Clock, UserCheck, UserX, FileText, ShieldCheck, Building2, BarChart3, CheckCircle, Circle, ChevronLeft, ChevronRight, RefreshCw, CalendarDays, LogIn, LogOut as LogOutIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { ar as arLocale, enUS } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 
 // Shared violation interface (matches ViolationsTab)
@@ -95,6 +97,7 @@ const StationManagerPortal = () => {
 
   useEffect(() => { fetchViolations(); }, [fetchViolations]);
 
+
   // Evaluation dialog state
   const [evalDialog, setEvalDialog] = useState(false);
   const [evalEmployeeId, setEvalEmployeeId] = useState('');
@@ -133,7 +136,55 @@ const StationManagerPortal = () => {
     return employees.filter(e => e.stationLocation === user?.station);
   }, [employees, user?.station]);
 
-  // Filter reviews for this station's employees (use UUID)
+  // === Attendance state ===
+  const [attMonth, setAttMonth] = useState(new Date().getMonth());
+  const [attYear, setAttYear] = useState(new Date().getFullYear());
+  const [attSearch, setAttSearch] = useState('');
+  const [attRecords, setAttRecords] = useState<any[]>([]);
+  const [attLoading, setAttLoading] = useState(false);
+
+  const attMonths = ar
+    ? ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+    : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const fetchAttendance = useCallback(async () => {
+    if (stationEmployees.length === 0) { setAttRecords([]); return; }
+    setAttLoading(true);
+    const startDate = `${attYear}-${String(attMonth + 1).padStart(2, '0')}-01`;
+    const endDay = new Date(attYear, attMonth + 1, 0).getDate();
+    const endDate = `${attYear}-${String(attMonth + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+    const empIds = stationEmployees.map(e => e.id);
+    const { data } = await supabase
+      .from('attendance_records')
+      .select('*')
+      .in('employee_id', empIds)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false });
+    setAttRecords(data || []);
+    setAttLoading(false);
+  }, [stationEmployees, attMonth, attYear]);
+
+  useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
+
+  const filteredAttRecords = useMemo(() => {
+    if (!attSearch.trim()) return attRecords;
+    const q = attSearch.trim().toLowerCase();
+    return attRecords.filter(r => {
+      const emp = stationEmployees.find(e => e.id === r.employee_id);
+      return emp && (emp.nameAr.toLowerCase().includes(q) || emp.nameEn.toLowerCase().includes(q) || emp.employeeId.toLowerCase().includes(q));
+    });
+  }, [attRecords, attSearch, stationEmployees]);
+
+  const attStats = useMemo(() => {
+    const present = attRecords.filter(r => r.status === 'present' || r.status === 'late').length;
+    const late = attRecords.filter(r => r.is_late).length;
+    const absent = attRecords.filter(r => r.status === 'absent').length;
+    const totalMinutes = attRecords.reduce((s, r) => s + (r.work_minutes || 0), 0);
+    return { present, late, absent, totalHours: Math.floor(totalMinutes / 60), totalMinutes: totalMinutes % 60 };
+  }, [attRecords]);
+
+
   const stationReviews = useMemo(() => {
     const empIds = new Set(stationEmployees.map(e => e.id));
     return reviews.filter(r => empIds.has(r.employeeId) || r.station === user?.station);
@@ -702,8 +753,9 @@ const StationManagerPortal = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="employees" className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
-          <TabsList className="inline-grid grid-cols-3" dir="rtl">
+          <TabsList className="inline-grid grid-cols-4" dir="rtl">
             <TabsTrigger value="employees" className="gap-1 md:gap-1.5 text-xs md:text-sm"><Users className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('الموظفين', 'Employees')}</span></TabsTrigger>
+            <TabsTrigger value="attendance" className="gap-1 md:gap-1.5 text-xs md:text-sm"><CalendarDays className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('الحضور', 'Attendance')}</span></TabsTrigger>
             <TabsTrigger value="evaluations" className="gap-1 md:gap-1.5 text-xs md:text-sm"><Star className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('التقييمات', 'Evaluations')}</span></TabsTrigger>
             <TabsTrigger value="violations" className="gap-1 md:gap-1.5 text-xs md:text-sm"><AlertTriangle className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('المخالفات', 'Violations')}</span></TabsTrigger>
           </TabsList>
@@ -773,7 +825,109 @@ const StationManagerPortal = () => {
             </Card>
           </TabsContent>
 
-          {/* Evaluations Tab - with inner tabs */}
+          {/* Attendance Tab */}
+          <TabsContent value="attendance">
+            <Card>
+              <CardHeader className="space-y-3">
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5" />
+                  {t('سجلات الحضور والانصراف', 'Attendance Records')}
+                </CardTitle>
+                <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
+                  <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
+                    <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder={t('بحث بالاسم أو الرقم...', 'Search by name or ID...')} value={attSearch} onChange={e => setAttSearch(e.target.value)} className="ps-9" />
+                  </div>
+                  <Select value={attMonth.toString()} onValueChange={v => setAttMonth(+v)}>
+                    <SelectTrigger className="w-[120px] h-9 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>{attMonths.map((m, i) => <SelectItem key={i} value={i.toString()}>{m}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Select value={attYear.toString()} onValueChange={v => setAttYear(+v)}>
+                    <SelectTrigger className="w-[90px] h-9 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>{[2024,2025,2026].map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Stats */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: t('حضور', 'Present'), value: attStats.present, icon: CheckCircle, bg: 'bg-emerald-50 dark:bg-emerald-950/40', color: 'text-emerald-600' },
+                    { label: t('تأخير', 'Late'), value: attStats.late, icon: Clock, bg: 'bg-amber-50 dark:bg-amber-950/40', color: 'text-amber-600' },
+                    { label: t('غياب', 'Absent'), value: attStats.absent, icon: UserX, bg: 'bg-red-50 dark:bg-red-950/40', color: 'text-red-600' },
+                    { label: t('إجمالي الساعات', 'Total Hours'), value: `${String(attStats.totalHours).padStart(2,'0')}:${String(attStats.totalMinutes).padStart(2,'0')}`, icon: Clock, bg: 'bg-violet-50 dark:bg-violet-950/40', color: 'text-violet-600' },
+                  ].map((s, i) => (
+                    <div key={i} className={cn("rounded-xl p-3 text-center", s.bg)}>
+                      <s.icon className={cn("w-5 h-5 mx-auto mb-1", s.color)} />
+                      <p className="text-xl font-bold">{s.value}</p>
+                      <p className="text-xs text-muted-foreground">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto max-h-[500px]">
+                  <Table className="min-w-[600px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('الموظف', 'Employee')}</TableHead>
+                        <TableHead>{t('التاريخ', 'Date')}</TableHead>
+                        <TableHead>{t('اليوم', 'Day')}</TableHead>
+                        <TableHead>{t('الحضور', 'In')}</TableHead>
+                        <TableHead>{t('الانصراف', 'Out')}</TableHead>
+                        <TableHead>{t('الساعات', 'Hours')}</TableHead>
+                        <TableHead>{t('الحالة', 'Status')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {attLoading ? (
+                        <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t('جاري التحميل...', 'Loading...')}</TableCell></TableRow>
+                      ) : filteredAttRecords.length === 0 ? (
+                        <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t('لا توجد سجلات', 'No records')}</TableCell></TableRow>
+                      ) : (
+                        filteredAttRecords.map(r => {
+                          const emp = stationEmployees.find(e => e.id === r.employee_id);
+                          const checkInTime = r.check_in ? format(new Date(r.check_in), 'HH:mm') : '--:--';
+                          const checkOutTime = r.check_out ? format(new Date(r.check_out), 'HH:mm') : '--:--';
+                          const workH = r.work_hours > 0 || r.work_minutes > 0 ? `${String(Math.floor(r.work_minutes / 60)).padStart(2,'0')}:${String(r.work_minutes % 60).padStart(2,'0')}` : '-';
+                          const statusMap: Record<string, { cls: string; ar: string; en: string }> = {
+                            present: { cls: 'bg-emerald-100 text-emerald-700 border-emerald-300', ar: 'حاضر', en: 'Present' },
+                            absent: { cls: 'bg-red-100 text-red-700 border-red-300', ar: 'غائب', en: 'Absent' },
+                            late: { cls: 'bg-amber-100 text-amber-700 border-amber-300', ar: 'متأخر', en: 'Late' },
+                            'on-leave': { cls: 'bg-blue-100 text-blue-700 border-blue-300', ar: 'إجازة', en: 'On Leave' },
+                            mission: { cls: 'bg-purple-100 text-purple-700 border-purple-300', ar: 'مأمورية', en: 'Mission' },
+                          };
+                          const st = statusMap[r.status] || statusMap.absent;
+                          const displayStatus = r.is_late && r.status === 'present' ? statusMap.late : st;
+                          return (
+                            <TableRow key={r.id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium text-sm">{ar ? emp?.nameAr : emp?.nameEn}</p>
+                                  <p className="text-xs text-muted-foreground">{emp?.employeeId}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm">{r.date}</TableCell>
+                              <TableCell className="text-sm">{format(new Date(r.date), 'EEEE', { locale: ar ? arLocale : enUS })}</TableCell>
+                              <TableCell className="font-mono text-sm">{checkInTime}</TableCell>
+                              <TableCell className="font-mono text-sm">{checkOutTime}</TableCell>
+                              <TableCell className="text-sm">{workH}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={displayStatus.cls}>
+                                  {ar ? displayStatus.ar : displayStatus.en}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="evaluations">
             <Tabs value={evalInnerTab} onValueChange={setEvalInnerTab} className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
               <TabsList className="inline-grid grid-cols-3" dir="rtl">
