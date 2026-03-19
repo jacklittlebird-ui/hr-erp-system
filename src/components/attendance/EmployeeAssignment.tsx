@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,9 @@ interface Assignment {
   isActive: boolean;
 }
 
+interface StationOption { id: string; name: string; }
+interface DeptOption { id: string; name: string; }
+
 export const EmployeeAssignment = () => {
   const { t, isRTL, language } = useLanguage();
   const ar = language === 'ar';
@@ -66,22 +69,25 @@ export const EmployeeAssignment = () => {
   // Employee search in dialog
   const [empSearch, setEmpSearch] = useState('');
 
-  // Stations and departments from DB (derived from employees)
-  const stations = useMemo(() => {
-    const map = new Map<string, string>();
-    contextEmployees.forEach(e => {
-      if (e.stationId && e.stationName) map.set(e.stationId, e.stationName);
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [contextEmployees]);
+  // Fetch stations and departments from DB
+  const [stations, setStations] = useState<StationOption[]>([]);
+  const [departments, setDepartments] = useState<DeptOption[]>([]);
 
-  const departments = useMemo(() => {
-    const map = new Map<string, string>();
-    contextEmployees.forEach(e => {
-      if (e.department && e.department !== '-') map.set(e.department, e.department);
-    });
-    return Array.from(map.keys()).sort();
-  }, [contextEmployees]);
+  useEffect(() => {
+    const fetchData = async () => {
+      const [stationsRes, deptsRes] = await Promise.all([
+        supabase.from('stations').select('id, name_ar, name_en').eq('is_active', true).order('name_ar'),
+        supabase.from('departments').select('id, name_ar, name_en').eq('is_active', true).order('name_ar'),
+      ]);
+      if (stationsRes.data) {
+        setStations(stationsRes.data.map(s => ({ id: s.id, name: ar ? s.name_ar : s.name_en })));
+      }
+      if (deptsRes.data) {
+        setDepartments(deptsRes.data.map(d => ({ id: d.id, name: ar ? d.name_ar : d.name_en })));
+      }
+    };
+    fetchData();
+  }, [ar]);
 
   const rules = sampleAttendanceRules;
   const shifts = sampleShiftDefinitions;
@@ -140,7 +146,7 @@ export const EmployeeAssignment = () => {
       list = list.filter(e => e.stationId === bulkData.bulkStationId);
     }
     if (bulkData.bulkDepartmentId) {
-      list = list.filter(e => e.department === bulkData.bulkDepartmentId);
+      list = list.filter(e => e.departmentId === bulkData.bulkDepartmentId);
     }
     return list;
   }, [contextEmployees, bulkData.bulkStationId, bulkData.bulkDepartmentId]);
@@ -403,7 +409,7 @@ export const EmployeeAssignment = () => {
                       <SelectTrigger><SelectValue placeholder={ar ? 'جميع الأقسام' : 'All Departments'} /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">{ar ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
-                        {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                        {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
