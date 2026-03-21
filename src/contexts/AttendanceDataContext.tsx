@@ -116,8 +116,19 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
   const checkInFn = useCallback(async (employeeId: string, employeeName: string, employeeNameAr: string, department: string) => {
     const now = new Date();
     const dateString = now.toISOString().split('T')[0];
-    const isLate = now.getHours() >= 9;
     const checkInTs = now.toISOString();
+
+    // Check if employee has a flexible attendance rule
+    const { data: assignment } = await supabase
+      .from('attendance_assignments')
+      .select('rule_id, attendance_rules(schedule_type)')
+      .eq('employee_id', employeeId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    const scheduleType = (assignment?.attendance_rules as any)?.schedule_type || 'fixed';
+    const isFlexible = scheduleType === 'fully_flexible' || scheduleType === 'flexible';
+    const isLate = !isFlexible && now.getHours() >= 9;
 
     await supabase.from('attendance_records').insert({
       employee_id: employeeId,
