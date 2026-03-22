@@ -162,7 +162,7 @@ const EmployeePortal = () => {
           hidden && "blur-lg pointer-events-none"
         )}
       >
-      <div className="flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0 overflow-x-hidden">
         <PortalHeader onToggleSidebar={() => {
           if (isMobile) {
             setMobileOpen(!mobileOpen);
@@ -178,8 +178,8 @@ const EmployeePortal = () => {
           className="flex-1 overflow-auto min-w-0 relative"
           style={{
             overscrollBehaviorY: 'contain',
-            touchAction: 'pan-y pinch-zoom',
-            WebkitOverflowScrolling: 'touch',
+            touchAction: 'auto',
+            WebkitOverflowScrolling: 'touch' as any,
           }}
         >
           {/* Pull-to-refresh indicator */}
