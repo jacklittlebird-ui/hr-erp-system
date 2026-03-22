@@ -61,6 +61,8 @@ const sectionComponents: Record<PortalSection, React.FC> = {
 const EmployeePortal = () => {
   const { isRTL } = useLanguage();
   const isMobile = useIsMobile();
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+  const enablePullToRefresh = isMobile && !isAndroid;
   const [activeSection, setActiveSection] = useState<PortalSection>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -90,15 +92,17 @@ const EmployeePortal = () => {
   const isPulling = useRef(false);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!enablePullToRefresh) return;
     const el = mainRef.current;
     if (!el || refreshing) return;
     if (el.scrollTop <= 0) {
       touchStartY.current = e.touches[0].clientY;
       isPulling.current = true;
     }
-  }, [refreshing]);
+  }, [enablePullToRefresh, refreshing]);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!enablePullToRefresh) return;
     if (!isPulling.current || refreshing) return;
     const el = mainRef.current;
     if (!el || el.scrollTop > 0) {
@@ -110,9 +114,10 @@ const EmployeePortal = () => {
     if (dy > 0) {
       setPullDistance(Math.min(dy * 0.4, 80));
     }
-  }, [refreshing]);
+  }, [enablePullToRefresh, refreshing]);
 
   const onTouchEnd = useCallback(() => {
+    if (!enablePullToRefresh) return;
     if (!isPulling.current) return;
     isPulling.current = false;
     if (pullDistance > 60 && !refreshing) {
@@ -126,7 +131,7 @@ const EmployeePortal = () => {
     } else {
       setPullDistance(0);
     }
-  }, [pullDistance, refreshing]);
+  }, [enablePullToRefresh, pullDistance, refreshing]);
 
   const ActiveComponent = sectionComponents[activeSection];
 
@@ -139,13 +144,8 @@ const EmployeePortal = () => {
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
-    // Prevent context menu (long-press save on mobile)
-    const preventContext = (e: Event) => e.preventDefault();
-    document.addEventListener('contextmenu', preventContext);
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
-      document.removeEventListener('contextmenu', preventContext);
     };
   }, []);
 
@@ -158,10 +158,9 @@ const EmployeePortal = () => {
       <div
         dir="rtl"
         className={cn(
-          "min-h-screen bg-background flex flex-row-reverse font-arabic select-none",
+          "min-h-screen bg-background flex flex-row-reverse font-arabic",
           hidden && "blur-lg pointer-events-none"
         )}
-        style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
       >
       <div className="flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden">
         <PortalHeader onToggleSidebar={() => {
@@ -177,23 +176,29 @@ const EmployeePortal = () => {
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
           className="flex-1 overflow-auto min-w-0 relative"
-          style={{ overscrollBehavior: 'contain', touchAction: 'pan-y' }}
+          style={{
+            overscrollBehaviorY: 'contain',
+            touchAction: 'pan-y pinch-zoom',
+            WebkitOverflowScrolling: 'touch',
+          }}
         >
           {/* Pull-to-refresh indicator */}
-          <div
-            className="flex justify-center items-center overflow-hidden transition-all duration-200"
-            style={{ height: pullDistance > 0 || refreshing ? `${pullDistance}px` : '0px' }}
-          >
-            <div className={cn(
-              "w-6 h-6 border-2 border-primary border-t-transparent rounded-full",
-              refreshing ? "animate-spin" : pullDistance > 60 ? "text-primary" : "opacity-50"
-            )}
-            style={{
-              transform: refreshing ? undefined : `rotate(${pullDistance * 3}deg)`,
-              transition: 'transform 0.1s'
-            }}
-            />
-          </div>
+          {enablePullToRefresh && (
+            <div
+              className="flex justify-center items-center overflow-hidden transition-all duration-200"
+              style={{ height: pullDistance > 0 || refreshing ? `${pullDistance}px` : '0px' }}
+            >
+              <div className={cn(
+                "w-6 h-6 border-2 border-primary border-t-transparent rounded-full",
+                refreshing ? "animate-spin" : pullDistance > 60 ? "text-primary" : "opacity-50"
+              )}
+              style={{
+                transform: refreshing ? undefined : `rotate(${pullDistance * 3}deg)`,
+                transition: 'transform 0.1s'
+              }}
+              />
+            </div>
+          )}
           <div className="p-3 md:p-6">
             <PortalWelcomeBanner />
             <ActiveComponent key={refreshKey} />
