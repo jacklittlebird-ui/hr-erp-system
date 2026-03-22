@@ -480,22 +480,29 @@ export const CheckInOut = ({ records, onCheckIn, onCheckOut, onRefresh }: CheckI
               </div>
               <div>
                 <Label className="mb-1 block text-sm"><User className="w-3.5 h-3.5 inline-block mr-1" />{ar ? 'الموظف' : 'Employee'}</Label>
-                <Select value={manualEmployee} onValueChange={setManualEmployee}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={ar ? 'اختر الموظف' : 'Select Employee'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {manualFilteredEmployees.length === 0 ? (
-                      <div className="p-3 text-center text-muted-foreground text-sm">{ar ? 'لا يوجد موظفين' : 'No employees'}</div>
-                    ) : (
-                      manualFilteredEmployees.map(emp => (
-                        <SelectItem key={emp.id} value={emp.id}>
-                          {ar ? emp.nameAr : emp.name} ({emp.id})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Input
+                    placeholder={ar ? 'ابحث بالاسم أو الرقم الوظيفي...' : 'Search by name or code...'}
+                    value={manualEmployeeSearch}
+                    onChange={e => setManualEmployeeSearch(e.target.value)}
+                  />
+                  <Select value={manualEmployee} onValueChange={setManualEmployee}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={ar ? 'اختر الموظف' : 'Select Employee'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {manualFilteredEmployees.length === 0 ? (
+                        <div className="p-3 text-center text-muted-foreground text-sm">{ar ? 'لا يوجد موظفين' : 'No employees'}</div>
+                      ) : (
+                        manualFilteredEmployees.map(emp => (
+                          <SelectItem key={emp.id} value={emp.id}>
+                            {ar ? emp.nameAr : emp.nameEn} ({emp.employeeId})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
