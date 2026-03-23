@@ -1,15 +1,15 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAttendanceData } from '@/contexts/AttendanceDataContext';
 import { useReportExport } from '@/hooks/useReportExport';
 import { supabase } from '@/integrations/supabase/client';
+import { calculateWorkTime } from '@/contexts/AttendanceDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { List, Search, Building2, MapPin, Printer, FileText, FileSpreadsheet, CalendarDays } from 'lucide-react';
+import { List, Search, Building2, MapPin, Printer, FileText, FileSpreadsheet, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const months = [
@@ -40,10 +40,35 @@ const statusLabels: Record<string, { ar: string; en: string }> = {
 interface Station { id: string; name_ar: string; name_en: string; }
 interface Department { id: string; name_ar: string; name_en: string; }
 
+interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeNameAr: string;
+  department: string;
+  date: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  status: string;
+  workHours: number;
+  workMinutes: number;
+  overtime: number;
+  notes?: string;
+}
+
+const PAGE_SIZE = 50;
+
+const formatTime = (ts: string | null): string | null => {
+  if (!ts) return null;
+  try {
+    const d = new Date(ts);
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  } catch { return null; }
+};
+
 export const AttendanceList = () => {
   const { isRTL, language } = useLanguage();
   const ar = language === 'ar';
-  const { records } = useAttendanceData();
   const { reportRef, handlePrint, exportBilingualPDF, exportBilingualCSV } = useReportExport();
 
   const now = new Date();
@@ -60,9 +85,14 @@ export const AttendanceList = () => {
   const [employeeStationMap, setEmployeeStationMap] = useState<Record<string, string>>({});
   const [employeeDeptMap, setEmployeeDeptMap] = useState<Record<string, string>>({});
 
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
   const years = Array.from({ length: 3 }, (_, i) => String(now.getFullYear() - i));
 
-  // Generate days for selected month/year
   const daysInMonth = useMemo(() => {
     const y = parseInt(selectedYear);
     const m = parseInt(selectedMonth);
@@ -93,38 +123,118 @@ export const AttendanceList = () => {
     fetchMeta();
   }, []);
 
+  // Fetch records with server-side date filtering and pagination
+  const fetchPage = useCallback(async (pageNum: number) => {
+    setLoading(true);
+    const y = parseInt(selectedYear);
+    const m = parseInt(selectedMonth);
+    
+    let startDate: string;
+    let endDate: string;
+
+    if (selectedDay !== 'all') {
+      const day = parseInt(selectedDay);
+      startDate = `${y}-${selectedMonth}-${String(day).padStart(2, '0')}`;
+      endDate = startDate;
+    } else {
+      startDate = `${y}-${selectedMonth}-01`;
+      const lastDay = new Date(y, m, 0).getDate();
+      endDate = `${y}-${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
+    }
+
+    let query = supabase
+      .from('attendance_records')
+      .select('*, employees(name_en, name_ar, department_id, station_id, departments(name_ar))', { count: 'exact' })
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false });
+
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter);
+    }
+
+    // Apply station/dept filter via employee IDs
+    if (selectedStation !== 'all' || selectedDept !== 'all') {
+      const matchingEmpIds = Object.keys(employeeStationMap).filter(empId => {
+        if (selectedStation !== 'all' && employeeStationMap[empId] !== selectedStation) return false;
+        if (selectedDept !== 'all' && employeeDeptMap[empId] !== selectedDept) return false;
+        return true;
+      });
+      if (matchingEmpIds.length > 0) {
+        query = query.in('employee_id', matchingEmpIds);
+      } else {
+        setRecords([]);
+        setTotalCount(0);
+        setLoading(false);
+        return;
+      }
+    }
+
+    const from = pageNum * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    query = query.range(from, to);
+
+    const { data, count } = await query;
+
+    if (data) {
+      const mapped: AttendanceRecord[] = data.map(r => {
+        const ci = formatTime(r.check_in);
+        const co = formatTime(r.check_out);
+        const wt = calculateWorkTime(ci, co);
+        const hasDbHours = (r.work_hours != null && r.work_hours > 0) || (r.work_minutes != null && r.work_minutes > 0);
+        let finalHours: number;
+        let finalMinutes: number;
+        if (hasDbHours) {
+          const dbM = r.work_minutes ?? 0;
+          const totalMins = dbM > 0 ? Math.round(dbM) : Math.round((r.work_hours ?? 0) * 60);
+          finalHours = Math.floor(totalMins / 60);
+          finalMinutes = totalMins % 60;
+        } else {
+          finalHours = wt.hours;
+          finalMinutes = wt.minutes;
+        }
+        return {
+          id: r.id,
+          employeeId: r.employee_id,
+          employeeName: (r.employees as any)?.name_en || '',
+          employeeNameAr: (r.employees as any)?.name_ar || '',
+          department: (r.employees as any)?.departments?.name_ar || '',
+          date: r.date,
+          checkIn: ci,
+          checkOut: co,
+          status: r.status,
+          workHours: finalHours,
+          workMinutes: finalMinutes,
+          overtime: Math.max(0, finalHours - 8),
+          notes: r.notes || undefined,
+        };
+      });
+      setRecords(mapped);
+      setTotalCount(count ?? 0);
+    }
+    setLoading(false);
+  }, [selectedMonth, selectedYear, selectedDay, statusFilter, selectedStation, selectedDept, employeeStationMap, employeeDeptMap]);
+
+  // Re-fetch when filters or page change
+  useEffect(() => {
+    fetchPage(page);
+  }, [page, fetchPage]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(0);
+  }, [selectedMonth, selectedYear, selectedDay, selectedStation, selectedDept, statusFilter]);
+
+  // Client-side search filter (name search)
   const filteredRecords = useMemo(() => {
-    return records.filter(r => {
-      const d = new Date(r.date);
-      const monthMatch = String(d.getMonth() + 1).padStart(2, '0') === selectedMonth;
-      const yearMatch = String(d.getFullYear()) === selectedYear;
-      if (!monthMatch || !yearMatch) return false;
+    if (!searchTerm) return records;
+    const s = searchTerm.toLowerCase();
+    return records.filter(r =>
+      r.employeeName.toLowerCase().includes(s) || r.employeeNameAr.includes(searchTerm)
+    );
+  }, [records, searchTerm]);
 
-      if (selectedDay !== 'all') {
-        const dayMatch = String(d.getDate()).padStart(2, '0') === selectedDay;
-        if (!dayMatch) return false;
-      }
-
-      if (selectedStation !== 'all') {
-        const empStation = employeeStationMap[r.employeeId];
-        if (empStation !== selectedStation) return false;
-      }
-
-      if (selectedDept !== 'all') {
-        const empDept = employeeDeptMap[r.employeeId];
-        if (empDept !== selectedDept) return false;
-      }
-
-      if (statusFilter !== 'all' && r.status !== statusFilter) return false;
-
-      if (searchTerm) {
-        const s = searchTerm.toLowerCase();
-        if (!r.employeeName.toLowerCase().includes(s) && !r.employeeNameAr.includes(searchTerm)) return false;
-      }
-
-      return true;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [records, selectedMonth, selectedYear, selectedDay, selectedStation, selectedDept, statusFilter, searchTerm, employeeStationMap, employeeDeptMap]);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -157,7 +267,6 @@ export const AttendanceList = () => {
   const getStatusText = (status: string) => statusLabels[status]?.ar || status;
   const getStatusTextEn = (status: string) => statusLabels[status]?.en || status;
 
-  // Export columns
   const exportColumns = [
     { headerAr: 'التاريخ', headerEn: 'Date', key: 'date' },
     { headerAr: 'الموظف (عربي)', headerEn: 'Employee (AR)', key: 'employeeNameAr' },
@@ -217,7 +326,6 @@ export const AttendanceList = () => {
       <CardContent>
         {/* Filters */}
         <div className={cn("flex flex-wrap gap-3 mb-6", isRTL && "flex-row-reverse")}>
-          {/* Search */}
           <div className="relative min-w-[200px] flex-1">
             <Search className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground", isRTL ? "right-3" : "left-3")} />
             <Input
@@ -228,7 +336,6 @@ export const AttendanceList = () => {
             />
           </div>
 
-          {/* Station filter */}
           <Select value={selectedStation} onValueChange={setSelectedStation}>
             <SelectTrigger className="w-[160px]">
               <MapPin className="w-4 h-4 shrink-0 opacity-50" />
@@ -242,7 +349,6 @@ export const AttendanceList = () => {
             </SelectContent>
           </Select>
 
-          {/* Department filter */}
           <Select value={selectedDept} onValueChange={setSelectedDept}>
             <SelectTrigger className="w-[160px]">
               <Building2 className="w-4 h-4 shrink-0 opacity-50" />
@@ -256,7 +362,6 @@ export const AttendanceList = () => {
             </SelectContent>
           </Select>
 
-          {/* Month */}
           <Select value={selectedMonth} onValueChange={(v) => { setSelectedMonth(v); setSelectedDay('all'); }}>
             <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -266,7 +371,6 @@ export const AttendanceList = () => {
             </SelectContent>
           </Select>
 
-          {/* Day */}
           <Select value={selectedDay} onValueChange={setSelectedDay}>
             <SelectTrigger className="w-[100px]">
               <CalendarDays className="w-4 h-4 shrink-0 opacity-50" />
@@ -280,7 +384,6 @@ export const AttendanceList = () => {
             </SelectContent>
           </Select>
 
-          {/* Year */}
           <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -288,7 +391,6 @@ export const AttendanceList = () => {
             </SelectContent>
           </Select>
 
-          {/* Status */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -305,7 +407,9 @@ export const AttendanceList = () => {
 
         {/* Results count */}
         <p className="text-sm text-muted-foreground mb-3">
-          {ar ? `${filteredRecords.length} سجل` : `${filteredRecords.length} records`}
+          {ar
+            ? `${totalCount} سجل — صفحة ${page + 1} من ${totalPages || 1}`
+            : `${totalCount} records — page ${page + 1} of ${totalPages || 1}`}
         </p>
 
         {/* Table */}
@@ -324,14 +428,20 @@ export const AttendanceList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRecords.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    {ar ? 'جاري التحميل...' : 'Loading...'}
+                  </TableCell>
+                </TableRow>
+              ) : filteredRecords.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     {ar ? 'لا توجد سجلات حضور' : 'No attendance records'}
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredRecords.slice(0, 50).map((record, index) => (
+                filteredRecords.map((record, index) => (
                   <TableRow key={`${record.id}-${index}`}>
                     <TableCell>{record.date}</TableCell>
                     <TableCell className="font-medium">
@@ -355,6 +465,35 @@ export const AttendanceList = () => {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 0 || loading}
+              onClick={() => setPage(p => p - 1)}
+              className="gap-1.5"
+            >
+              {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              {ar ? 'السابق' : 'Previous'}
+            </Button>
+            <span className="text-sm font-medium">
+              {page + 1} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages - 1 || loading}
+              onClick={() => setPage(p => p + 1)}
+              className="gap-1.5"
+            >
+              {ar ? 'التالي' : 'Next'}
+              {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
