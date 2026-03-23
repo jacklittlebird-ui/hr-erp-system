@@ -131,7 +131,7 @@ export const Sidebar = ({ open, onOpenChange, collapsed, onToggleCollapse }: Sid
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className="w-[272px] p-0 bg-sidebar border-sidebar-border"
+          className="w-[272px] max-w-[85vw] p-0 bg-sidebar border-sidebar-border overflow-x-hidden"
         >
           <div className="h-full overflow-y-auto overflow-x-hidden pt-4">
             {navContent}
