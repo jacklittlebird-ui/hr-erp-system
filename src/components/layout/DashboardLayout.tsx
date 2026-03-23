@@ -46,7 +46,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           WebkitOverflowScrolling: 'touch' as any,
         }}
       >
-        <div className="p-4 md:p-6">
+        <div className="p-4 md:p-6 w-full max-w-full overflow-x-hidden">
           {children}
         </div>
       </main>
