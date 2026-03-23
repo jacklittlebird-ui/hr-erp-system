@@ -18,7 +18,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
 
   return (
     <div dir={isRTL ? "rtl" : "ltr"} className={cn(
-      "h-dvh min-h-screen bg-background flex flex-col overflow-hidden",
+      "h-dvh min-h-screen bg-background flex flex-col overflow-hidden w-full max-w-full",
       isRTL ? "font-arabic" : "font-sans"
     )}>
       <Header onToggleSidebar={() => {
@@ -37,7 +37,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         />
       )}
       <main className={cn(
-        "flex-1 min-h-0 pt-16 overflow-y-auto transition-all duration-300",
+        "flex-1 min-h-0 min-w-0 max-w-full pt-16 overflow-y-auto overflow-x-hidden transition-all duration-300",
         !isMobile && sidebarVisible && (sidebarCollapsed ? "ms-16" : "ms-64")
       )}
         style={{
