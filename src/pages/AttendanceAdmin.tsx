@@ -37,7 +37,7 @@ const AttendanceAdmin = () => {
     setLoading(true);
     const [eventsRes, alertsRes, locationsRes, stationsRes, empMapRes, devicesRes] = await Promise.all([
       supabase.from("attendance_events").select("*, employees(name_ar, name_en, employee_code)").order("scan_time", { ascending: false }).limit(200),
-      supabase.from("device_alerts").select("*").order("triggered_at", { ascending: false }).limit(100),
+      supabase.from("device_alerts").select("*").gte("triggered_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("triggered_at", { ascending: false }),
       supabase.from("qr_locations").select("*, stations(name_ar, name_en)"),
       supabase.from("stations").select("id, name_ar, name_en").eq("is_active", true),
       supabase.from("user_roles").select("user_id, employee_id, employees(name_ar, name_en, employee_code)").eq("role", "employee"),
