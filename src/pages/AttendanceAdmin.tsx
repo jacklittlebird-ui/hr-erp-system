@@ -250,59 +250,44 @@ const AttendanceAdmin = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-auto max-h-[600px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{ar ? "الموظف" : "Employee"}</TableHead>
-                        <TableHead>{ar ? "السبب" : "Reason"}</TableHead>
-                        <TableHead>{ar ? "الجهاز" : "Device"}</TableHead>
-                        <TableHead>{ar ? "الوقت" : "Time"}</TableHead>
-                        <TableHead>{ar ? "تفاصيل" : "Details"}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {alerts.filter((al) => {
-                        if (!searchQuery) return true;
-                        const q = searchQuery.toLowerCase();
-                        const emp = employeeMap[al.user_id];
-                        return (
-                          emp?.name_ar?.toLowerCase().includes(q) ||
-                          emp?.name_en?.toLowerCase().includes(q) ||
-                          emp?.employee_code?.toLowerCase().includes(q) ||
-                          al.device_id?.toLowerCase().includes(q) ||
-                          al.reason?.toLowerCase().includes(q)
-                        );
-                      }).map((al) => {
-                        const emp = employeeMap[al.user_id];
-                        return (
-                        <TableRow key={al.id}>
-                          <TableCell>
-                            <div>{ar ? emp?.name_ar : emp?.name_en || al.user_id?.substring(0, 8)}</div>
-                            {emp?.employee_code && <div className="text-xs text-muted-foreground">{emp.employee_code}</div>}
-                          </TableCell>
-                          <TableCell>{alertReasonLabel(al.reason)}</TableCell>
-                          <TableCell className="text-xs font-mono">
-                            {al.device_id?.substring(0, 12)}...
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {new Date(al.triggered_at).toLocaleString(ar ? "ar-EG" : "en-US")}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {al.meta ? JSON.stringify(al.meta) : "-"}
-                          </TableCell>
-                        </TableRow>
-                        );
-                      })}
-                      {alerts.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                            {ar ? "لا توجد تنبيهات" : "No alerts"}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-3 max-h-[600px] overflow-auto">
+                  {alerts.filter((al) => {
+                    if (!searchQuery) return true;
+                    const q = searchQuery.toLowerCase();
+                    const emp = employeeMap[al.user_id];
+                    return (
+                      emp?.name_ar?.toLowerCase().includes(q) ||
+                      emp?.name_en?.toLowerCase().includes(q) ||
+                      emp?.employee_code?.toLowerCase().includes(q) ||
+                      al.device_id?.toLowerCase().includes(q) ||
+                      al.reason?.toLowerCase().includes(q)
+                    );
+                  }).map((al) => {
+                    const emp = employeeMap[al.user_id];
+                    return (
+                      <div key={al.id} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold truncate">{ar ? emp?.name_ar : emp?.name_en || al.user_id?.substring(0, 8)}</p>
+                            {emp?.employee_code && <p className="text-xs text-muted-foreground">{emp.employee_code}</p>}
+                          </div>
+                          {alertReasonLabel(al.reason)}
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          <span className="font-mono">{ar ? "الجهاز:" : "Device:"} {al.device_id?.substring(0, 12)}...</span>
+                          <span>{new Date(al.triggered_at).toLocaleString(ar ? "ar-EG" : "en-US")}</span>
+                        </div>
+                        {al.meta && (
+                          <p className="text-xs text-muted-foreground break-all">{JSON.stringify(al.meta)}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {alerts.length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">
+                      {ar ? "لا توجد تنبيهات" : "No alerts"}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
