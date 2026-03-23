@@ -499,78 +499,65 @@ const AttendanceAdmin = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-auto max-h-[600px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{ar ? "كود الموظف" : "Employee Code"}</TableHead>
-                        <TableHead>{ar ? "اسم الموظف" : "Employee Name"}</TableHead>
-                        <TableHead>{ar ? "معرف الجهاز" : "Device ID"}</TableHead>
-                        <TableHead>{ar ? "تاريخ الربط" : "Bound At"}</TableHead>
-                        <TableHead>{ar ? "إجراء" : "Action"}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {devices.filter((dev) => {
-                        if (!searchQuery) return true;
-                        const q = searchQuery.toLowerCase();
-                        const emp = employeeMap[dev.user_id];
-                        return (
-                          emp?.name_ar?.toLowerCase().includes(q) ||
-                          emp?.name_en?.toLowerCase().includes(q) ||
-                          emp?.employee_code?.toLowerCase().includes(q) ||
-                          dev.device_id?.toLowerCase().includes(q)
-                        );
-                      }).map((dev) => {
-                        const emp = employeeMap[dev.user_id];
-                        return (
-                          <TableRow key={`${dev.user_id}-${dev.device_id}`}>
-                            <TableCell className="font-mono text-sm">{emp?.employee_code || "-"}</TableCell>
-                            <TableCell>{ar ? emp?.name_ar : emp?.name_en || dev.user_id?.substring(0, 8)}</TableCell>
-                            <TableCell className="text-xs font-mono">{dev.device_id?.substring(0, 20)}...</TableCell>
-                            <TableCell className="text-sm">
-                              {new Date(dev.bound_at).toLocaleString(ar ? "ar-EG" : "en-US")}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={async () => {
-                                  const confirmed = window.confirm(
-                                    ar
-                                      ? `هل تريد مسح جهاز ${emp?.name_ar || "هذا الموظف"}؟ سيتم تسجيل الجهاز الجديد تلقائياً عند أول تسجيل دخول.`
-                                      : `Clear device for ${emp?.name_en || "this employee"}? A new device will be registered on next check-in.`
-                                  );
-                                  if (!confirmed) return;
-                                  const { error } = await supabase
-                                    .from("user_devices")
-                                    .delete()
-                                    .eq("user_id", dev.user_id)
-                                    .eq("device_id", dev.device_id);
-                                  if (error) {
-                                    toast.error(error.message);
-                                  } else {
-                                    toast.success(ar ? "تم مسح الجهاز بنجاح" : "Device cleared successfully");
-                                    fetchAll();
-                                  }
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 me-1" />
-                                {ar ? "مسح الجهاز" : "Clear Device"}
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                      {devices.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                            {ar ? "لا توجد أجهزة مسجلة" : "No registered devices"}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-3 max-h-[600px] overflow-auto">
+                  {devices.filter((dev) => {
+                    if (!searchQuery) return true;
+                    const q = searchQuery.toLowerCase();
+                    const emp = employeeMap[dev.user_id];
+                    return (
+                      emp?.name_ar?.toLowerCase().includes(q) ||
+                      emp?.name_en?.toLowerCase().includes(q) ||
+                      emp?.employee_code?.toLowerCase().includes(q) ||
+                      dev.device_id?.toLowerCase().includes(q)
+                    );
+                  }).map((dev) => {
+                    const emp = employeeMap[dev.user_id];
+                    return (
+                      <div key={`${dev.user_id}-${dev.device_id}`} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="min-w-0">
+                            <p className="font-semibold truncate">{ar ? emp?.name_ar : emp?.name_en || dev.user_id?.substring(0, 8)}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{emp?.employee_code || "-"}</p>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async () => {
+                              const confirmed = window.confirm(
+                                ar
+                                  ? `هل تريد مسح جهاز ${emp?.name_ar || "هذا الموظف"}؟ سيتم تسجيل الجهاز الجديد تلقائياً عند أول تسجيل دخول.`
+                                  : `Clear device for ${emp?.name_en || "this employee"}? A new device will be registered on next check-in.`
+                              );
+                              if (!confirmed) return;
+                              const { error } = await supabase
+                                .from("user_devices")
+                                .delete()
+                                .eq("user_id", dev.user_id)
+                                .eq("device_id", dev.device_id);
+                              if (error) {
+                                toast.error(error.message);
+                              } else {
+                                toast.success(ar ? "تم مسح الجهاز بنجاح" : "Device cleared successfully");
+                                fetchAll();
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 me-1" />
+                            {ar ? "مسح" : "Clear"}
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          <span className="font-mono">{ar ? "الجهاز:" : "Device:"} {dev.device_id?.substring(0, 16)}...</span>
+                          <span>{ar ? "الربط:" : "Bound:"} {new Date(dev.bound_at).toLocaleDateString(ar ? "ar-EG" : "en-US")}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {devices.length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">
+                      {ar ? "لا توجد أجهزة مسجلة" : "No registered devices"}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
