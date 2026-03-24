@@ -219,7 +219,7 @@ export const JobOpenings = () => {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">{isRTL ? 'لا توجد وظائف شاغرة' : 'No job openings'}</TableCell></TableRow>
-              ) : filtered.map(job => (
+              ) : paginatedJobs.map(job => (
                 <TableRow key={job.id}>
                   <TableCell className="font-medium">{isRTL ? job.titleAr : job.titleEn || job.titleAr}</TableCell>
                   <TableCell>{job.department}</TableCell>
