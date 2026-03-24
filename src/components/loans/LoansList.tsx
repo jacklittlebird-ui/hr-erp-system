@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useLoanData, Loan } from '@/contexts/LoanDataContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
@@ -111,6 +113,8 @@ export const LoansList = () => {
     const matchesStartDate = startDateFilter === 'all' || loan.startDate?.startsWith(startDateFilter);
     return matchesSearch && matchesStatus && matchesStation && matchesStartDate;
   });
+
+  const { paginatedItems: paginatedLoans, currentPage: loanPage, totalPages: loanTotalPages, totalItems: loanTotalItems, startIndex: loanStart, endIndex: loanEnd, setCurrentPage: setLoanPage } = usePagination(filteredLoans);
 
   const stats = {
     totalLoans: loans.length,
@@ -307,7 +311,7 @@ export const LoansList = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredLoans.map(loan => {
+            {paginatedLoans.map(loan => {
               const progressPercent = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
               return (
                 <Card key={loan.id} className="relative overflow-hidden border">
@@ -372,6 +376,7 @@ export const LoansList = () => {
             })}
           </div>
           {filteredLoans.length === 0 && <div className="text-center py-12 text-muted-foreground">{isRTL ? 'لا توجد قروض' : 'No loans found'}</div>}
+          <PaginationControls currentPage={loanPage} totalPages={loanTotalPages} totalItems={loanTotalItems} startIndex={loanStart} endIndex={loanEnd} onPageChange={setLoanPage} />
         </CardContent>
       </Card>
 

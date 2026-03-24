@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -92,9 +94,10 @@ export const ViolationsManagement = ({ searchQuery, selectedDepartment, selected
       v.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       v.employeeNameAr.includes(searchQuery);
     const matchStatus = filterStatus === 'all' || v.status === filterStatus;
-    // dept/station filtering would need empDeptMap but we have it inline
     return matchSearch && matchStatus;
   });
+
+  const { paginatedItems, currentPage, totalPages, totalItems, startIndex, endIndex, setCurrentPage } = usePagination(filtered);
 
   const pendingCount = violations.filter(v => v.status === 'pending').length;
 
@@ -217,7 +220,15 @@ export const ViolationsManagement = ({ searchQuery, selectedDepartment, selected
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map(v => {
+                  filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      <Ban className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      {ar ? 'لا توجد مخالفات' : 'No violations'}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedItems.map(v => {
                     const typeLabel = violationTypes[v.type];
                     return (
                       <TableRow key={v.id}>
@@ -249,10 +260,12 @@ export const ViolationsManagement = ({ searchQuery, selectedDepartment, selected
                       </TableRow>
                     );
                   })
+                )
                 )}
               </TableBody>
             </Table>
           </div>
+          <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} startIndex={startIndex} endIndex={endIndex} onPageChange={setCurrentPage} />
         </CardContent>
       </Card>
 

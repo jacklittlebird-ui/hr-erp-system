@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRecruitmentData, Candidate } from '@/contexts/RecruitmentDataContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,6 +35,8 @@ export const Candidates = () => {
     const matchStatus = statusFilter === 'all' || c.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  const { paginatedItems: paginatedCandidates, currentPage: candPage, totalPages: candTotalPages, totalItems: candTotalItems, startIndex: candStart, endIndex: candEnd, setCurrentPage: setCandPage } = usePagination(filtered);
 
   const handleAdd = () => {
     if (!form.nameAr || !form.appliedPosition) {
@@ -182,7 +186,7 @@ export const Candidates = () => {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">{isRTL ? 'لا يوجد مرشحون' : 'No candidates'}</TableCell></TableRow>
-              ) : filtered.map(c => (
+              ) : paginatedCandidates.map(c => (
                 <TableRow key={c.id}>
                   <TableCell>
                     <div>
@@ -211,6 +215,7 @@ export const Candidates = () => {
               ))}
             </TableBody>
           </Table>
+          <PaginationControls currentPage={candPage} totalPages={candTotalPages} totalItems={candTotalItems} startIndex={candStart} endIndex={candEnd} onPageChange={setCandPage} />
         </CardContent>
       </Card>
 

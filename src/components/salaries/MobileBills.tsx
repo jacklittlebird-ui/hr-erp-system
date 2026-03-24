@@ -1,4 +1,6 @@
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import * as XLSX from 'xlsx';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -294,6 +296,8 @@ export const MobileBills = () => {
     return matchesSearch && matchesStatus && matchesMonth;
   });
 
+  const { paginatedItems: paginatedBills, currentPage: billPage, totalPages: billTotalPages, totalItems: billTotalItems, startIndex: billStart, endIndex: billEnd, setCurrentPage: setBillPage } = usePagination(filteredEntries);
+
   const stats = useMemo(() => ({
     total: entries.length,
     pending: entries.filter(e => e.status === 'pending').length,
@@ -474,7 +478,7 @@ export const MobileBills = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEntries.map(entry => (
+              {paginatedBills.map(entry => (
                 <TableRow key={entry.id}>
                   <TableCell className={cn("font-mono text-xs", isRTL && "text-right")}>{entry.employeeCode}</TableCell>
                   <TableCell className={cn("font-medium", isRTL && "text-right")}>{entry.employeeName}</TableCell>
@@ -509,6 +513,7 @@ export const MobileBills = () => {
           {filteredEntries.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">{loading ? (isRTL ? 'جاري التحميل...' : 'Loading...') : (isRTL ? 'لا توجد فواتير' : 'No bills found')}</div>
           )}
+          <PaginationControls currentPage={billPage} totalPages={billTotalPages} totalItems={billTotalItems} startIndex={billStart} endIndex={billEnd} onPageChange={setBillPage} />
         </CardContent>
       </Card>
 

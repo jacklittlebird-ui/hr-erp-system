@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useLoanData, Advance } from '@/contexts/LoanDataContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
@@ -73,6 +75,8 @@ export const AdvancesList = () => {
     const matchesMonth = monthFilter === 'all' || a.deductionMonth === monthFilter;
     return matchesSearch && matchesStatus && matchesStation && matchesMonth;
   });
+
+  const { paginatedItems: paginatedAdvances, currentPage: advPage, totalPages: advTotalPages, totalItems: advTotalItems, startIndex: advStart, endIndex: advEnd, setCurrentPage: setAdvPage } = usePagination(filteredAdvances);
 
   const stats = {
     total: advances.length,
@@ -217,7 +221,7 @@ export const AdvancesList = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAdvances.map(adv => (
+            {paginatedAdvances.map(adv => (
               <Card key={adv.id} className="relative overflow-hidden border">
                 <CardContent className="p-5 space-y-3">
                   <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -276,6 +280,7 @@ export const AdvancesList = () => {
             ))}
           </div>
           {filteredAdvances.length === 0 && <div className="text-center py-12 text-muted-foreground">{isRTL ? 'لا توجد سلف' : 'No advances found'}</div>}
+          <PaginationControls currentPage={advPage} totalPages={advTotalPages} totalItems={advTotalItems} startIndex={advStart} endIndex={advEnd} onPageChange={setAdvPage} />
         </CardContent>
       </Card>
 

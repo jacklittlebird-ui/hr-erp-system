@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +35,7 @@ export const LeaveRequestsList = ({ requests, onDelete, onEdit }: LeaveRequestsL
   const { t, isRTL, language } = useLanguage();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editData, setEditData] = useState<LeaveEditData | null>(null);
+  const { paginatedItems, currentPage, totalPages, totalItems, startIndex, endIndex, setCurrentPage } = usePagination(requests);
 
   const getStatusBadge = (status: LeaveRequest['status']) => {
     switch (status) {
@@ -99,14 +102,14 @@ export const LeaveRequestsList = ({ requests, onDelete, onEdit }: LeaveRequestsL
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {requests.length === 0 ? (
+                {paginatedItems.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={(onDelete || onEdit) ? 8 : 7} className="text-center text-muted-foreground py-8">
                       {t('leaves.list.noRequests')}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  requests.map((request) => (
+                  paginatedItems.map((request) => (
                     <TableRow key={request.id}>
                       <TableCell className="font-medium">{language === 'ar' ? request.employeeNameAr : request.employeeName}</TableCell>
                       <TableCell>{request.department}</TableCell>
@@ -137,6 +140,7 @@ export const LeaveRequestsList = ({ requests, onDelete, onEdit }: LeaveRequestsL
               </TableBody>
             </Table>
           </div>
+          <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} startIndex={startIndex} endIndex={endIndex} onPageChange={setCurrentPage} />
         </CardContent>
       </Card>
 

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +19,7 @@ interface OvertimeRequestsListProps {
 export const OvertimeRequestsList = ({ requests, onDelete }: OvertimeRequestsListProps) => {
   const { t, isRTL, language } = useLanguage();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { paginatedItems, currentPage, totalPages, totalItems, startIndex, endIndex, setCurrentPage } = usePagination(requests);
 
   const getStatusBadge = (status: OvertimeRequest['status']) => {
     switch (status) {
@@ -63,14 +66,14 @@ export const OvertimeRequestsList = ({ requests, onDelete }: OvertimeRequestsLis
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {requests.length === 0 ? (
+                {paginatedItems.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={onDelete ? 8 : 7} className="text-center text-muted-foreground py-8">
                       {t('leaves.overtime.noRequests')}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  requests.map((request) => (
+                  paginatedItems.map((request) => (
                     <TableRow key={request.id}>
                       <TableCell className="font-medium">{language === 'ar' ? request.employeeNameAr : request.employeeName}</TableCell>
                       <TableCell>{request.department}</TableCell>
@@ -92,6 +95,7 @@ export const OvertimeRequestsList = ({ requests, onDelete }: OvertimeRequestsLis
               </TableBody>
             </Table>
           </div>
+          <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} startIndex={startIndex} endIndex={endIndex} onPageChange={setCurrentPage} />
         </CardContent>
       </Card>
 

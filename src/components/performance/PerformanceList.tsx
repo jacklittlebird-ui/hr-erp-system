@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePerformanceData, CriteriaItem, PerformanceReview, defaultCriteria, calculateScore } from '@/contexts/PerformanceDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,6 +79,8 @@ export const PerformanceList = () => {
     const matchesDepartment = departmentFilter === 'all' || review.department === departmentFilter;
     return matchesSearch && matchesStatus && matchesQuarter && matchesYear && matchesStation && matchesDepartment;
   });
+
+  const { paginatedItems: paginatedReviews, currentPage: revPage, totalPages: revTotalPages, totalItems: revTotalItems, startIndex: revStart, endIndex: revEnd, setCurrentPage: setRevPage } = usePagination(filteredReviews);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -226,7 +230,7 @@ export const PerformanceList = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredReviews.map((review) => (
+                {paginatedReviews.map((review) => (
                   <TableRow key={review.id} className="hover:bg-muted/30">
                     <TableCell className="font-medium">{review.employeeName}</TableCell>
                     <TableCell>{review.department}</TableCell>
@@ -259,6 +263,7 @@ export const PerformanceList = () => {
               </TableBody>
             </Table>
           </div>
+          <PaginationControls currentPage={revPage} totalPages={revTotalPages} totalItems={revTotalItems} startIndex={revStart} endIndex={revEnd} onPageChange={setRevPage} />
 
           {filteredReviews.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">{t('performance.list.noResults')}</div>
