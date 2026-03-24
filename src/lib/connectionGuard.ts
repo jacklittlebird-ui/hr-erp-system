@@ -3,10 +3,13 @@
  * to prevent connection-pool exhaustion under load.
  */
 
-const MAX_CONCURRENT_LOGINS = 25;
+const MAX_CONCURRENT_LOGINS = 50;
 const LOGIN_QUEUE_TIMEOUT_MS = 15_000;
 
 let activeLogins = 0;
+let totalLogins = 0;
+let totalErrors = 0;
+let totalLoginTimeMs = 0;
 const waitQueue: Array<{ resolve: () => void; timer: ReturnType<typeof setTimeout> }> = [];
 
 function releaseSlot() {
