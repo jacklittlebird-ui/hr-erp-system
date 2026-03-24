@@ -114,7 +114,7 @@ export const EmployeeTable = ({ employees, onDelete, currentPage = 1, pageSize =
           </TableRow>
         </TableHeader>
         <TableBody>
-          {employees.map((employee) => (
+          {paginatedEmployees.map((employee) => (
             <TableRow key={employee.id} className="hover:bg-muted/50">
               <TableCell>
                 <Avatar className="w-10 h-10">
