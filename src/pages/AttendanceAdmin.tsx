@@ -677,6 +677,5 @@ const AttendanceAdmin = () => {
     </DashboardLayout>
   );
 };
-};
 
 export default AttendanceAdmin;
