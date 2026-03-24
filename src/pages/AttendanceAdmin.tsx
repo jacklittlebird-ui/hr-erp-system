@@ -581,8 +581,8 @@ const AttendanceAdmin = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3 max-h-[600px] overflow-auto">
-                  {devices.filter((dev) => {
+                {(() => {
+                  const filteredDevices = devices.filter((dev) => {
                     if (!searchQuery) return true;
                     const q = searchQuery.toLowerCase();
                     const emp = employeeMap[dev.user_id];
@@ -592,61 +592,86 @@ const AttendanceAdmin = () => {
                       emp?.employee_code?.toLowerCase().includes(q) ||
                       dev.device_id?.toLowerCase().includes(q)
                     );
-                  }).map((dev) => {
-                    const emp = employeeMap[dev.user_id];
-                    return (
-                      <div key={`${dev.user_id}-${dev.device_id}`} className="border rounded-lg p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="min-w-0">
-                            <p className="font-semibold truncate">{ar ? emp?.name_ar : emp?.name_en || dev.user_id?.substring(0, 8)}</p>
-                            <p className="text-xs text-muted-foreground font-mono">{emp?.employee_code || "-"}</p>
-                          </div>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={async () => {
-                              const confirmed = window.confirm(
-                                ar
-                                  ? `هل تريد مسح جهاز ${emp?.name_ar || "هذا الموظف"}؟ سيتم تسجيل الجهاز الجديد تلقائياً عند أول تسجيل دخول.`
-                                  : `Clear device for ${emp?.name_en || "this employee"}? A new device will be registered on next check-in.`
-                              );
-                              if (!confirmed) return;
-                              const { error } = await supabase
-                                .from("user_devices")
-                                .delete()
-                                .eq("user_id", dev.user_id)
-                                .eq("device_id", dev.device_id);
-                              if (error) {
-                                toast.error(error.message);
-                              } else {
-                                toast.success(ar ? "تم مسح الجهاز بنجاح" : "Device cleared successfully");
-                                fetchAll();
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 me-1" />
-                            {ar ? "مسح" : "Clear"}
-                          </Button>
-                        </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                          <span className="font-mono">{ar ? "الجهاز:" : "Device:"} {dev.device_id?.substring(0, 16)}...</span>
-                          <span>{ar ? "الربط:" : "Bound:"} {new Date(dev.bound_at).toLocaleDateString(ar ? "ar-EG" : "en-US")}</span>
-                        </div>
+                  });
+                  const totalPages = Math.ceil(filteredDevices.length / ALERTS_PER_PAGE);
+                  const paged = filteredDevices.slice(devicesPage * ALERTS_PER_PAGE, (devicesPage + 1) * ALERTS_PER_PAGE);
+
+                  return (
+                    <>
+                      <div className="space-y-3">
+                        {paged.map((dev) => {
+                          const emp = employeeMap[dev.user_id];
+                          return (
+                            <div key={`${dev.user_id}-${dev.device_id}`} className="border rounded-lg p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="min-w-0">
+                                  <p className="font-semibold truncate">{ar ? emp?.name_ar : emp?.name_en || dev.user_id?.substring(0, 8)}</p>
+                                  <p className="text-xs text-muted-foreground font-mono">{emp?.employee_code || "-"}</p>
+                                </div>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={async () => {
+                                    const confirmed = window.confirm(
+                                      ar
+                                        ? `هل تريد مسح جهاز ${emp?.name_ar || "هذا الموظف"}؟ سيتم تسجيل الجهاز الجديد تلقائياً عند أول تسجيل دخول.`
+                                        : `Clear device for ${emp?.name_en || "this employee"}? A new device will be registered on next check-in.`
+                                    );
+                                    if (!confirmed) return;
+                                    const { error } = await supabase
+                                      .from("user_devices")
+                                      .delete()
+                                      .eq("user_id", dev.user_id)
+                                      .eq("device_id", dev.device_id);
+                                    if (error) {
+                                      toast.error(error.message);
+                                    } else {
+                                      toast.success(ar ? "تم مسح الجهاز بنجاح" : "Device cleared successfully");
+                                      fetchAll();
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 me-1" />
+                                  {ar ? "مسح" : "Clear"}
+                                </Button>
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                <span className="font-mono">{ar ? "الجهاز:" : "Device:"} {dev.device_id?.substring(0, 16)}...</span>
+                                <span>{ar ? "الربط:" : "Bound:"} {new Date(dev.bound_at).toLocaleDateString(ar ? "ar-EG" : "en-US")}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {filteredDevices.length === 0 && (
+                          <p className="text-center text-muted-foreground py-8">
+                            {ar ? "لا توجد أجهزة مسجلة" : "No registered devices"}
+                          </p>
+                        )}
                       </div>
-                    );
-                  })}
-                  {devices.length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">
-                      {ar ? "لا توجد أجهزة مسجلة" : "No registered devices"}
-                    </p>
-                  )}
-                </div>
+
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t">
+                          <span className="text-sm text-muted-foreground">
+                            {ar
+                              ? `عرض ${devicesPage * ALERTS_PER_PAGE + 1}–${Math.min((devicesPage + 1) * ALERTS_PER_PAGE, filteredDevices.length)} من ${filteredDevices.length}`
+                              : `Showing ${devicesPage * ALERTS_PER_PAGE + 1}–${Math.min((devicesPage + 1) * ALERTS_PER_PAGE, filteredDevices.length)} of ${filteredDevices.length}`}
+                          </span>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" disabled={devicesPage === 0} onClick={() => setDevicesPage((p) => p - 1)}>
+                              {ar ? "السابق" : "Previous"}
+                            </Button>
+                            <Button variant="outline" size="sm" disabled={devicesPage >= totalPages - 1} onClick={() => setDevicesPage((p) => p + 1)}>
+                              {ar ? "التالي" : "Next"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
-      </div>
-    </DashboardLayout>
   );
 };
 
