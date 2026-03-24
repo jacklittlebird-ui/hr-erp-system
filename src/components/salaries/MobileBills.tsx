@@ -478,7 +478,7 @@ export const MobileBills = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEntries.map(entry => (
+              {paginatedBills.map(entry => (
                 <TableRow key={entry.id}>
                   <TableCell className={cn("font-mono text-xs", isRTL && "text-right")}>{entry.employeeCode}</TableCell>
                   <TableCell className={cn("font-medium", isRTL && "text-right")}>{entry.employeeName}</TableCell>
