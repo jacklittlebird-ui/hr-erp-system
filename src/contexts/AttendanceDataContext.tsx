@@ -2,6 +2,7 @@ import React, { createContext, useContext, useCallback, useMemo, useState, useEf
 import { supabase } from '@/integrations/supabase/client';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { withTimeout } from '@/lib/asyncControl';
 
 export interface AttendanceEntry {
   id: string;
@@ -66,11 +67,11 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
 
   const fetchRecords = useCallback(async () => {
     if (!isAdminRole) { setRecords([]); return; }
-    const { data } = await supabase
+    const { data } = await withTimeout(supabase
       .from('attendance_records')
       .select('*, employees(name_en, name_ar, department_id, departments(name_ar))')
       .order('date', { ascending: false })
-      .limit(1000);
+      .limit(200), 10000, 'attendance_records');
     if (data) {
       setRecords(data.map(r => {
         const ci = formatTime(r.check_in);
