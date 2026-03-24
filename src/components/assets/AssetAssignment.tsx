@@ -130,6 +130,8 @@ export const AssetAssignment = () => {
       a.employeeCode.toLowerCase().includes(q) || a.stationName.includes(search);
   });
 
+  const { paginatedItems: paginatedAssigned, currentPage: aaPage, totalPages: aaTotalPages, totalItems: aaTotalItems, startIndex: aaStart, endIndex: aaEnd, setCurrentPage: setAaPage } = usePagination(filtered, 20);
+
   const handleAssign = async () => {
     if (!selectedAsset || !selectedEmployee) {
       toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'اختر الأصل والموظف' : 'Select asset and employee', variant: 'destructive' });
