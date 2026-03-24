@@ -128,8 +128,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    const TOKEN_TTL = 1800; // 30 minutes
     const nowSec = Math.floor(Date.now() / 1000);
-    if (Math.abs(nowSec - tsSec) > 8) {
+    if (Math.abs(nowSec - tsSec) > TOKEN_TTL + 30) {
       return new Response(JSON.stringify({ error: "Token expired" }), {
         status: 400,
         headers: { ...corsHeaders, "content-type": "application/json" },

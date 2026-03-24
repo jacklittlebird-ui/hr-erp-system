@@ -126,14 +126,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    const TOKEN_TTL = 1800; // 30 minutes
     const now = Math.floor(Date.now() / 1000);
-    const ts5 = now - (now % 5);
-    const payload = `${ts5}:${location_id}`;
+    const tsBucket = now - (now % TOKEN_TTL);
+    const payload = `${tsBucket}:${location_id}`;
     const signature = await hmacSign(payload);
     const token = `${btoa(payload)}.${signature}`;
 
     return new Response(
-      JSON.stringify({ token, expiresAt: (ts5 + 5) * 1000 }),
+      JSON.stringify({ token, expiresAt: (tsBucket + TOKEN_TTL) * 1000 }),
       { headers: { ...corsHeaders, "content-type": "application/json" } }
     );
   } catch (e) {
