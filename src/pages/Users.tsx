@@ -566,6 +566,7 @@ const Users = () => {
                     ))}
                   </TableBody>
                 </Table>
+                <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} startIndex={startIndex} endIndex={endIndex} onPageChange={setCurrentPage} />
               </CardContent>
             </Card>
           </TabsContent>

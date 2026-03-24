@@ -385,7 +385,7 @@ const Uniforms = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      uniforms.map(u => {
+                      paginatedUniforms.map(u => {
                         const emp = employees.find(e => e.id === u.employeeId);
                         const depPct = getDepreciationPercent(u.deliveryDate);
                         const curVal = getCurrentValue(u.totalPrice, u.deliveryDate);

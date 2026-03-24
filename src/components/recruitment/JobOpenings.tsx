@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRecruitmentData, JobOpening } from '@/contexts/RecruitmentDataContext';
 import { supabase } from '@/integrations/supabase/client';
