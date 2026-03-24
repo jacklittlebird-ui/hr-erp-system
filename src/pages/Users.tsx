@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -400,6 +402,8 @@ const Users = () => {
     return a.role.localeCompare(b.role) || a.full_name.localeCompare(b.full_name);
   });
 
+  const { paginatedItems: paginatedUsers, currentPage, totalPages, totalItems, startIndex, endIndex, setCurrentPage } = usePagination(filtered, 20);
+
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin': return <Badge className="bg-primary/10 text-primary border-primary/30">{isAr ? 'مدير النظام' : 'Admin'}</Badge>;
@@ -509,7 +513,7 @@ const Users = () => {
                       </TableCell></TableRow>
                     ) : filtered.length === 0 ? (
                       <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{isAr ? 'لا توجد نتائج' : 'No results'}</TableCell></TableRow>
-                    ) : filtered.map(user => (
+                    ) : paginatedUsers.map(user => (
                       <TableRow key={user.user_id}>
                         <TableCell>
                           <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
@@ -563,6 +567,7 @@ const Users = () => {
                     ))}
                   </TableBody>
                 </Table>
+                <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} startIndex={startIndex} endIndex={endIndex} onPageChange={setCurrentPage} />
               </CardContent>
             </Card>
           </TabsContent>

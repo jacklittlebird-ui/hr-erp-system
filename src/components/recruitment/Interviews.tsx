@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRecruitmentData, Interview } from '@/contexts/RecruitmentDataContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,6 +47,8 @@ export const Interviews = () => {
   ];
 
   const filtered = interviews.filter(i => statusFilter === 'all' || i.status === statusFilter);
+
+  const { paginatedItems: paginatedInterviews, currentPage: intPage, totalPages: intTotalPages, totalItems: intTotalItems, startIndex: intStart, endIndex: intEnd, setCurrentPage: setIntPage } = usePagination(filtered, 20);
 
   const handleAdd = () => {
     if (!form.candidateId || !form.interviewDate) {
@@ -217,7 +221,7 @@ export const Interviews = () => {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">{isRTL ? 'لا توجد مقابلات' : 'No interviews'}</TableCell></TableRow>
-              ) : filtered.map(interview => (
+              ) : paginatedInterviews.map(interview => (
                 <TableRow key={interview.id}>
                   <TableCell className="font-medium">{interview.candidateName}</TableCell>
                   <TableCell>{interview.position}</TableCell>
@@ -245,6 +249,7 @@ export const Interviews = () => {
               ))}
             </TableBody>
           </Table>
+          <PaginationControls currentPage={intPage} totalPages={intTotalPages} totalItems={intTotalItems} startIndex={intStart} endIndex={intEnd} onPageChange={setIntPage} />
         </CardContent>
       </Card>
 

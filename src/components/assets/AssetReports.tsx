@@ -1,4 +1,6 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -88,7 +90,8 @@ export const AssetReports = () => {
     });
   }, [assets, employeeFilter, locationFilter, employees, stations]);
 
-  // Unique assigned employees (by UUID)
+  const { paginatedItems: paginatedReportAssets, currentPage: repPage, totalPages: repTotalPages, totalItems: repTotalItems, startIndex: repStart, endIndex: repEnd, setCurrentPage: setRepPage } = usePagination(filteredAssets, 20);
+
   const assignedEmployees = useMemo(() => {
     const ids = new Set(assets.filter(a => a.assignedTo).map(a => a.assignedTo!));
     return Array.from(ids).map(id => ({
@@ -500,6 +503,7 @@ export const AssetReports = () => {
         <CardContent>
           <div ref={reportRef} className="overflow-x-auto">
             {filteredAssets.length > 0 ? (
+              <>
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -514,7 +518,7 @@ export const AssetReports = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAssets.map(a => (
+                  {paginatedReportAssets.map(a => (
                     <TableRow key={a.id}>
                       <TableCell className="font-mono text-sm">{a.assetCode}</TableCell>
                       <TableCell className="font-medium">{ar ? a.nameAr : a.nameEn}</TableCell>
@@ -539,6 +543,8 @@ export const AssetReports = () => {
                   </TableRow>
                 </TableBody>
               </Table>
+              <PaginationControls currentPage={repPage} totalPages={repTotalPages} totalItems={repTotalItems} startIndex={repStart} endIndex={repEnd} onPageChange={setRepPage} />
+              </>
             ) : (
               <div className="text-center py-8 text-muted-foreground">{ar ? 'لا توجد أصول مسجلة' : 'No assets registered'}</div>
             )}

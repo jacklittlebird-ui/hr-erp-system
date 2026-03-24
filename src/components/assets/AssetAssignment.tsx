@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -127,6 +129,8 @@ export const AssetAssignment = () => {
       a.assetCode.toLowerCase().includes(q) || a.employeeName.includes(search) ||
       a.employeeCode.toLowerCase().includes(q) || a.stationName.includes(search);
   });
+
+  const { paginatedItems: paginatedAssigned, currentPage: aaPage, totalPages: aaTotalPages, totalItems: aaTotalItems, startIndex: aaStart, endIndex: aaEnd, setCurrentPage: setAaPage } = usePagination(filtered, 20);
 
   const handleAssign = async () => {
     if (!selectedAsset || !selectedEmployee) {
@@ -291,7 +295,7 @@ export const AssetAssignment = () => {
                     {ar ? 'لا توجد أصول معيّنة' : 'No assigned assets'}
                   </TableCell>
                 </TableRow>
-              ) : filtered.map(a => (
+              ) : paginatedAssigned.map(a => (
                 <TableRow key={a.id}>
                   <TableCell className="font-mono text-sm">{a.assetCode}</TableCell>
                   <TableCell className="font-medium">{ar ? a.nameAr : a.nameEn}</TableCell>
@@ -309,6 +313,7 @@ export const AssetAssignment = () => {
               ))}
             </TableBody>
           </Table>
+          <PaginationControls currentPage={aaPage} totalPages={aaTotalPages} totalItems={aaTotalItems} startIndex={aaStart} endIndex={aaEnd} onPageChange={setAaPage} />
         </CardContent>
       </Card>
     </div>

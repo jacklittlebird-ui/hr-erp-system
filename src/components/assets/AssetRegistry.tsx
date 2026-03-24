@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -98,6 +100,8 @@ export const AssetRegistry = () => {
     const matchCategory = categoryFilter === 'all' || a.category === categoryFilter;
     return matchSearch && matchStatus && matchCategory;
   });
+
+  const { paginatedItems: paginatedAssets, currentPage: arPage, totalPages: arTotalPages, totalItems: arTotalItems, startIndex: arStart, endIndex: arEnd, setCurrentPage: setArPage } = usePagination(filtered, 20);
 
   const handleSave = async () => {
     if (!form.nameAr || !form.brand) {
@@ -276,7 +280,7 @@ export const AssetRegistry = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(asset => (
+              {paginatedAssets.map(asset => (
                 <TableRow key={asset.id}>
                   <TableCell className="font-mono text-sm">{asset.assetCode}</TableCell>
                   <TableCell>
@@ -307,10 +311,10 @@ export const AssetRegistry = () => {
               ))}
             </TableBody>
           </Table>
+          <PaginationControls currentPage={arPage} totalPages={arTotalPages} totalItems={arTotalItems} startIndex={arStart} endIndex={arEnd} onPageChange={setArPage} />
         </CardContent>
       </Card>
 
-      {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{t('assets.assetDetails')}</DialogTitle></DialogHeader>

@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRecruitmentData, JobOpening } from '@/contexts/RecruitmentDataContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,6 +48,8 @@ export const JobOpenings = () => {
     const matchStatus = statusFilter === 'all' || o.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  const { paginatedItems: paginatedJobs, currentPage: jobPage, totalPages: jobTotalPages, totalItems: jobTotalItems, startIndex: jobStart, endIndex: jobEnd, setCurrentPage: setJobPage } = usePagination(filtered, 20);
 
   const resetForm = () => setForm({ titleAr: '', titleEn: '', department: '', location: '', type: 'full-time', vacancies: 1, closingDate: '', description: '' });
 
@@ -215,7 +219,7 @@ export const JobOpenings = () => {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">{isRTL ? 'لا توجد وظائف شاغرة' : 'No job openings'}</TableCell></TableRow>
-              ) : filtered.map(job => (
+              ) : paginatedJobs.map(job => (
                 <TableRow key={job.id}>
                   <TableCell className="font-medium">{isRTL ? job.titleAr : job.titleEn || job.titleAr}</TableCell>
                   <TableCell>{job.department}</TableCell>
@@ -236,6 +240,7 @@ export const JobOpenings = () => {
               ))}
             </TableBody>
           </Table>
+          <PaginationControls currentPage={jobPage} totalPages={jobTotalPages} totalItems={jobTotalItems} startIndex={jobStart} endIndex={jobEnd} onPageChange={setJobPage} />
         </CardContent>
       </Card>
 

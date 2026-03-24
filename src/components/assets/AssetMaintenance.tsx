@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,6 +96,8 @@ export const AssetMaintenance = () => {
     const matchStatus = statusFilter === 'all' || r.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  const { paginatedItems: paginatedMaint, currentPage: amPage, totalPages: amTotalPages, totalItems: amTotalItems, startIndex: amStart, endIndex: amEnd, setCurrentPage: setAmPage } = usePagination(filtered, 20);
 
   const handleAdd = async () => {
     if (!form.assetId || !form.description) {
@@ -280,7 +284,7 @@ export const AssetMaintenance = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map(record => (
+                {paginatedMaint.map(record => (
                   <TableRow key={record.id}>
                     <TableCell className="font-mono text-sm">{record.assetCode}</TableCell>
                     <TableCell className="font-medium">{record.assetName}</TableCell>
@@ -307,6 +311,7 @@ export const AssetMaintenance = () => {
               </TableBody>
             </Table>
           )}
+          <PaginationControls currentPage={amPage} totalPages={amTotalPages} totalItems={amTotalItems} startIndex={amStart} endIndex={amEnd} onPageChange={setAmPage} />
         </CardContent>
       </Card>
     </div>

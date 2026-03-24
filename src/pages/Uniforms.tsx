@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { useUniformData, UNIFORM_TYPES, getDepreciationPercent, getCurrentValue } from '@/contexts/UniformDataContext';
@@ -42,6 +44,7 @@ const Uniforms = () => {
   const [editForm, setEditForm] = useState({ typeAr: '', typeEn: '', quantity: 1, unitPrice: 0, deliveryDate: '', notes: '' });
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'active'), [employees]);
+  const { paginatedItems: paginatedUniforms, currentPage: uniPage, totalPages: uniTotalPages, totalItems: uniTotalItems, startIndex: uniStart, endIndex: uniEnd, setCurrentPage: setUniPage } = usePagination(uniforms, 20);
   const selectedEmployee = activeEmployees.find(e => e.id === employeeUUID);
 
   const addRow = () => setItems(prev => [...prev, { typeIndex: '', quantity: 1, unitPrice: 0 }]);
@@ -383,7 +386,7 @@ const Uniforms = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      uniforms.map(u => {
+                      paginatedUniforms.map(u => {
                         const emp = employees.find(e => e.id === u.employeeId);
                         const depPct = getDepreciationPercent(u.deliveryDate);
                         const curVal = getCurrentValue(u.totalPrice, u.deliveryDate);
@@ -419,6 +422,7 @@ const Uniforms = () => {
                     )}
                   </TableBody>
                 </Table>
+                <PaginationControls currentPage={uniPage} totalPages={uniTotalPages} totalItems={uniTotalItems} startIndex={uniStart} endIndex={uniEnd} onPageChange={setUniPage} />
               </CardContent>
             </Card>
           </TabsContent>
