@@ -370,6 +370,7 @@ export const LoansList = () => {
                     </div>
                   </CardContent>
                 </Card>
+              );
             })}
           </div>
           {filteredLoans.length === 0 && <div className="text-center py-12 text-muted-foreground">{isRTL ? 'لا توجد قروض' : 'No loans found'}</div>}
