@@ -36,6 +36,8 @@ export const Candidates = () => {
     return matchSearch && matchStatus;
   });
 
+  const { paginatedItems: paginatedCandidates, currentPage: candPage, totalPages: candTotalPages, totalItems: candTotalItems, startIndex: candStart, endIndex: candEnd, setCurrentPage: setCandPage } = usePagination(filtered);
+
   const handleAdd = () => {
     if (!form.nameAr || !form.appliedPosition) {
       toast({ title: t('recruitment.error'), description: t('recruitment.fillRequired'), variant: 'destructive' });
