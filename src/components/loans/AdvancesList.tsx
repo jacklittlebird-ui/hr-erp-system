@@ -221,7 +221,7 @@ export const AdvancesList = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAdvances.map(adv => (
+            {paginatedAdvances.map(adv => (
               <Card key={adv.id} className="relative overflow-hidden border">
                 <CardContent className="p-5 space-y-3">
                   <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
