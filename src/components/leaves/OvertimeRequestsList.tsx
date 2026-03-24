@@ -19,6 +19,7 @@ interface OvertimeRequestsListProps {
 export const OvertimeRequestsList = ({ requests, onDelete }: OvertimeRequestsListProps) => {
   const { t, isRTL, language } = useLanguage();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { paginatedItems, currentPage, totalPages, totalItems, startIndex, endIndex, setCurrentPage } = usePagination(requests);
 
   const getStatusBadge = (status: OvertimeRequest['status']) => {
     switch (status) {
