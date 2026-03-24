@@ -33,6 +33,8 @@ const AttendanceAdmin = () => {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [alertsPage, setAlertsPage] = useState(0);
+  const [eventsPage, setEventsPage] = useState(0);
+  const [devicesPage, setDevicesPage] = useState(0);
   const ALERTS_PER_PAGE = 20;
   const fetchAll = async () => {
     setLoading(true);
