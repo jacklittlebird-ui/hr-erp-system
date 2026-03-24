@@ -28,7 +28,8 @@ export const PortalDashboard = () => {
   const { session } = useAuth();
   const { getEmployeePayroll } = usePayrollData();
   const { records, getMonthlyStats, refresh: refreshAttendance } = useAttendanceData();
-  const { getLeaveBalances, getEvaluations, getLeaveRequests, getMissions, getRequests } = usePortalData();
+  const { getLeaveBalances, getEvaluations, getLeaveRequests, getMissions, getRequests, ensureLeaves, ensureEvaluations, ensureMissions } = usePortalData();
+  useEffect(() => { ensureLeaves(); }, [ensureLeaves]);
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const employeeRecords = useMemo(
