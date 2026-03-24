@@ -10,7 +10,8 @@ export const PortalViolations = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language } = useLanguage();
   const ar = language === 'ar';
-  const { getViolations } = usePortalData();
+  const { getViolations, ensureViolations } = usePortalData();
+  useEffect(() => { ensureViolations(); }, [ensureViolations]);
   const violations = useMemo(() => getViolations(PORTAL_EMPLOYEE_ID), [getViolations]);
 
   return (

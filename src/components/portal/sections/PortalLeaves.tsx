@@ -23,7 +23,8 @@ export const PortalLeaves = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language } = useLanguage();
   const ar = language === 'ar';
-  const { getLeaveBalances, getLeaveRequests, addLeaveRequest, getPermissions, addPermission, getOvertimeDays, addOvertimeDay } = usePortalData();
+  const { getLeaveBalances, getLeaveRequests, addLeaveRequest, getPermissions, addPermission, getOvertimeDays, addOvertimeDay, ensureLeaves } = usePortalData();
+  useEffect(() => { ensureLeaves(); }, [ensureLeaves]);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [showPermDialog, setShowPermDialog] = useState(false);
   const [showOvertimeDialog, setShowOvertimeDialog] = useState(false);

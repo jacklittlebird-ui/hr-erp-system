@@ -12,7 +12,8 @@ export const PortalTraining = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language } = useLanguage();
   const ar = language === 'ar';
-  const { getTraining } = usePortalData();
+  const { getTraining, ensureTraining } = usePortalData();
+  useEffect(() => { ensureTraining(); }, [ensureTraining]);
   const courses = useMemo(() => getTraining(PORTAL_EMPLOYEE_ID), [getTraining, PORTAL_EMPLOYEE_ID]);
 
   return (
