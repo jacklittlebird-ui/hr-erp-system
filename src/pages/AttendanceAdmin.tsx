@@ -672,7 +672,11 @@ const AttendanceAdmin = () => {
               </CardContent>
             </Card>
           </TabsContent>
+        </Tabs>
+      </div>
+    </DashboardLayout>
   );
+};
 };
 
 export default AttendanceAdmin;
