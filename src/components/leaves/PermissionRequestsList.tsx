@@ -144,6 +144,7 @@ export const PermissionRequestsList = ({ requests, onDelete, onEdit }: Permissio
               </TableBody>
             </Table>
           </div>
+          <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} startIndex={startIndex} endIndex={endIndex} onPageChange={setCurrentPage} />
         </CardContent>
       </Card>
 
