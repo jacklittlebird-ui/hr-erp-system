@@ -228,7 +228,7 @@ export const PerformanceList = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredReviews.map((review) => (
+                {paginatedReviews.map((review) => (
                   <TableRow key={review.id} className="hover:bg-muted/30">
                     <TableCell className="font-medium">{review.employeeName}</TableCell>
                     <TableCell>{review.department}</TableCell>
