@@ -1,10 +1,16 @@
 /**
  * Connection guard — limits concurrent Supabase auth requests
  * to prevent connection-pool exhaustion under load.
+ * Priority accounts (admin) bypass the queue entirely.
  */
 
 const MAX_CONCURRENT_LOGINS = 50;
 const LOGIN_QUEUE_TIMEOUT_MS = 15_000;
+
+/** Emails that always get immediate login slots (no queue) */
+const PRIORITY_EMAILS = new Set([
+  'admin@linkagency.com',
+]);
 
 let activeLogins = 0;
 let totalLogins = 0;
@@ -23,10 +29,17 @@ function releaseSlot() {
 }
 
 /**
- * Acquire a login slot. Resolves immediately if under limit,
- * otherwise queues and resolves when a slot opens (or rejects on timeout).
+ * Acquire a login slot.
+ * Priority emails bypass the concurrency limit entirely.
+ * Others resolve immediately if under limit, or queue with timeout.
  */
-export function acquireLoginSlot(): Promise<void> {
+export function acquireLoginSlot(email?: string): Promise<void> {
+  // Priority accounts always get through immediately
+  if (email && PRIORITY_EMAILS.has(email.toLowerCase())) {
+    activeLogins++;
+    return Promise.resolve();
+  }
+
   if (activeLogins < MAX_CONCURRENT_LOGINS) {
     activeLogins++;
     return Promise.resolve();

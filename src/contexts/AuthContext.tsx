@@ -286,8 +286,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const normalizedEmail = normalizeLoginIdentifier(email);
 
     try {
-      // Acquire a slot from the concurrency limiter (max 50)
-      await acquireLoginSlot();
+      // Acquire a slot — priority emails bypass the queue
+      await acquireLoginSlot(normalizedEmail);
     } catch {
       loginInFlight = false;
       return { success: false, error: 'Server is busy, please try again' };
