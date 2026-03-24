@@ -6,3 +6,8 @@ export const EMERGENCY_ATTENDANCE_CACHE_TTL_MS = 30_000;
 
 export const EMERGENCY_DISABLE_DASHBOARD_AUTO_REFRESH = true;
 export const EMERGENCY_DISABLE_HEAVY_BACKGROUND_JOBS = true;
+
+// Phase 1 — connection-pool protection
+export const EMERGENCY_DISABLE_REALTIME = true;
+export const EMERGENCY_DISABLE_AUTO_PRELOAD = true;
+export const EMERGENCY_MAX_IDLE_CONNECTION_MS = 5_000;
