@@ -278,7 +278,7 @@ export const AssetRegistry = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(asset => (
+              {paginatedAssets.map(asset => (
                 <TableRow key={asset.id}>
                   <TableCell className="font-mono text-sm">{asset.assetCode}</TableCell>
                   <TableCell>
