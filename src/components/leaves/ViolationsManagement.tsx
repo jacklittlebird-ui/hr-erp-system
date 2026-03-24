@@ -265,6 +265,7 @@ export const ViolationsManagement = ({ searchQuery, selectedDepartment, selected
               </TableBody>
             </Table>
           </div>
+          <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} startIndex={startIndex} endIndex={endIndex} onPageChange={setCurrentPage} />
         </CardContent>
       </Card>
 
