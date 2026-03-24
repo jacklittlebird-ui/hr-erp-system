@@ -187,59 +187,87 @@ const AttendanceAdmin = () => {
                 <CardTitle>{ar ? "سجلات المسح" : "Scan Events"}</CardTitle>
               </CardHeader>
               <CardContent>
-              <div className="overflow-auto max-h-[600px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{ar ? "الموظف" : "Employee"}</TableHead>
-                        <TableHead>{ar ? "النوع" : "Type"}</TableHead>
-                        <TableHead>{ar ? "الوقت" : "Time"}</TableHead>
-                        <TableHead>{ar ? "الجهاز" : "Device"}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {events.filter((ev) => {
-                        if (!searchQuery) return true;
-                        const q = searchQuery.toLowerCase();
-                        const emp = (ev.employees as any);
-                        return (
-                          emp?.name_ar?.toLowerCase().includes(q) ||
-                          emp?.name_en?.toLowerCase().includes(q) ||
-                          emp?.employee_code?.toLowerCase().includes(q) ||
-                          ev.device_id?.toLowerCase().includes(q)
-                        );
-                      }).map((ev) => (
-                        <TableRow key={ev.id}>
-                          <TableCell>
+                {(() => {
+                  const filteredEvents = events.filter((ev) => {
+                    if (!searchQuery) return true;
+                    const q = searchQuery.toLowerCase();
+                    const emp = (ev.employees as any);
+                    return (
+                      emp?.name_ar?.toLowerCase().includes(q) ||
+                      emp?.name_en?.toLowerCase().includes(q) ||
+                      emp?.employee_code?.toLowerCase().includes(q) ||
+                      ev.device_id?.toLowerCase().includes(q)
+                    );
+                  });
+                  const totalPages = Math.ceil(filteredEvents.length / ALERTS_PER_PAGE);
+                  const paged = filteredEvents.slice(eventsPage * ALERTS_PER_PAGE, (eventsPage + 1) * ALERTS_PER_PAGE);
+
+                  return (
+                    <>
+                      <div className="overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>{ar ? "الموظف" : "Employee"}</TableHead>
+                              <TableHead>{ar ? "النوع" : "Type"}</TableHead>
+                              <TableHead>{ar ? "الوقت" : "Time"}</TableHead>
+                              <TableHead>{ar ? "الجهاز" : "Device"}</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {paged.map((ev) => (
+                              <TableRow key={ev.id}>
+                                <TableCell>
+                                  {ar
+                                    ? (ev.employees as any)?.name_ar || ev.user_id?.substring(0, 8)
+                                    : (ev.employees as any)?.name_en || ev.user_id?.substring(0, 8)}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={ev.event_type === "check_in" ? "default" : "secondary"}>
+                                    {ev.event_type === "check_in"
+                                      ? ar ? "حضور" : "In"
+                                      : ar ? "انصراف" : "Out"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-sm">
+                                  {new Date(ev.scan_time).toLocaleString(ar ? "ar-EG" : "en-US")}
+                                </TableCell>
+                                <TableCell className="text-xs text-muted-foreground font-mono">
+                                  {ev.device_id?.substring(0, 12)}...
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            {filteredEvents.length === 0 && (
+                              <TableRow>
+                                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                                  {ar ? "لا توجد سجلات" : "No events yet"}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t">
+                          <span className="text-sm text-muted-foreground">
                             {ar
-                              ? (ev.employees as any)?.name_ar || ev.user_id?.substring(0, 8)
-                              : (ev.employees as any)?.name_en || ev.user_id?.substring(0, 8)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={ev.event_type === "check_in" ? "default" : "secondary"}>
-                              {ev.event_type === "check_in"
-                                ? ar ? "حضور" : "In"
-                                : ar ? "انصراف" : "Out"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {new Date(ev.scan_time).toLocaleString(ar ? "ar-EG" : "en-US")}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground font-mono">
-                            {ev.device_id?.substring(0, 12)}...
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {events.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                            {ar ? "لا توجد سجلات" : "No events yet"}
-                          </TableCell>
-                        </TableRow>
+                              ? `عرض ${eventsPage * ALERTS_PER_PAGE + 1}–${Math.min((eventsPage + 1) * ALERTS_PER_PAGE, filteredEvents.length)} من ${filteredEvents.length}`
+                              : `Showing ${eventsPage * ALERTS_PER_PAGE + 1}–${Math.min((eventsPage + 1) * ALERTS_PER_PAGE, filteredEvents.length)} of ${filteredEvents.length}`}
+                          </span>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" disabled={eventsPage === 0} onClick={() => setEventsPage((p) => p - 1)}>
+                              {ar ? "السابق" : "Previous"}
+                            </Button>
+                            <Button variant="outline" size="sm" disabled={eventsPage >= totalPages - 1} onClick={() => setEventsPage((p) => p + 1)}>
+                              {ar ? "التالي" : "Next"}
+                            </Button>
+                          </div>
+                        </div>
                       )}
-                    </TableBody>
-                  </Table>
-                </div>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
