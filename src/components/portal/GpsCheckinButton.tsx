@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { getOrCreateDeviceId } from '@/lib/device';
+import { performCheckin } from '@/lib/attendanceQueue';
 import { Navigation, Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 interface Props {
@@ -12,7 +13,7 @@ interface Props {
 }
 
 export const GpsCheckinButton = ({ eventType, disabled, onSuccess, ar = true }: Props) => {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -29,35 +30,25 @@ export const GpsCheckinButton = ({ eventType, disabled, onSuccess, ar = true }: 
         });
       });
 
-      if (!session?.access_token) {
+      if (!session?.access_token || !session.user?.id) {
         setStatus('error');
         setMessage(ar ? 'يرجى تسجيل الدخول أولاً' : 'Please sign in first');
         return;
       }
 
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/gps-checkin`,
-        {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            event_type: eventType,
-            gps_lat: pos.coords.latitude,
-            gps_lng: pos.coords.longitude,
-            gps_accuracy: pos.coords.accuracy,
-            device_id: getOrCreateDeviceId(),
-          }),
-        }
-      );
+      const result = await performCheckin({
+        eventType,
+        accessToken: session.access_token,
+        userId: session.user.id,
+        deviceId: getOrCreateDeviceId(),
+        gpsLat: pos.coords.latitude,
+        gpsLng: pos.coords.longitude,
+        gpsAccuracy: pos.coords.accuracy,
+      });
 
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
+      if (!result.ok) {
         setStatus('error');
-        setMessage(e.error || res.statusText);
+        setMessage(result.error || 'Unknown error');
       } else {
         setStatus('success');
         setMessage(
