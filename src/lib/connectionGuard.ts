@@ -3,10 +3,13 @@
  * to prevent connection-pool exhaustion under load.
  */
 
-const MAX_CONCURRENT_LOGINS = 25;
+const MAX_CONCURRENT_LOGINS = 50;
 const LOGIN_QUEUE_TIMEOUT_MS = 15_000;
 
 let activeLogins = 0;
+let totalLogins = 0;
+let totalErrors = 0;
+let totalLoginTimeMs = 0;
 const waitQueue: Array<{ resolve: () => void; timer: ReturnType<typeof setTimeout> }> = [];
 
 function releaseSlot() {
@@ -41,6 +44,35 @@ export function acquireLoginSlot(): Promise<void> {
 }
 
 export { releaseSlot };
+
+/**
+ * Record a completed login attempt for monitoring.
+ */
+export function recordLoginMetric(durationMs: number, error: boolean) {
+  totalLogins++;
+  totalLoginTimeMs += durationMs;
+  if (error) totalErrors++;
+}
+
+/**
+ * Connection guard diagnostics — call from console for live monitoring.
+ */
+export function getConnectionGuardStats() {
+  return {
+    maxConcurrent: MAX_CONCURRENT_LOGINS,
+    activeLogins,
+    queueDepth: waitQueue.length,
+    totalLogins,
+    totalErrors,
+    errorRate: totalLogins > 0 ? `${((totalErrors / totalLogins) * 100).toFixed(1)}%` : '0%',
+    avgLoginTimeMs: totalLogins > 0 ? Math.round(totalLoginTimeMs / totalLogins) : 0,
+  };
+}
+
+// Expose to browser console for live monitoring
+if (typeof window !== 'undefined') {
+  (window as any).__connectionGuardStats = getConnectionGuardStats;
+}
 
 /**
  * Global request throttle — simple token-bucket for any Supabase call.
