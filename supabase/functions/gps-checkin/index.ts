@@ -6,6 +6,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "content-type": "application/json" },
+  });
+
+// ─── Haversine ─────────────────────────────────────────────────────────────
+
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
   const toRad = (d: number) => (d * Math.PI) / 180;
@@ -17,103 +25,165 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// ─── In-memory dedup & rate limit (per isolate) ────────────────────────────
+
+const recentCheckins = new Map<string, number>();
+const MIN_INTERVAL_MS = 5 * 60_000; // 5 minutes between check-ins
+const DEDUP_WINDOW_MS = 10_000;     // ignore identical within 10 seconds
+const MAX_DEVICES_PER_DAY = 3;
+
+function isDeduplicate(userId: string, eventType: string): boolean {
+  const key = `${userId}:${eventType}`;
+  const last = recentCheckins.get(key);
+  if (last && Date.now() - last < DEDUP_WINDOW_MS) return true;
+  return false;
+}
+
+function isMinIntervalViolated(userId: string, eventType: string): boolean {
+  const key = `${userId}:${eventType}`;
+  const last = recentCheckins.get(key);
+  if (last && Date.now() - last < MIN_INTERVAL_MS) return true;
+  return false;
+}
+
+function recordCheckin(userId: string, eventType: string): void {
+  recentCheckins.set(`${userId}:${eventType}`, Date.now());
+  // Prune old entries every 100 records
+  if (recentCheckins.size > 500) {
+    const cutoff = Date.now() - MIN_INTERVAL_MS;
+    for (const [k, v] of recentCheckins) {
+      if (v < cutoff) recentCheckins.delete(k);
+    }
+  }
+}
+
+// ─── Monitoring ────────────────────────────────────────────────────────────
+
+let totalRequests = 0;
+let totalErrors = 0;
+let totalDuplicates = 0;
+
+// ─── Main handler ──────────────────────────────────────────────────────────
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = performance.now();
+  totalRequests++;
+
   try {
+    // ── Auth ──
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing auth" }), {
-        status: 401,
-        headers: { ...corsHeaders, "content-type": "application/json" },
-      });
-    }
+    if (!authHeader) return json({ error: "Missing auth" }, 401);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-    // Validate user via getUser
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userErr } = await supabaseAdmin.auth.getUser(token);
-    if (userErr || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "content-type": "application/json" },
-      });
-    }
+    if (userErr || !user) return json({ error: "Invalid token" }, 401);
     const userId = user.id;
 
+    // ── Parse body ──
     const { event_type, gps_lat, gps_lng, gps_accuracy, device_id } = await req.json();
-
     if (!event_type || !gps_lat || !gps_lng || !device_id) {
-      return new Response(JSON.stringify({ error: "Missing fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "content-type": "application/json" },
-      });
+      return json({ error: "Missing fields" }, 400);
     }
 
-    // Get employee_id from user_roles
+    // ── Dedup check (10s window) ──
+    if (isDeduplicate(userId, event_type)) {
+      totalDuplicates++;
+      return json({ ok: true, event_type, deduplicated: true }, 200);
+    }
+
+    // ── Min interval check (5 min) ──
+    if (isMinIntervalViolated(userId, event_type)) {
+      return json({ error: "يرجى الانتظار 5 دقائق / Please wait 5 minutes between check-ins" }, 429);
+    }
+
+    // ── Single optimized query: employee + station + role ──
     const { data: role } = await supabaseAdmin
       .from("user_roles")
       .select("employee_id")
       .eq("user_id", userId)
       .eq("role", "employee")
+      .limit(1)
       .single();
 
-    if (!role?.employee_id) {
-      return new Response(JSON.stringify({ error: "Employee not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "content-type": "application/json" },
-      });
-    }
+    if (!role?.employee_id) return json({ error: "Employee not found" }, 404);
     const employeeId = role.employee_id;
 
-    // Get station_id
+    // Combined employee + station query
     const { data: emp } = await supabaseAdmin
       .from("employees")
-      .select("station_id")
+      .select("station_id, stations(id, checkin_method)")
       .eq("id", employeeId)
+      .limit(1)
       .single();
 
-    if (!emp?.station_id) {
-      return new Response(JSON.stringify({ error: "No station assigned" }), {
-        status: 400,
-        headers: { ...corsHeaders, "content-type": "application/json" },
-      });
-    }
+    if (!emp?.station_id) return json({ error: "No station assigned" }, 400);
 
-    // Verify station allows GPS
-    const { data: station } = await supabaseAdmin
-      .from("stations")
-      .select("checkin_method")
-      .eq("id", emp.station_id)
-      .single();
-
+    const station = emp.stations as any;
     if (station && station.checkin_method !== "gps" && station.checkin_method !== "both") {
-      return new Response(
-        JSON.stringify({ error: "GPS check-in not enabled for this station" }),
-        { status: 403, headers: { ...corsHeaders, "content-type": "application/json" } }
-      );
+      return json({ error: "GPS check-in not enabled for this station" }, 403);
     }
 
-    // Get allowed locations for station
+    // ── Device fraud check: max devices per day ──
+    const todayStr = new Date().toISOString().split("T")[0];
+    const { count: deviceUserCount } = await supabaseAdmin
+      .from("attendance_events")
+      .select("user_id", { count: "exact", head: true })
+      .eq("device_id", device_id)
+      .gte("scan_time", todayStr + "T00:00:00Z")
+      .neq("user_id", userId);
+
+    if ((deviceUserCount ?? 0) >= MAX_DEVICES_PER_DAY) {
+      // Log fraud alert
+      await supabaseAdmin.from("device_alerts").insert({
+        user_id: userId,
+        device_id,
+        reason: "max_devices_exceeded",
+        meta: { date: todayStr, count: deviceUserCount },
+      });
+      return json({ error: "تم تجاوز الحد الأقصى للأجهزة / Device limit exceeded" }, 403);
+    }
+
+    // ── Device binding check ──
+    const { data: existingDevice } = await supabaseAdmin
+      .from("user_devices")
+      .select("device_id")
+      .eq("user_id", userId)
+      .limit(1)
+      .single();
+
+    if (existingDevice) {
+      if (existingDevice.device_id !== device_id) {
+        await supabaseAdmin.from("device_alerts").insert({
+          user_id: userId,
+          device_id,
+          reason: "device_mismatch",
+          meta: { expected: existingDevice.device_id, got: device_id },
+        });
+        return json({ error: "جهاز غير مصرح / Unauthorized device" }, 403);
+      }
+    } else {
+      await supabaseAdmin.from("user_devices").insert({ user_id: userId, device_id });
+    }
+
+    // ── GPS geofence validation ──
     const { data: locations } = await supabaseAdmin
       .from("qr_locations")
-      .select("*")
+      .select("id, name_ar, latitude, longitude, radius_m")
       .eq("station_id", emp.station_id)
       .eq("is_active", true);
 
     if (!locations || locations.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "No GPS locations configured for this station" }),
-        { status: 400, headers: { ...corsHeaders, "content-type": "application/json" } }
-      );
+      return json({ error: "No GPS locations configured for this station" }, 400);
     }
 
-    // Find nearest location and check geofence
     let nearestDist = Infinity;
     let matchedLocation: any = null;
     for (const loc of locations) {
@@ -128,48 +198,31 @@ Deno.serve(async (req) => {
     }
 
     if (!matchedLocation) {
-      return new Response(
-        JSON.stringify({
-          error: `خارج النطاق المسموح - المسافة ${Math.round(nearestDist)} متر / Out of range - distance ${Math.round(nearestDist)}m`,
-        }),
-        { status: 403, headers: { ...corsHeaders, "content-type": "application/json" } }
-      );
+      return json({
+        error: `خارج النطاق المسموح - المسافة ${Math.round(nearestDist)} متر / Out of range - distance ${Math.round(nearestDist)}m`,
+      }, 403);
     }
 
-    // Device binding check
-    const { data: existingDevice } = await supabaseAdmin
-      .from("user_devices")
-      .select("device_id")
-      .eq("user_id", userId)
-      .single();
-
-    if (existingDevice) {
-      if (existingDevice.device_id !== device_id) {
-        // Log alert
-        await supabaseAdmin.from("device_alerts").insert({
-          user_id: userId,
-          device_id,
-          reason: "device_mismatch",
-          meta: { expected: existingDevice.device_id, got: device_id },
-        });
-        return new Response(
-          JSON.stringify({ error: "جهاز غير مصرح / Unauthorized device" }),
-          { status: 403, headers: { ...corsHeaders, "content-type": "application/json" } }
-        );
-      }
-    } else {
-      // Bind device
-      await supabaseAdmin.from("user_devices").insert({
-        user_id: userId,
-        device_id,
-      });
-    }
+    // ── Record the check-in (mark dedup immediately) ──
+    recordCheckin(userId, event_type);
 
     const now = new Date();
     const dateStr = now.toISOString().split("T")[0];
 
-    // Insert attendance event
-    await supabaseAdmin.from("attendance_events").insert({
+    // ── Attendance rule check ──
+    const { data: assignment } = await supabaseAdmin
+      .from("attendance_assignments")
+      .select("rule_id, attendance_rules(schedule_type)")
+      .eq("employee_id", employeeId)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+
+    const scheduleType = (assignment?.attendance_rules as any)?.schedule_type || "fixed";
+    const isFlexible = ["flexible", "fully-flexible", "fully_flexible"].includes(scheduleType);
+
+    // ── Fire-and-forget: attendance event logging ──
+    const eventPromise = supabaseAdmin.from("attendance_events").insert({
       user_id: userId,
       employee_id: employeeId,
       event_type,
@@ -180,75 +233,79 @@ Deno.serve(async (req) => {
       gps_lng,
     });
 
-    // Check if employee has a fully_flexible attendance rule (no late/early tracking)
-    const { data: assignment } = await supabaseAdmin
-      .from("attendance_assignments")
-      .select("rule_id, attendance_rules(schedule_type)")
-      .eq("employee_id", employeeId)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    const scheduleType = (assignment?.attendance_rules as any)?.schedule_type || "fixed";
-    const isFlexible = ["flexible", "fully-flexible", "fully_flexible"].includes(scheduleType);
+    // ── Attendance record upsert ──
+    let recordPromise: Promise<any>;
 
     if (event_type === "check_in") {
-      // Close any open record (no check_out) for today before creating a new one
-      const { data: openRecord } = await supabaseAdmin
-        .from("attendance_records")
-        .select("id")
-        .eq("employee_id", employeeId)
-        .eq("date", dateStr)
-        .is("check_out", null)
-        .maybeSingle();
+      // Close any open record first, then insert new
+      recordPromise = (async () => {
+        const { data: openRecord } = await supabaseAdmin
+          .from("attendance_records")
+          .select("id")
+          .eq("employee_id", employeeId)
+          .eq("date", dateStr)
+          .is("check_out", null)
+          .limit(1)
+          .maybeSingle();
 
-      if (openRecord) {
-        await supabaseAdmin.from("attendance_records").update({
-          check_out: now.toISOString(),
-        }).eq("id", openRecord.id);
-      }
+        if (openRecord) {
+          await supabaseAdmin.from("attendance_records")
+            .update({ check_out: now.toISOString() })
+            .eq("id", openRecord.id);
+        }
 
-      const isLate = !isFlexible && now.getHours() >= 9;
-      await supabaseAdmin.from("attendance_records").insert({
-        employee_id: employeeId,
-        date: dateStr,
-        check_in: now.toISOString(),
-        status: isLate ? "late" : "present",
-        is_late: isLate,
-        notes: `GPS - ${matchedLocation.name_ar}`,
-      });
+        const isLate = !isFlexible && now.getHours() >= 9;
+        await supabaseAdmin.from("attendance_records").insert({
+          employee_id: employeeId,
+          date: dateStr,
+          check_in: now.toISOString(),
+          status: isLate ? "late" : "present",
+          is_late: isLate,
+          notes: `GPS - ${matchedLocation.name_ar}`,
+        });
+      })();
     } else {
-      // check_out — find the latest open record for today
-      const { data: openRecord } = await supabaseAdmin
-        .from("attendance_records")
-        .select("id")
-        .eq("employee_id", employeeId)
-        .is("check_out", null)
-        .order("check_in", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // check_out
+      recordPromise = (async () => {
+        const { data: openRecord } = await supabaseAdmin
+          .from("attendance_records")
+          .select("id")
+          .eq("employee_id", employeeId)
+          .is("check_out", null)
+          .order("check_in", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (!openRecord) {
-        return new Response(
-          JSON.stringify({ error: "لا يوجد سجل حضور مفتوح / No open check-in found" }),
-          { status: 404, headers: { ...corsHeaders, "content-type": "application/json" } }
-        );
-      }
+        if (!openRecord) {
+          throw new Error("لا يوجد سجل حضور مفتوح / No open check-in found");
+        }
 
-      const isEarly = !isFlexible && now.getHours() < 17;
-      await supabaseAdmin.from("attendance_records").update({
-        check_out: now.toISOString(),
-        status: isEarly ? "early-leave" : undefined,
-      }).eq("id", openRecord.id);
+        const isEarly = !isFlexible && now.getHours() < 17;
+        await supabaseAdmin.from("attendance_records")
+          .update({
+            check_out: now.toISOString(),
+            status: isEarly ? "early-leave" : undefined,
+          })
+          .eq("id", openRecord.id);
+      })();
     }
 
-    return new Response(
-      JSON.stringify({ ok: true, event_type, location: matchedLocation.name_ar }),
-      { status: 200, headers: { ...corsHeaders, "content-type": "application/json" } }
-    );
+    // Run event log and record in parallel
+    const [, recordResult] = await Promise.allSettled([eventPromise, recordPromise]);
+
+    if (recordResult.status === "rejected") {
+      return json({ error: recordResult.reason?.message || "Record error" }, 404);
+    }
+
+    const elapsed = Math.round(performance.now() - startTime);
+    return json({
+      ok: true,
+      event_type,
+      location: matchedLocation.name_ar,
+      response_ms: elapsed,
+    }, 200);
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "content-type": "application/json" },
-    });
+    totalErrors++;
+    return json({ error: e.message }, 500);
   }
 });
