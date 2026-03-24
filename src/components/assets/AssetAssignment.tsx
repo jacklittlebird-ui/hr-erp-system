@@ -315,6 +315,9 @@ export const AssetAssignment = () => {
           </Table>
           <PaginationControls currentPage={aaPage} totalPages={aaTotalPages} totalItems={aaTotalItems} startIndex={aaStart} endIndex={aaEnd} onPageChange={setAaPage} />
         </CardContent>
+      </Card>
     </div>
+  );
+};
   );
 };

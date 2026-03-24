@@ -50,6 +50,7 @@ export const Interviews = () => {
 
   const { paginatedItems: paginatedInterviews, currentPage: intPage, totalPages: intTotalPages, totalItems: intTotalItems, startIndex: intStart, endIndex: intEnd, setCurrentPage: setIntPage } = usePagination(filtered, 20);
 
+  const handleAdd = () => {
     if (!form.candidateId || !form.interviewDate) {
       toast({ title: t('recruitment.error'), description: t('recruitment.fillRequired'), variant: 'destructive' });
       return;

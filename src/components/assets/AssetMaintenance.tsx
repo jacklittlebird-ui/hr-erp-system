@@ -99,6 +99,7 @@ export const AssetMaintenance = () => {
 
   const { paginatedItems: paginatedMaint, currentPage: amPage, totalPages: amTotalPages, totalItems: amTotalItems, startIndex: amStart, endIndex: amEnd, setCurrentPage: setAmPage } = usePagination(filtered, 20);
 
+  const handleAdd = async () => {
     if (!form.assetId || !form.description) {
       toast({ title: t('assets.error'), description: t('assets.fillRequired'), variant: 'destructive' });
       return;
