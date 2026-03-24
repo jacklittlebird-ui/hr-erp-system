@@ -177,10 +177,11 @@ const KioskProviders = ({ children }: { children: React.ReactNode }) => (
 
 const AppDataProviders = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const path = location.pathname;
 
-  if (path === '/login' || path === '/setup' || path === '/') {
+  // Never load data providers on public pages or when not authenticated
+  if (path === '/login' || path === '/setup' || path === '/' || !isAuthenticated || !user) {
     return <>{children}</>;
   }
 
@@ -196,7 +197,7 @@ const AppDataProviders = ({ children }: { children: React.ReactNode }) => {
     return <KioskProviders>{children}</KioskProviders>;
   }
 
-  if (user?.role === 'admin' || user?.role === 'hr') {
+  if (user.role === 'admin' || user.role === 'hr') {
     return <FullAdminProviders>{children}</FullAdminProviders>;
   }
 
