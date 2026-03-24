@@ -30,7 +30,7 @@ const AttendanceKiosk = () => {
   const [qrSrcs, setQrSrcs] = useState<string[]>(["", "", ""]);
   const [locations, setLocations] = useState<any[]>([]);
   const [selectedLocation, setSelectedLocation] = useState("");
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(30);
   const [error, setError] = useState("");
   const intervalRef = useRef<number>();
 
@@ -159,7 +159,7 @@ const AttendanceKiosk = () => {
           }
         }
         setQrSrcs(srcs);
-        if (!hasError) { setError(""); setCountdown(5); }
+        if (!hasError) { setError(""); setCountdown(30); }
       } catch (e: any) {
         console.error("[Kiosk] QR fetch error:", e);
         setError(e.message);
@@ -167,10 +167,10 @@ const AttendanceKiosk = () => {
     };
 
     tick();
-    intervalRef.current = window.setInterval(tick, 4800);
+    intervalRef.current = window.setInterval(tick, 30000);
 
     const countdownInterval = window.setInterval(() => {
-      setCountdown((prev) => (prev > 1 ? prev - 1 : 5));
+      setCountdown((prev) => (prev > 1 ? prev - 1 : 30));
     }, 1000);
 
     return () => {

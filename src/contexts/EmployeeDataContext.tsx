@@ -298,32 +298,20 @@ export const EmployeeDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
-    const { data, error } = await supabase
+    // Use simpler query (no joins) to avoid timeout, then enrich with separate lookups
+    const { data: baseRows, error: baseError } = await supabase
       .from('employees')
-      .select('*, departments(name_ar, name_en), stations(code, name_ar, name_en)')
+      .select('*')
       .order('employee_code', { ascending: true });
 
-    if (error) {
-      console.warn('Joined employee query failed, retrying without joins:', error);
-
-      const { data: baseRows, error: baseError } = await supabase
-        .from('employees')
-        .select('*')
-        .order('employee_code', { ascending: true });
-
-      if (baseError) {
-        console.error('Error fetching employees:', baseError);
-        setEmployees([]);
-        setLoading(false);
-        return;
-      }
-
-      setEmployees(await mapWithRelations(baseRows || []));
+    if (baseError) {
+      console.error('Error fetching employees:', baseError);
+      setEmployees([]);
       setLoading(false);
       return;
     }
 
-    setEmployees((data || []).map(mapRow));
+    setEmployees(await mapWithRelations(baseRows || []));
     setLoading(false);
   }, [isAuthenticated, user]);
 
