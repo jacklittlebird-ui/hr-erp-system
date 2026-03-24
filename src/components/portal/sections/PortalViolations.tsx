@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePortalData } from '@/contexts/PortalDataContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,7 +10,8 @@ export const PortalViolations = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language } = useLanguage();
   const ar = language === 'ar';
-  const { getViolations } = usePortalData();
+  const { getViolations, ensureViolations } = usePortalData();
+  useEffect(() => { ensureViolations(); }, [ensureViolations]);
   const violations = useMemo(() => getViolations(PORTAL_EMPLOYEE_ID), [getViolations]);
 
   return (
