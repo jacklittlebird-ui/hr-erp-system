@@ -186,7 +186,7 @@ export const Candidates = () => {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">{isRTL ? 'لا يوجد مرشحون' : 'No candidates'}</TableCell></TableRow>
-              ) : filtered.map(c => (
+              ) : paginatedCandidates.map(c => (
                 <TableRow key={c.id}>
                   <TableCell>
                     <div>
