@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, useState, useEffect, useRef } from 'react';
 import { Employee } from '@/types/employee';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { trackQuery, debouncedFetch, invalidateCache } from '@/lib/queryOptimizer';
 
 interface EmployeeDataContextType {
   employees: Employee[];
