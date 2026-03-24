@@ -278,7 +278,7 @@ const LoginPage = () => {
           Developed by OneStory Solutions
         </p>
       </div>
-    </div>
+    </main>
   );
 };
 
