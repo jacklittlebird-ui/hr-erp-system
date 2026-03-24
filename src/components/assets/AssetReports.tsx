@@ -90,7 +90,8 @@ export const AssetReports = () => {
     });
   }, [assets, employeeFilter, locationFilter, employees, stations]);
 
-  // Unique assigned employees (by UUID)
+  const { paginatedItems: paginatedReportAssets, currentPage: repPage, totalPages: repTotalPages, totalItems: repTotalItems, startIndex: repStart, endIndex: repEnd, setCurrentPage: setRepPage } = usePagination(filteredAssets, 20);
+
   const assignedEmployees = useMemo(() => {
     const ids = new Set(assets.filter(a => a.assignedTo).map(a => a.assignedTo!));
     return Array.from(ids).map(id => ({
