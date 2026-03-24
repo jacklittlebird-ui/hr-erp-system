@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { withTimeout } from '@/lib/asyncControl';
 
 export type PortalFilter = 'admin' | 'employee' | 'station_manager' | 'training' | 'kiosk' | 'all';
 
@@ -70,11 +71,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
-    const { data } = await supabase
+    const { data } = await withTimeout(supabase
       .from('notifications')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(50), 8000, 'notifications');
     if (data) setNotifications(data.map(mapRow));
   }, [isAuthenticated, userId]);
 

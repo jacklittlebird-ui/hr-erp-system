@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { withTimeout } from '@/lib/asyncControl';
+
+const PORTAL_QUERY_TIMEOUT = 10000;
 
 // ===== LEAVES =====
 export interface LeaveBalance {
@@ -205,7 +208,7 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     // Leave balances - current year only
     const currentYear = new Date().getFullYear();
-    const { data: lbData } = await empFilter(supabase.from('leave_balances').select('*').eq('year', currentYear));
+    const { data: lbData } = await withTimeout(empFilter(supabase.from('leave_balances').select('*').eq('year', currentYear)), PORTAL_QUERY_TIMEOUT, 'leave_balances');
     if (lbData) {
       const mapped: Record<string, LeaveBalance[]> = {};
       lbData.forEach((lb: any) => {
@@ -221,7 +224,7 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     // Leave requests
-    const { data: lrData } = await empFilter(supabase.from('leave_requests').select('*').order('created_at', { ascending: false }));
+    const { data: lrData } = await withTimeout(empFilter(supabase.from('leave_requests').select('*').order('created_at', { ascending: false }).limit(200)), PORTAL_QUERY_TIMEOUT, 'leave_requests');
     if (lrData) {
       setLeaveRequests(lrData.map((r: any) => {
         const lt = leaveTypeMap[r.leave_type] || { ar: r.leave_type, en: r.leave_type };
@@ -230,7 +233,7 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     // Permissions
-    const { data: pData } = await empFilter(supabase.from('permission_requests').select('*').order('created_at', { ascending: false }));
+    const { data: pData } = await withTimeout(empFilter(supabase.from('permission_requests').select('*').order('created_at', { ascending: false }).limit(200)), PORTAL_QUERY_TIMEOUT, 'permissions');
     if (pData) {
       setPermissions(pData.map((p: any) => {
         const pt = permTypeMap[p.permission_type] || { ar: p.permission_type, en: p.permission_type };
@@ -239,7 +242,7 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     // Loans
-    const { data: loansData } = await empFilter(supabase.from('loans').select('*').order('created_at', { ascending: false }));
+    const { data: loansData } = await withTimeout(empFilter(supabase.from('loans').select('*').order('created_at', { ascending: false }).limit(100)), PORTAL_QUERY_TIMEOUT, 'loans');
     if (loansData) {
       setPortalLoans(loansData.map((l: any) => ({
         id: l.id as any, employeeId: l.employee_id,
@@ -251,7 +254,7 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     // Evaluations
-    const { data: prData } = await empFilter(supabase.from('performance_reviews').select('*').order('created_at', { ascending: false }));
+    const { data: prData } = await withTimeout(empFilter(supabase.from('performance_reviews').select('*').order('created_at', { ascending: false }).limit(100)), PORTAL_QUERY_TIMEOUT, 'perf_reviews');
     if (prData) {
       setEvaluations(prData.map((e: any) => ({
         id: e.id as any, employeeId: e.employee_id,
@@ -263,7 +266,7 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     // Training
-    const { data: trData } = await empFilter(supabase.from('training_records').select('*, training_courses(name_ar, name_en)').order('created_at', { ascending: false }));
+    const { data: trData } = await withTimeout(empFilter(supabase.from('training_records').select('*, training_courses(name_ar, name_en)').order('created_at', { ascending: false }).limit(100)), PORTAL_QUERY_TIMEOUT, 'training');
     if (trData) {
       setTraining(trData.map((t: any) => ({
         id: t.id as any, employeeId: t.employee_id,
@@ -276,7 +279,7 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     // Missions
-    const { data: mData } = await empFilter(supabase.from('missions').select('*').order('created_at', { ascending: false }));
+    const { data: mData } = await withTimeout(empFilter(supabase.from('missions').select('*').order('created_at', { ascending: false }).limit(100)), PORTAL_QUERY_TIMEOUT, 'missions');
     if (mData) {
       setMissions(mData.map((m: any) => ({
         id: m.id as any, employeeId: m.employee_id,
@@ -288,7 +291,7 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     // Violations
-    const { data: vData } = await empFilter(supabase.from('violations').select('*').order('created_at', { ascending: false }));
+    const { data: vData } = await withTimeout(empFilter(supabase.from('violations').select('*').order('created_at', { ascending: false }).limit(100)), PORTAL_QUERY_TIMEOUT, 'violations');
     if (vData) {
       setViolations(vData.map((v: any) => ({
         id: v.id as any, employeeId: v.employee_id,
@@ -299,7 +302,7 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     // Overtime days
-    const { data: otData } = await empFilter(supabase.from('overtime_requests').select('*').order('created_at', { ascending: false }));
+    const { data: otData } = await withTimeout(empFilter(supabase.from('overtime_requests').select('*').order('created_at', { ascending: false }).limit(100)), PORTAL_QUERY_TIMEOUT, 'overtime');
     if (otData) {
       const otTypeMap: Record<string, { ar: string; en: string }> = {
         holiday: { ar: 'إجازة رسمية', en: 'Holiday' },
@@ -319,7 +322,7 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     // Documents
-    const { data: dData } = await empFilter(supabase.from('employee_documents').select('*').order('uploaded_at', { ascending: false }));
+    const { data: dData } = await withTimeout(empFilter(supabase.from('employee_documents').select('*').order('uploaded_at', { ascending: false }).limit(100)), PORTAL_QUERY_TIMEOUT, 'documents');
     if (dData) {
       setDocuments(dData.map((d: any) => ({
         id: d.id as any, employeeId: d.employee_id,

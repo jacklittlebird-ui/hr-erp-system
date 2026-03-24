@@ -2,6 +2,14 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import { initSessionMonitor } from '@/lib/security';
+import { withTimeout } from '@/lib/asyncControl';
+import { getCachedValue, setCachedValue } from '@/lib/runtimeCache';
+
+const AUTH_PROFILE_CACHE_KEY = 'auth_profile_';
+const AUTH_PROFILE_CACHE_TTL = 5 * 60_000; // 5 min
+
+// Prevent duplicate concurrent login calls
+let loginInFlight = false;
 
 export type UserRole = 'admin' | 'employee' | 'station_manager' | 'kiosk' | 'training_manager' | 'hr' | 'area_manager';
 
@@ -48,11 +56,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
+  // Check cache first
+  const cached = getCachedValue<AuthUser>(AUTH_PROFILE_CACHE_KEY + supabaseUser.id);
+  if (cached) return cached;
+
   try {
-    const { data: roles, error: rolesError } = await supabase
+    const { data: roles, error: rolesError } = await withTimeout(supabase
       .from('user_roles')
       .select('role, station_id, employee_id')
-      .eq('user_id', supabaseUser.id);
+      .eq('user_id', supabaseUser.id), 8000, 'user_roles');
 
     if (rolesError) {
       console.error('Error fetching user roles:', rolesError);
@@ -64,11 +76,11 @@ async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
     const userRole = roles[0];
     const role = userRole.role as UserRole;
 
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await withTimeout(supabase
       .from('profiles')
       .select('full_name, email')
       .eq('id', supabaseUser.id)
-      .maybeSingle();
+      .maybeSingle(), 8000, 'profiles');
 
     if (profileError) {
       console.warn('Profile lookup failed, continuing with auth user data:', profileError);
@@ -79,11 +91,11 @@ async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
     let nameAr = profile?.full_name || supabaseUser.email || '';
 
     if (role === 'station_manager' && userRole.station_id) {
-      const { data: station, error: stationError } = await supabase
+      const { data: station, error: stationError } = await withTimeout(supabase
         .from('stations')
         .select('code, name_ar')
         .eq('id', userRole.station_id)
-        .maybeSingle();
+        .maybeSingle(), 5000, 'station');
 
       if (stationError) {
         console.warn('Station lookup failed:', stationError);
@@ -96,11 +108,11 @@ async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
     let employeeUuid: string | undefined;
     if (role === 'employee' && userRole.employee_id) {
       employeeUuid = userRole.employee_id;
-      const { data: emp, error: empError } = await supabase
+      const { data: emp, error: empError } = await withTimeout(supabase
         .from('employees')
         .select('employee_code, name_ar, name_en')
         .eq('id', userRole.employee_id)
-        .maybeSingle();
+        .maybeSingle(), 5000, 'employee');
 
       if (empError) {
         console.warn('Employee lookup failed:', empError);
@@ -113,10 +125,10 @@ async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
     let stationCodes: string[] | undefined;
     let stationUuids: string[] | undefined;
     if (role === 'area_manager') {
-      const { data: amStations, error: amStationsError } = await supabase
+      const { data: amStations, error: amStationsError } = await withTimeout(supabase
         .from('area_manager_stations')
         .select('station_id')
-        .eq('user_id', supabaseUser.id);
+        .eq('user_id', supabaseUser.id), 5000, 'am_stations');
 
       if (amStationsError) {
         console.warn('Area manager stations lookup failed:', amStationsError);
@@ -124,10 +136,10 @@ async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
 
       if (amStations && amStations.length > 0) {
         stationUuids = amStations.map((s) => s.station_id);
-        const { data: stationData, error: stationDataError } = await supabase
+        const { data: stationData, error: stationDataError } = await withTimeout(supabase
           .from('stations')
           .select('code')
-          .in('id', stationUuids);
+          .in('id', stationUuids), 5000, 'station_codes');
 
         if (stationDataError) {
           console.warn('Area manager station code lookup failed:', stationDataError);
@@ -137,7 +149,7 @@ async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
       }
     }
 
-    return {
+    const authUser: AuthUser = {
       id: supabaseUser.id,
       name: profile?.full_name || supabaseUser.email || '',
       nameAr,
@@ -151,6 +163,11 @@ async function fetchUserProfile(supabaseUser: User): Promise<AuthUser | null> {
       stationIds: stationUuids,
       supabaseUserId: supabaseUser.id,
     };
+
+    // Cache the result
+    setCachedValue(AUTH_PROFILE_CACHE_KEY + supabaseUser.id, authUser, AUTH_PROFILE_CACHE_TTL);
+
+    return authUser;
   } catch (error) {
     console.error('Unexpected error fetching user profile:', error);
     return null;
@@ -222,34 +239,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   const login = useCallback(async ({ email, password }: { email: string; password: string }) => {
+    // Prevent duplicate concurrent login requests
+    if (loginInFlight) {
+      return { success: false, error: 'Login already in progress' };
+    }
+    loginInFlight = true;
+
     const normalizedEmail = normalizeLoginIdentifier(email);
 
-    // Retry up to 3 times on timeout/server errors
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
-      if (!error) return { success: true };
-      
-      // Only retry on server/timeout errors (5xx), not auth errors (4xx)
-      const isServerError = error.message?.includes('timeout') || 
-                           error.message?.includes('504') || 
-                           error.message?.includes('500') ||
-                           error.message?.includes('context') ||
-                           error.status === 500 || error.status === 504;
-      
-      if (!isServerError || attempt === 3) {
-        return { success: false, error: error.message };
+    try {
+      // Retry up to 3 times on timeout/server errors
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+        if (!error) return { success: true };
+        
+        const isServerError = error.message?.includes('timeout') || 
+                             error.message?.includes('504') || 
+                             error.message?.includes('500') ||
+                             error.message?.includes('context') ||
+                             error.status === 500 || error.status === 504;
+        
+        if (!isServerError || attempt === 3) {
+          return { success: false, error: error.message };
+        }
+        
+        await new Promise(r => setTimeout(r, attempt * 1000));
       }
-      
-      // Wait before retry (1s, 2s)
-      await new Promise(r => setTimeout(r, attempt * 1000));
+      return { success: false, error: 'Login failed after retries' };
+    } finally {
+      loginInFlight = false;
     }
-    return { success: false, error: 'Login failed after retries' };
   }, []);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    // Clear profile cache on logout
+    if (user?.supabaseUserId) {
+      import('@/lib/runtimeCache').then(m => m.clearCachedValue(AUTH_PROFILE_CACHE_KEY + user.supabaseUserId));
+    }
   }, []);
 
   return (

@@ -3,6 +3,12 @@ import { Employee } from '@/types/employee';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getCachedValue, setCachedValue } from '@/lib/runtimeCache';
+import { withTimeout } from '@/lib/asyncControl';
+
+const DEPT_CACHE_KEY = 'emp_departments';
+const STATION_CACHE_KEY = 'emp_stations';
+const LOOKUP_CACHE_TTL = 5 * 60_000; // 5 min
 
 interface EmployeeDataContextType {
   employees: Employee[];
@@ -254,13 +260,23 @@ export const EmployeeDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setLoading(true);
 
     const mapWithRelations = async (rows: any[]) => {
-      const [deptsRes, stationsRes] = await Promise.all([
-        supabase.from('departments').select('id, name_ar, name_en'),
-        supabase.from('stations').select('id, code, name_ar, name_en'),
-      ]);
+      // Use cached lookups to avoid hammering DB
+      let depts = getCachedValue<any[]>(DEPT_CACHE_KEY);
+      let stns = getCachedValue<any[]>(STATION_CACHE_KEY);
 
-      const deptMap = new Map((deptsRes.data || []).map((d) => [d.id, d]));
-      const stationMap = new Map((stationsRes.data || []).map((s) => [s.id, s]));
+      if (!depts || !stns) {
+        const [deptsRes, stationsRes] = await Promise.all([
+          withTimeout(supabase.from('departments').select('id, name_ar, name_en'), 8000, 'departments'),
+          withTimeout(supabase.from('stations').select('id, code, name_ar, name_en'), 8000, 'stations'),
+        ]);
+        depts = deptsRes.data || [];
+        stns = stationsRes.data || [];
+        setCachedValue(DEPT_CACHE_KEY, depts, LOOKUP_CACHE_TTL);
+        setCachedValue(STATION_CACHE_KEY, stns, LOOKUP_CACHE_TTL);
+      }
+
+      const deptMap = new Map(depts.map((d: any) => [d.id, d]));
+      const stationMap = new Map(stns.map((s: any) => [s.id, s]));
 
       return rows.map((row: any) => {
         const dept = deptMap.get(row.department_id);
@@ -299,10 +315,10 @@ export const EmployeeDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     // Use simpler query (no joins) to avoid timeout, then enrich with separate lookups
-    const { data: baseRows, error: baseError } = await supabase
+    const { data: baseRows, error: baseError } = await withTimeout(supabase
       .from('employees')
       .select('*')
-      .order('employee_code', { ascending: true });
+      .order('employee_code', { ascending: true }), 15000, 'employees');
 
     if (baseError) {
       console.error('Error fetching employees:', baseError);
