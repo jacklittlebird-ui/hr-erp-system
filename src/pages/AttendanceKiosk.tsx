@@ -27,10 +27,11 @@ const AttendanceKiosk = () => {
   const ar = language === "ar";
 
   const QR_COUNT = 3;
+  const QR_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
   const [qrSrcs, setQrSrcs] = useState<string[]>(["", "", ""]);
   const [locations, setLocations] = useState<any[]>([]);
   const [selectedLocation, setSelectedLocation] = useState("");
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(30 * 60); // 30 min in seconds
   const [error, setError] = useState("");
   const intervalRef = useRef<number>();
 
@@ -159,7 +160,14 @@ const AttendanceKiosk = () => {
           }
         }
         setQrSrcs(srcs);
-        if (!hasError) { setError(""); setCountdown(5); }
+        if (!hasError) {
+          setError("");
+          // Calculate seconds until next 30-min bucket
+          const nowSec = Math.floor(Date.now() / 1000);
+          const bucket = 1800;
+          const nextBucket = (Math.floor(nowSec / bucket) + 1) * bucket;
+          setCountdown(nextBucket - nowSec);
+        }
       } catch (e: any) {
         console.error("[Kiosk] QR fetch error:", e);
         setError(e.message);
@@ -167,10 +175,10 @@ const AttendanceKiosk = () => {
     };
 
     tick();
-    intervalRef.current = window.setInterval(tick, 4800);
+    intervalRef.current = window.setInterval(tick, QR_INTERVAL_MS);
 
     const countdownInterval = window.setInterval(() => {
-      setCountdown((prev) => (prev > 1 ? prev - 1 : 5));
+      setCountdown((prev) => (prev > 1 ? prev - 1 : 0));
     }, 1000);
 
     return () => {
@@ -287,8 +295,8 @@ const AttendanceKiosk = () => {
                           variant="secondary"
                           className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs"
                         >
-                          <RefreshCw className="h-3 w-3 animate-spin" />
-                          {countdown}s
+                          <RefreshCw className="h-3 w-3" />
+                          {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
                         </Badge>
                       </>
                     ) : (
