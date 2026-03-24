@@ -93,7 +93,7 @@ const LoginPage = () => {
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
   return (
-    <div className={cn(
+    <main className={cn(
       "min-h-screen flex items-center justify-center bg-gradient-to-br from-[hsl(var(--primary)/0.08)] via-background to-[hsl(var(--stat-blue)/0.08)] p-4",
       isRTL ? "font-arabic" : "font-sans"
     )} dir="rtl">
