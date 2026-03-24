@@ -512,7 +512,7 @@ const Users = () => {
                       </TableCell></TableRow>
                     ) : filtered.length === 0 ? (
                       <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{isAr ? 'لا توجد نتائج' : 'No results'}</TableCell></TableRow>
-                    ) : filtered.map(user => (
+                    ) : paginatedUsers.map(user => (
                       <TableRow key={user.user_id}>
                         <TableCell>
                           <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
