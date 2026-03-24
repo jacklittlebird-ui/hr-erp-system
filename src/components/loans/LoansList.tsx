@@ -371,9 +371,9 @@ export const LoansList = () => {
                   </CardContent>
                 </Card>
               );
-            })}
           </div>
           {filteredLoans.length === 0 && <div className="text-center py-12 text-muted-foreground">{isRTL ? 'لا توجد قروض' : 'No loans found'}</div>}
+          <PaginationControls currentPage={loanPage} totalPages={loanTotalPages} totalItems={loanTotalItems} startIndex={loanStart} endIndex={loanEnd} onPageChange={setLoanPage} />
         </CardContent>
       </Card>
 
