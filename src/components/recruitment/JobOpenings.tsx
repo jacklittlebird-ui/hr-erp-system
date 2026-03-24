@@ -49,6 +49,8 @@ export const JobOpenings = () => {
     return matchSearch && matchStatus;
   });
 
+  const { paginatedItems: paginatedJobs, currentPage: jobPage, totalPages: jobTotalPages, totalItems: jobTotalItems, startIndex: jobStart, endIndex: jobEnd, setCurrentPage: setJobPage } = usePagination(filtered, 20);
+
   const resetForm = () => setForm({ titleAr: '', titleEn: '', department: '', location: '', type: 'full-time', vacancies: 1, closingDate: '', description: '' });
 
   const handleSave = () => {
