@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { useNavigate } from 'react-router-dom';
@@ -23,13 +23,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Trash2, Edit, Eye, AlertTriangle } from 'lucide-react';
+import { Trash2, Edit, Eye, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { stationLocations } from '@/data/stationLocations';
 
 interface EmployeeTableProps {
   employees: Employee[];
   onDelete?: (employeeId: string) => void;
+  currentPage?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export const EmployeeTable = ({ employees, onDelete }: EmployeeTableProps) => {
