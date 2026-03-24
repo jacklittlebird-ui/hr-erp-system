@@ -93,7 +93,7 @@ const LoginPage = () => {
     if (result.success) {
       toast({ title: t('تم تسجيل الدخول بنجاح', 'Login successful') });
     } else {
-      const isTimeout = result.error?.includes('timeout') || result.error?.includes('504') || result.error?.includes('retries');
+      const isTimeout = result.error?.includes('timeout') || result.error?.includes('504') || result.error?.includes('500') || result.error?.includes('retries') || result.error?.includes('context') || result.error?.includes('Database error');
       toast({ 
         title: isTimeout 
           ? t('الخادم مشغول، يرجى المحاولة مرة أخرى', 'Server is busy, please try again') 
