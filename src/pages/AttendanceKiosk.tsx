@@ -159,7 +159,7 @@ const AttendanceKiosk = () => {
           }
         }
         setQrSrcs(srcs);
-        if (!hasError) { setError(""); setCountdown(5); }
+        if (!hasError) { setError(""); setCountdown(30); }
       } catch (e: any) {
         console.error("[Kiosk] QR fetch error:", e);
         setError(e.message);
