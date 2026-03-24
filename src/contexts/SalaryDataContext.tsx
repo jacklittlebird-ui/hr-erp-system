@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface SalaryRecord {
   year: string;

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface AttendanceEntry {
   id: string;
