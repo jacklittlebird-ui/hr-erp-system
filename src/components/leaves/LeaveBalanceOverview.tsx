@@ -126,6 +126,7 @@ export const LeaveBalanceOverview = ({ balances }: LeaveBalanceOverviewProps) =>
                     <TableCell className="font-medium">
                       {language === 'ar' ? balance.employeeNameAr : balance.employeeName}
                     </TableCell>
+                    <TableCell className="text-sm">{balance.hireDate || '-'}</TableCell>
                     <TableCell>{t(`dept.${balance.department.toLowerCase()}`)}</TableCell>
                     <TableCell>{balance.station}</TableCell>
                     <TableCell>

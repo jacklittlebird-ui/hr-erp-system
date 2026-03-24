@@ -169,7 +169,7 @@ const Leaves = () => {
       const permissionsTotal = lb ? Number(lb.permissions_total) : 12;
       const permissionsUsed = lb ? Number(lb.permissions_used) : 0;
       return {
-        employeeId: e.id, employeeName: e.name_en, employeeNameAr: e.name_ar,
+        employeeId: e.id, employeeName: e.name_en, employeeNameAr: e.name_ar, hireDate: e.hire_date || undefined,
         department: d ? (language === 'ar' ? d.name_ar : d.name_en) : '',
         station: s ? (language === 'ar' ? s.name_ar : s.name_en) : '',
         annualTotal, annualUsed, annualRemaining: annualTotal - annualUsed,
