@@ -4,7 +4,7 @@ import type { User, Session } from '@supabase/supabase-js';
 import { initSessionMonitor } from '@/lib/security';
 import { withTimeout } from '@/lib/asyncControl';
 import { getCachedValue, setCachedValue } from '@/lib/runtimeCache';
-import { acquireLoginSlot, releaseSlot, throttle } from '@/lib/connectionGuard';
+import { acquireLoginSlot, releaseSlot, throttle, recordLoginMetric } from '@/lib/connectionGuard';
 
 const AUTH_PROFILE_CACHE_KEY = 'auth_profile_';
 const AUTH_PROFILE_CACHE_TTL = 5 * 60_000; // 5 min
