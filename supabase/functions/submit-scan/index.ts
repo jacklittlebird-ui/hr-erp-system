@@ -291,6 +291,7 @@ Deno.serve(async (req) => {
           .select("id, date")
           .eq("employee_id", empId)
           .is("check_out", null)
+          .not("status", "eq", "auto-closed")
           .order("check_in", { ascending: false })
           .limit(1)
           .maybeSingle();

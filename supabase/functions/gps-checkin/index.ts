@@ -220,12 +220,13 @@ Deno.serve(async (req) => {
         notes: `GPS - ${matchedLocation.name_ar}`,
       });
     } else {
-      // check_out — find the latest open record for today
+      // check_out — find the latest open record (not auto-closed)
       const { data: openRecord } = await supabaseAdmin
         .from("attendance_records")
         .select("id")
         .eq("employee_id", employeeId)
         .is("check_out", null)
+        .not("status", "eq", "auto-closed")
         .order("check_in", { ascending: false })
         .limit(1)
         .maybeSingle();
