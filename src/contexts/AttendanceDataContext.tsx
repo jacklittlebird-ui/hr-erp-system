@@ -248,7 +248,7 @@ export const AttendanceDataProvider: React.FC<{ children: React.ReactNode }> = (
       if (r.employeeId !== employeeId) return false;
       const d = new Date(r.date);
       return d.getFullYear() === year && d.getMonth() === month;
-    }).sort((a, b) => a.date.localeCompare(b.date));
+    }).sort((a, b) => b.date.localeCompare(a.date));
   }, [records]);
 
   const getMonthlyStats = useCallback((employeeId: string, year: number, month: number) => {
