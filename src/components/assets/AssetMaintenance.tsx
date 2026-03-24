@@ -283,7 +283,7 @@ export const AssetMaintenance = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map(record => (
+                {paginatedMaint.map(record => (
                   <TableRow key={record.id}>
                     <TableCell className="font-mono text-sm">{record.assetCode}</TableCell>
                     <TableCell className="font-medium">{record.assetName}</TableCell>
