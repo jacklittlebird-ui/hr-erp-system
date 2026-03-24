@@ -296,6 +296,8 @@ export const MobileBills = () => {
     return matchesSearch && matchesStatus && matchesMonth;
   });
 
+  const { paginatedItems: paginatedBills, currentPage: billPage, totalPages: billTotalPages, totalItems: billTotalItems, startIndex: billStart, endIndex: billEnd, setCurrentPage: setBillPage } = usePagination(filteredEntries);
+
   const stats = useMemo(() => ({
     total: entries.length,
     pending: entries.filter(e => e.status === 'pending').length,
