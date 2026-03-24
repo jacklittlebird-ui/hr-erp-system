@@ -5,6 +5,20 @@ import { initSessionMonitor } from '@/lib/security';
 
 export type UserRole = 'admin' | 'employee' | 'station_manager' | 'kiosk' | 'training_manager' | 'hr' | 'area_manager';
 
+const EMPLOYEE_EMAIL_DOMAIN = 'linkagency.com';
+
+const normalizeArabicDigits = (value: string) =>
+  value.replace(/[٠-٩]/g, (digit) => '٠١٢٣٤٥٦٧٨٩'.indexOf(digit).toString());
+
+const normalizeLoginIdentifier = (value: string) => {
+  const normalized = normalizeArabicDigits(value).trim().toLowerCase().replace(/\s+/g, '');
+
+  if (!normalized) return '';
+  if (normalized.includes('@')) return normalized;
+
+  return `${normalized}@${EMPLOYEE_EMAIL_DOMAIN}`;
+};
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -191,9 +205,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   const login = useCallback(async ({ email, password }: { email: string; password: string }) => {
+    const normalizedEmail = normalizeLoginIdentifier(email);
+
     // Retry up to 3 times on timeout/server errors
     for (let attempt = 1; attempt <= 3; attempt++) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
       if (!error) return { success: true };
       
       // Only retry on server/timeout errors (5xx), not auth errors (4xx)
