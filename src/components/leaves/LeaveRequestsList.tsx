@@ -35,6 +35,7 @@ export const LeaveRequestsList = ({ requests, onDelete, onEdit }: LeaveRequestsL
   const { t, isRTL, language } = useLanguage();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editData, setEditData] = useState<LeaveEditData | null>(null);
+  const { paginatedItems, currentPage, totalPages, totalItems, startIndex, endIndex, setCurrentPage } = usePagination(requests);
 
   const getStatusBadge = (status: LeaveRequest['status']) => {
     switch (status) {
