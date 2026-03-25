@@ -113,7 +113,7 @@ export const PayrollProcessing = () => {
 
   // Daily rate based on baseGross (excluding livingAllowance and overtimePay)
   const baseDailyRate = baseGross / 30;
-  const leaveDeduction = Math.round(baseDailyRate * leaveDays);
+  const leaveDeduction = Math.round(baseDailyRate * leaveDays * 100) / 100;
   const basicSalary = salaryRecord?.basicSalary || 0;
   const penaltyAmount = useMemo(() => {
     if (penaltyType === 'amount') return penaltyValue;
