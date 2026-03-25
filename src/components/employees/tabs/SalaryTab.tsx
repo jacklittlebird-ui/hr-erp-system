@@ -291,27 +291,6 @@ export const SalaryTab = ({ employee, onUpdate, readOnly }: SalaryTabProps) => {
         </Card>
       )}
 
-      {/* Add Bank Dialog */}
-      <Dialog open={showAddBank} onOpenChange={setShowAddBank}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{ar ? 'إضافة بنك جديد' : 'Add New Bank'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>{ar ? 'اسم البنك (عربي)' : 'Bank Name (Arabic)'}</Label>
-              <Input value={newBank.labelAr} onChange={e => setNewBank(p => ({ ...p, labelAr: e.target.value }))} className={cn(isRTL && "text-right")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>{ar ? 'اسم البنك (إنجليزي)' : 'Bank Name (English)'}</Label>
-              <Input value={newBank.labelEn} onChange={e => setNewBank(p => ({ ...p, labelEn: e.target.value }))} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={handleAddBank}>{ar ? 'إضافة' : 'Add'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

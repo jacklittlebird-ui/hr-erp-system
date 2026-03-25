@@ -35,6 +35,7 @@ import { LoansAdvancesTab } from '@/components/employees/tabs/LoansAdvancesTab';
 import { TrainingTab } from '@/components/employees/tabs/TrainingTab';
 import { NotesTab } from '@/components/employees/tabs/NotesTab';
 import { BonusesEidTab } from '@/components/employees/tabs/BonusesEidTab';
+import { BankAccountTab } from '@/components/employees/tabs/BankAccountTab';
 import { EmployeeIdCards } from '@/components/training/EmployeeIdCards';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { toast } from '@/hooks/use-toast';
