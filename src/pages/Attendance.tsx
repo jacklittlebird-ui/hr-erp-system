@@ -268,7 +268,6 @@ const Attendance = () => {
               <Timer className="w-4 h-4" />
               <span className="hidden lg:inline">{language === 'ar' ? 'ساعات المحطات' : 'Station Hours'}</span>
             </TabsTrigger>
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="checkin">
@@ -300,13 +299,16 @@ const Attendance = () => {
             <AttendanceRules />
           </TabsContent>
 
-
           <TabsContent value="assignment">
             <EmployeeAssignment />
           </TabsContent>
 
           <TabsContent value="station-settings">
             <StationCheckinSettings />
+          </TabsContent>
+
+          <TabsContent value="hours-by-station">
+            <WorkHoursByStation />
           </TabsContent>
         </Tabs>
       </div>
