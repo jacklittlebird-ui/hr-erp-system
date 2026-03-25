@@ -77,6 +77,10 @@ export const GpsCheckinButton = ({ eventType, disabled, onSuccess, ar = true }: 
       setStatus('error');
       if (e.code === 1) {
         setMessage(ar ? 'يرجى السماح بالوصول للموقع' : 'Please allow location access');
+      } else if (e.code === 3) {
+        setMessage(ar ? 'انتهت مهلة تحديد الموقع - تأكد من تفعيل GPS وحاول مجدداً' : 'Location timeout - ensure GPS is enabled and try again');
+      } else if (e.code === 2) {
+        setMessage(ar ? 'تعذر تحديد الموقع - تأكد من تفعيل GPS' : 'Position unavailable - enable GPS');
       } else {
         setMessage(e.message);
       }
