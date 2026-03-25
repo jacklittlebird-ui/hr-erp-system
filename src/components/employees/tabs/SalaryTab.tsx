@@ -13,7 +13,6 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Save, Calendar, Edit, Trash2, Wallet, TrendingUp, TrendingDown, Building2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { toast } from '@/hooks/use-toast';
 import { stationLocations } from '@/data/stationLocations';
 
 interface SalaryTabProps {
