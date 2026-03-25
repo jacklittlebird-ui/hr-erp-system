@@ -114,83 +114,17 @@ export const PayrollProcessing = () => {
   // Daily rate based on baseGross (excluding livingAllowance and overtimePay)
   const roundToNearestQuarter = (value: number) => Math.round(value * 4) / 4;
   const baseDailyRate = baseGross / 30;
-  const leaveDeduction = Math.round(baseDailyRate * leaveDays * 100) / 100;
+  const leaveDeduction = roundToNearestQuarter(baseDailyRate * leaveDays);
   const basicSalary = salaryRecord?.basicSalary || 0;
   const penaltyAmount = useMemo(() => {
     if (penaltyType === 'amount') return penaltyValue;
     if (penaltyType === 'days') return roundToNearestQuarter((basicSalary / 30) * penaltyValue);
     return Math.round((penaltyValue / 100) * baseGross);
   }, [penaltyType, penaltyValue, basicSalary, baseGross]);
-
-  const totalDeductions = employeeInsurance + loanPayment + advanceAmount + mobileBill + leaveDeduction + penaltyAmount;
-  const grossWithBonus = gross + bonusAmount;
-  const netSalary = grossWithBonus - totalDeductions;
-
-  const employerSocialIns = salaryRecord?.employerSocialInsurance || 0;
-  const healthIns = salaryRecord?.healthInsurance || 0;
-  const incomeTax = salaryRecord?.incomeTax || 0;
-
-  const { employees: allEmployees } = useEmployeeData();
-  const activeEmployees = allEmployees.filter(e => e.status === 'active');
-
-  // Filter by station from employee data
-  const filteredEmployees = activeEmployees.filter(emp => {
-    const nameMatch = emp.nameEn.toLowerCase().includes(searchName.toLowerCase()) || emp.nameAr.includes(searchName);
-    if (!searchStation || searchStation === 'all') return nameMatch;
-    return nameMatch && emp.stationLocation === searchStation;
-  });
-
-  const processedThisMonth = getMonthlyPayroll(selectedMonth, selectedYear);
-
-  const handleReset = () => {
-    setLivingAllowance(0);
-    setOvertimePay(0);
-    setBonusType('amount');
-    setBonusValue(0);
-    setLeaveDays(0);
-    setPenaltyType('amount');
-    setPenaltyValue(0);
-  };
-
-  const handleSelectEmployee = (empId: string) => {
-    setSelectedEmployee(empId);
-    handleReset();
-    // Load existing processed data
-    const existing = getPayrollEntry(empId, selectedMonth, selectedYear);
-    if (existing) {
-      setLivingAllowance(existing.livingAllowance);
-      setOvertimePay(existing.overtimePay);
-      setBonusType(existing.bonusType);
-      setBonusValue(existing.bonusValue);
-      setLeaveDays(existing.leaveDays);
-      setPenaltyType(existing.penaltyType);
-      setPenaltyValue(existing.penaltyValue);
-    } else {
-      // Pre-fill living allowance from salary record
-      const sr = getSalaryRecord(empId, selectedYear);
-      if (sr) setLivingAllowance(sr.livingAllowance);
-    }
-  };
-
-  const buildPayrollEntry = (empId: string): ProcessedPayroll | null => {
-    const sr = getSalaryRecord(empId, selectedYear);
-    const emp = activeEmployees.find(e => e.id === empId);
-    if (!sr || !emp) return null;
-
-    const bg = calcGross(sr);
-    const la = empId === selectedEmployee ? livingAllowance : sr.livingAllowance;
-    const ot = empId === selectedEmployee ? overtimePay : 0;
-    const g = bg + la + ot;
-    const bt = empId === selectedEmployee ? bonusType : 'amount';
-    const bv = empId === selectedEmployee ? bonusValue : 0;
-    const ba = bt === 'amount' ? bv : Math.round((bv / 100) * bg);
-    const lp = getEmployeeMonthlyLoanPayment(empId);
-    const aa = getEmployeeAdvanceForMonth(empId, period);
-    const mb = getEmployeeMobileBill(empId, period);
-    const ld = empId === selectedEmployee ? leaveDays : 0;
+...
     // Use baseGross (bg) for daily rate calculations (excludes livingAllowance and overtimePay)
     const dr = bg / 30;
-    const lded = Math.round(dr * ld * 100) / 100;
+    const lded = roundToNearestQuarter(dr * ld);
     const pt = empId === selectedEmployee ? penaltyType : 'amount';
     const pv = empId === selectedEmployee ? penaltyValue : 0;
     const pa = pt === 'amount' ? pv : pt === 'days' ? roundToNearestQuarter(dr * pv) : Math.round((pv / 100) * bg);
