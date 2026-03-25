@@ -285,7 +285,7 @@ const Attendance = () => {
           </TabsContent>
 
           <TabsContent value="late">
-            <LateArrivals records={attendanceRecords.filter(r => r.status === 'late')} />
+            <LateArrivals />
           </TabsContent>
 
           <TabsContent value="reports">
