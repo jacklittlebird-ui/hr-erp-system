@@ -275,7 +275,7 @@ export const WorkHoursByStation = () => {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle className="flex items-center gap-2">
               <Building2 className="w-5 h-5" />
-              {ar ? 'ساعات العمل حسب المحطة' : 'Work Hours by Station'}
+              {ar ? 'ساعات العمل الشهرية' : 'Monthly Work Hours'}
             </CardTitle>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={onPrint} className="gap-1.5">
