@@ -152,6 +152,85 @@ export const PayrollProcessing = () => {
     setPenaltyValue(0);
   };
 
+  const handleSelectEmployee = (empId: string) => {
+    setSelectedEmployee(empId);
+    handleReset();
+    const existing = getPayrollEntry(empId, selectedMonth, selectedYear);
+    if (existing) {
+      setLivingAllowance(existing.livingAllowance);
+      setOvertimePay(existing.overtimePay);
+      setBonusType(existing.bonusType);
+      setBonusValue(existing.bonusValue);
+      setLeaveDays(existing.leaveDays);
+      setPenaltyType(existing.penaltyType);
+      setPenaltyValue(existing.penaltyValue);
+    } else {
+      const sr = getSalaryRecord(empId, selectedYear);
+      if (sr) setLivingAllowance(sr.livingAllowance);
+    }
+  };
+
+  const buildPayrollEntry = (empId: string): ProcessedPayroll | null => {
+    const sr = getSalaryRecord(empId, selectedYear);
+    const emp = activeEmployees.find(e => e.id === empId);
+    if (!sr || !emp) return null;
+
+    const bg = calcGross(sr);
+    const la = empId === selectedEmployee ? livingAllowance : sr.livingAllowance;
+    const ot = empId === selectedEmployee ? overtimePay : 0;
+    const g = bg + la + ot;
+    const bt = empId === selectedEmployee ? bonusType : 'amount';
+    const bv = empId === selectedEmployee ? bonusValue : 0;
+    const ba = bt === 'amount' ? bv : Math.round((bv / 100) * bg);
+    const lp = getEmployeeMonthlyLoanPayment(empId);
+    const aa = getEmployeeAdvanceForMonth(empId, period);
+    const mb = getEmployeeMobileBill(empId, period);
+    const ld = empId === selectedEmployee ? leaveDays : 0;
+    const dr = bg / 30;
+    const lded = roundToNearestQuarter(dr * ld);
+    const pt = empId === selectedEmployee ? penaltyType : 'amount';
+    const pv = empId === selectedEmployee ? penaltyValue : 0;
+    const pa = pt === 'amount' ? pv : pt === 'days' ? roundToNearestQuarter(dr * pv) : Math.round((pv / 100) * bg);
+    const td = sr.employeeInsurance + lp + aa + mb + lded + pa;
+
+    return {
+      employeeId: empId,
+      employeeCode: emp.employeeId || '',
+      employeeName: emp.nameAr,
+      employeeNameEn: emp.nameEn,
+      department: emp.department,
+      stationLocation: emp.stationLocation || sr.stationLocation,
+      month: selectedMonth,
+      year: selectedYear,
+      basicSalary: sr.basicSalary,
+      transportAllowance: sr.transportAllowance,
+      incentives: sr.incentives,
+      stationAllowance: sr.stationAllowance,
+      mobileAllowance: sr.mobileAllowance,
+      livingAllowance: la,
+      overtimePay: ot,
+      bonusType: bt,
+      bonusValue: bv,
+      bonusAmount: ba,
+      gross: g,
+      employeeInsurance: sr.employeeInsurance,
+      loanPayment: lp,
+      advanceAmount: aa,
+      mobileBill: mb,
+      leaveDays: ld,
+      leaveDeduction: lded,
+      penaltyType: pt,
+      penaltyValue: pv,
+      penaltyAmount: pa,
+      totalDeductions: td,
+      netSalary: g + ba - td,
+      employerSocialInsurance: sr.employerSocialInsurance,
+      healthInsurance: sr.healthInsurance,
+      incomeTax: sr.incomeTax,
+      processedAt: new Date().toISOString().split('T')[0],
+    };
+  };
+
   const handleSave = () => {
     const entry = buildPayrollEntry(selectedEmployee);
     if (!entry) {
