@@ -144,46 +144,6 @@ export const SalaryTab = ({ employee, onUpdate, readOnly }: SalaryTabProps) => {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {/* ====== BANK INFO ====== */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
-            <Landmark className="h-5 w-5 text-primary" />
-            {ar ? 'بيانات الحساب البنكي' : 'Bank Account Info'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-1.5">
-              <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'رقم الحساب البنكي' : 'Bank Account Number'}</Label>
-              <Input value={bankInfo.accountNumber} onChange={e => updateBankField('accountNumber', e.target.value)} className={cn("h-9 text-sm", isRTL && "text-right")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'رقم الـ ID البنكي' : 'Bank ID Number'}</Label>
-              <Input value={bankInfo.bankId} onChange={e => updateBankField('bankId', e.target.value)} className={cn("h-9 text-sm", isRTL && "text-right")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'نوع الحساب البنكي' : 'Account Type'}</Label>
-              <Input value={bankInfo.accountType} onChange={e => updateBankField('accountType', e.target.value)} className={cn("h-9 text-sm", isRTL && "text-right")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'اسم البنك' : 'Bank Name'}</Label>
-              <div className="flex gap-2">
-                <Select value={bankInfo.bankName} onValueChange={v => updateBankField('bankName', v)}>
-                  <SelectTrigger className="h-9 text-sm flex-1"><SelectValue placeholder={ar ? '-- اختر البنك --' : '-- Select --'} /></SelectTrigger>
-                  <SelectContent>
-                    {banks.map(b => <SelectItem key={b.value} value={b.value}>{ar ? b.labelAr : b.labelEn}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button size="sm" variant="outline" className="h-9 px-2" onClick={() => setShowAddBank(true)}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* ====== SALARY ENTRY ====== */}
       <Card>
         <CardHeader className="pb-3">
