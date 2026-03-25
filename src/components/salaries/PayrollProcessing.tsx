@@ -189,11 +189,11 @@ export const PayrollProcessing = () => {
     const mb = getEmployeeMobileBill(empId, period);
     const ld = empId === selectedEmployee ? normalizeQuarterInput(leaveDays) : 0;
     const leaveDailyRate = bg / 30;
-    const lded = roundToNearestEighth(leaveDailyRate * ld);
+    const lded = roundToNearestQuarter(leaveDailyRate * ld);
     const pt = empId === selectedEmployee ? penaltyType : 'amount';
     const pv = empId === selectedEmployee ? (pt === 'days' ? normalizeQuarterInput(penaltyValue) : penaltyValue) : 0;
     const penaltyDailyRate = sr.basicSalary / 30;
-    const pa = pt === 'amount' ? pv : pt === 'days' ? roundToNearestEighth(penaltyDailyRate * pv) : Math.round((pv / 100) * bg);
+    const pa = pt === 'amount' ? roundToNearestQuarter(pv) : pt === 'days' ? roundToNearestQuarter(penaltyDailyRate * pv) : roundToNearestQuarter((pv / 100) * sr.basicSalary);
     const td = sr.employeeInsurance + lp + aa + mb + lded + pa;
 
     return {
