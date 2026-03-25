@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePayrollData } from '@/contexts/PayrollDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -106,6 +106,29 @@ export const SalaryReports = () => {
     empMap.forEach((v, k) => { if (map.has(k)) map.get(k)!.employees = v.size; });
     return Array.from(map.entries());
   }, [filtered]);
+
+  // Employee detail sorted by station then name
+  const employeeDetail = useMemo(() => {
+    const map = new Map<string, { name: string; nameEn: string; code: string; dept: string; station: string; basic: number; allowances: number; bonuses: number; overtime: number; deductions: number; net: number; months: number }>();
+    filtered.forEach(e => {
+      if (!map.has(e.employeeId)) map.set(e.employeeId, { name: e.employeeName, nameEn: e.employeeNameEn, code: e.employeeCode, dept: e.department, station: e.stationLocation, basic: 0, allowances: 0, bonuses: 0, overtime: 0, deductions: 0, net: 0, months: 0 });
+      const emp = map.get(e.employeeId)!;
+      emp.basic += e.basicSalary;
+      emp.allowances += e.transportAllowance + e.incentives + e.livingAllowance + e.stationAllowance + e.mobileAllowance;
+      emp.bonuses += e.bonusAmount;
+      emp.overtime += e.overtimePay;
+      emp.deductions += e.totalDeductions;
+      emp.net += e.netSalary;
+      emp.months += 1;
+    });
+    return Array.from(map.entries()).sort((a, b) => {
+      const stA = a[1].station; const stB = b[1].station;
+      if (stA !== stB) return stA.localeCompare(stB);
+      const nameA = ar ? a[1].name : a[1].nameEn;
+      const nameB = ar ? b[1].name : b[1].nameEn;
+      return nameA.localeCompare(nameB);
+    });
+  }, [filtered, ar]);
 
   return (
     <div className="space-y-6">
@@ -230,6 +253,71 @@ export const SalaryReports = () => {
                       </TableRow>
                     );
                   })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Employee Detail Table */}
+        {employeeDetail.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader><CardTitle>{ar ? 'تفصيل الموظفين' : 'Employee Detail'}</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className={cn(isRTL && "text-right")}>#</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الكود' : 'Code'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الموظف' : 'Employee'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المحطة' : 'Station'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'القسم' : 'Dept'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الأساسي' : 'Basic'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'البدلات' : 'Allowances'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'المكافآت' : 'Bonuses'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'أجر إضافي' : 'Overtime'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الخصومات' : 'Deductions'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الصافي' : 'Net'}</TableHead>
+                    <TableHead className={cn(isRTL && "text-right")}>{ar ? 'الأشهر' : 'Months'}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(() => {
+                    let currentStation = '';
+                    let idx = 0;
+                    return employeeDetail.map(([id, v]) => {
+                      const st = stationLocations.find(s => s.value === v.station);
+                      const stName = st ? (ar ? st.labelAr : st.labelEn) : v.station;
+                      const showStationHeader = v.station !== currentStation;
+                      currentStation = v.station;
+                      idx++;
+                      return (
+                        <React.Fragment key={id}>
+                          {showStationHeader && (
+                            <TableRow className="bg-muted/50">
+                              <TableCell colSpan={12} className={cn("font-bold text-primary", isRTL && "text-right")}>
+                                📍 {stName}
+                              </TableCell>
+                            </TableRow>
+                          )}
+                          <TableRow>
+                            <TableCell className={cn(isRTL && "text-right")}>{idx}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{v.code}</TableCell>
+                            <TableCell className={cn("font-medium", isRTL && "text-right")}>{ar ? v.name : v.nameEn}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{stName}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{v.dept}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{v.basic.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{v.allowances.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{v.bonuses.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{v.overtime.toLocaleString()}</TableCell>
+                            <TableCell className={cn("text-destructive", isRTL && "text-right")}>{v.deductions.toLocaleString()}</TableCell>
+                            <TableCell className={cn("font-bold", isRTL && "text-right")}>{v.net.toLocaleString()}</TableCell>
+                            <TableCell className={cn(isRTL && "text-right")}>{v.months}</TableCell>
+                          </TableRow>
+                        </React.Fragment>
+                      );
+                    });
+                  })()}
                 </TableBody>
               </Table>
             </CardContent>
