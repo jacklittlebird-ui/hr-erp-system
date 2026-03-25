@@ -121,35 +121,35 @@ export const PayrollProcessing = () => {
     if (penaltyType === 'days') return roundToNearestQuarter((basicSalary / 30) * penaltyValue);
     return Math.round((penaltyValue / 100) * baseGross);
   }, [penaltyType, penaltyValue, basicSalary, baseGross]);
-...
-    // Use baseGross (bg) for daily rate calculations (excludes livingAllowance and overtimePay)
-    const dr = bg / 30;
-    const lded = roundToNearestQuarter(dr * ld);
-    const pt = empId === selectedEmployee ? penaltyType : 'amount';
-    const pv = empId === selectedEmployee ? penaltyValue : 0;
-    const pa = pt === 'amount' ? pv : pt === 'days' ? roundToNearestQuarter(dr * pv) : Math.round((pv / 100) * bg);
-    const td = sr.employeeInsurance + lp + aa + mb + lded + pa;
 
-    return {
-      employeeId: empId,
-      employeeCode: emp.employeeId || '',
-      employeeName: emp.nameAr,
-      employeeNameEn: emp.nameEn,
-      department: emp.department,
-      stationLocation: emp.stationLocation || sr.stationLocation,
-      month: selectedMonth, year: selectedYear,
-      basicSalary: sr.basicSalary, transportAllowance: sr.transportAllowance,
-      incentives: sr.incentives, stationAllowance: sr.stationAllowance, mobileAllowance: sr.mobileAllowance,
-      livingAllowance: la, overtimePay: ot,
-      bonusType: bt, bonusValue: bv, bonusAmount: ba,
-      gross: g,
-      employeeInsurance: sr.employeeInsurance, loanPayment: lp, advanceAmount: aa, mobileBill: mb,
-      leaveDays: ld, leaveDeduction: lded,
-      penaltyType: pt, penaltyValue: pv, penaltyAmount: pa,
-      totalDeductions: td, netSalary: g + ba - td,
-      employerSocialInsurance: sr.employerSocialInsurance, healthInsurance: sr.healthInsurance, incomeTax: sr.incomeTax,
-      processedAt: new Date().toISOString().split('T')[0],
-    };
+  const totalDeductions = employeeInsurance + loanPayment + advanceAmount + mobileBill + leaveDeduction + penaltyAmount;
+  const grossWithBonus = gross + bonusAmount;
+  const netSalary = grossWithBonus - totalDeductions;
+
+  const employerSocialIns = salaryRecord?.employerSocialInsurance || 0;
+  const healthIns = salaryRecord?.healthInsurance || 0;
+  const incomeTax = salaryRecord?.incomeTax || 0;
+
+  const { employees: allEmployees } = useEmployeeData();
+  const activeEmployees = allEmployees.filter(e => e.status === 'active');
+
+  // Filter by station from employee data
+  const filteredEmployees = activeEmployees.filter(emp => {
+    const nameMatch = emp.nameEn.toLowerCase().includes(searchName.toLowerCase()) || emp.nameAr.includes(searchName);
+    if (!searchStation || searchStation === 'all') return nameMatch;
+    return nameMatch && emp.stationLocation === searchStation;
+  });
+
+  const processedThisMonth = getMonthlyPayroll(selectedMonth, selectedYear);
+
+  const handleReset = () => {
+    setLivingAllowance(0);
+    setOvertimePay(0);
+    setBonusType('amount');
+    setBonusValue(0);
+    setLeaveDays(0);
+    setPenaltyType('amount');
+    setPenaltyValue(0);
   };
 
   const handleSave = () => {
