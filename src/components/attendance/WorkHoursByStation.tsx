@@ -227,8 +227,8 @@ export const WorkHoursByStation = () => {
 
   const monthLabel = months.find(m => m.value === selectedMonth);
   const reportTitle = {
-    ar: `ساعات العمل حسب المحطة - ${monthLabel?.ar} ${selectedYear}`,
-    en: `Work Hours by Station - ${monthLabel?.en} ${selectedYear}`,
+    ar: `ساعات العمل الشهرية - ${monthLabel?.ar} ${selectedYear}`,
+    en: `Monthly Work Hours - ${monthLabel?.en} ${selectedYear}`,
   };
 
   const onPrint = () => handlePrint(ar ? reportTitle.ar : reportTitle.en);
