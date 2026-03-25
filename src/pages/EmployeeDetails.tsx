@@ -158,6 +158,7 @@ const EmployeeDetails = () => {
       case 'identity': return <IdentityTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
       case 'job': return <JobInfoTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
       case 'salary': return <SalaryTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
+      case 'bankAccount': return <BankAccountTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
       case 'leave': return <LeaveBalanceTab employee={employee} onUpdate={effectiveHandler} onDirectSave={async (updates) => { if (!isViewMode) await updateEmployee(employee.id, updates); }} readOnly={isViewMode} />;
       case 'leaveRecord': return <LeaveRecordTab employee={employee} />;
       case 'missionRecord': return <MissionRecordTab employee={employee} />;
