@@ -180,26 +180,26 @@ export const WorkHoursByStation = () => {
     return totals;
   }, [filteredData]);
 
+  // Find the last index of each station in the full filtered dataset
+  const lastStationIndex = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredData.forEach((emp, idx) => { map[emp.stationId] = idx; });
+    return map;
+  }, [filteredData]);
+
   const buildRows = () => {
     const rows: Array<{ type: 'detail'; data: EmployeeHours } | { type: 'subtotal'; stationName: string; totalMinutes: number; count: number }> = [];
-    let currentStation = '';
 
-    paginatedItems.forEach((emp, idx) => {
-      if (idx > 0 && emp.stationId !== currentStation) {
-        // Insert subtotal for the previous station using full dataset totals
-        const prevStation = paginatedItems[idx - 1].stationId;
-        const st = stationTotals[prevStation];
+    paginatedItems.forEach((emp) => {
+      rows.push({ type: 'detail', data: emp });
+
+      // Show subtotal only if this employee is the very last one for this station in the full dataset
+      const globalIdx = filteredData.indexOf(emp);
+      if (globalIdx === lastStationIndex[emp.stationId]) {
+        const st = stationTotals[emp.stationId];
         rows.push({ type: 'subtotal', stationName: ar ? st.nameAr : st.nameEn, totalMinutes: st.totalMinutes, count: st.count });
       }
-      currentStation = emp.stationId;
-      rows.push({ type: 'detail', data: emp });
     });
-
-    if (paginatedItems.length > 0) {
-      const last = paginatedItems[paginatedItems.length - 1];
-      const st = stationTotals[last.stationId];
-      rows.push({ type: 'subtotal', stationName: ar ? st.nameAr : st.nameEn, totalMinutes: st.totalMinutes, count: st.count });
-    }
 
     return rows;
   };
