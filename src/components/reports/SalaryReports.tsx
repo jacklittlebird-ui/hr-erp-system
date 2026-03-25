@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePayrollData } from '@/contexts/PayrollDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
