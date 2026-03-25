@@ -167,27 +167,38 @@ export const WorkHoursByStation = () => {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
 
+  // Pre-compute full station totals from all filtered data
+  const stationTotals = useMemo(() => {
+    const totals: Record<string, { totalMinutes: number; count: number; nameAr: string; nameEn: string }> = {};
+    filteredData.forEach(emp => {
+      if (!totals[emp.stationId]) {
+        totals[emp.stationId] = { totalMinutes: 0, count: 0, nameAr: emp.stationNameAr, nameEn: emp.stationNameEn };
+      }
+      totals[emp.stationId].totalMinutes += emp.totalMinutes;
+      totals[emp.stationId].count++;
+    });
+    return totals;
+  }, [filteredData]);
+
   const buildRows = () => {
     const rows: Array<{ type: 'detail'; data: EmployeeHours } | { type: 'subtotal'; stationName: string; totalMinutes: number; count: number }> = [];
     let currentStation = '';
-    let stationMinutes = 0;
-    let stationEmpCount = 0;
 
     paginatedItems.forEach((emp, idx) => {
       if (idx > 0 && emp.stationId !== currentStation) {
-        rows.push({ type: 'subtotal', stationName: ar ? paginatedItems[idx - 1].stationNameAr : paginatedItems[idx - 1].stationNameEn, totalMinutes: stationMinutes, count: stationEmpCount });
-        stationMinutes = 0;
-        stationEmpCount = 0;
+        // Insert subtotal for the previous station using full dataset totals
+        const prevStation = paginatedItems[idx - 1].stationId;
+        const st = stationTotals[prevStation];
+        rows.push({ type: 'subtotal', stationName: ar ? st.nameAr : st.nameEn, totalMinutes: st.totalMinutes, count: st.count });
       }
       currentStation = emp.stationId;
-      stationMinutes += emp.totalMinutes;
-      stationEmpCount++;
       rows.push({ type: 'detail', data: emp });
     });
 
-    if (stationEmpCount > 0 && paginatedItems.length > 0) {
+    if (paginatedItems.length > 0) {
       const last = paginatedItems[paginatedItems.length - 1];
-      rows.push({ type: 'subtotal', stationName: ar ? last.stationNameAr : last.stationNameEn, totalMinutes: stationMinutes, count: stationEmpCount });
+      const st = stationTotals[last.stationId];
+      rows.push({ type: 'subtotal', stationName: ar ? st.nameAr : st.nameEn, totalMinutes: st.totalMinutes, count: st.count });
     }
 
     return rows;
