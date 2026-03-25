@@ -22,13 +22,28 @@ export const GpsCheckinButton = ({ eventType, disabled, onSuccess, ar = true }: 
     setMessage('');
 
     try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        if (!navigator.geolocation) return reject(new Error(ar ? 'الموقع غير مدعوم' : 'Geolocation not supported'));
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
+      // Try high accuracy first, fallback to low accuracy on timeout
+      const getPosition = (highAccuracy: boolean, timeout: number) =>
+        new Promise<GeolocationPosition>((resolve, reject) => {
+          if (!navigator.geolocation) return reject(new Error(ar ? 'الموقع غير مدعوم' : 'Geolocation not supported'));
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: highAccuracy,
+            timeout,
+            maximumAge: 30000,
+          });
         });
-      });
+
+      let pos: GeolocationPosition;
+      try {
+        pos = await getPosition(true, 20000);
+      } catch (geoErr: any) {
+        if (geoErr.code === 3) {
+          // Timeout — retry with low accuracy
+          pos = await getPosition(false, 15000);
+        } else {
+          throw geoErr;
+        }
+      }
 
       if (!session?.access_token || !session.user?.id) {
         setStatus('error');
@@ -62,6 +77,10 @@ export const GpsCheckinButton = ({ eventType, disabled, onSuccess, ar = true }: 
       setStatus('error');
       if (e.code === 1) {
         setMessage(ar ? 'يرجى السماح بالوصول للموقع' : 'Please allow location access');
+      } else if (e.code === 3) {
+        setMessage(ar ? 'انتهت مهلة تحديد الموقع - تأكد من تفعيل GPS وحاول مجدداً' : 'Location timeout - ensure GPS is enabled and try again');
+      } else if (e.code === 2) {
+        setMessage(ar ? 'تعذر تحديد الموقع - تأكد من تفعيل GPS' : 'Position unavailable - enable GPS');
       } else {
         setMessage(e.message);
       }
