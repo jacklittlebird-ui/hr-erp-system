@@ -297,7 +297,7 @@ const EmployeeDetails = () => {
               `}</style>
             </div>
           )}
-          <div className={isViewMode && ['basic', 'contact', 'identity', 'job', 'salary', 'leave', 'insurance', 'permits', 'certificates', 'notes'].includes(activeTab) ? 'view-mode-overlay' : ''}>
+          <div className={isViewMode && ['basic', 'contact', 'identity', 'job', 'salary', 'bankAccount', 'leave', 'insurance', 'permits', 'certificates', 'notes'].includes(activeTab) ? 'view-mode-overlay' : ''}>
             {renderTabContent()}
           </div>
         </div>

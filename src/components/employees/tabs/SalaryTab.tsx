@@ -22,19 +22,7 @@ interface SalaryTabProps {
   readOnly?: boolean;
 }
 
-interface BankInfo {
-  accountNumber: string;
-  bankId: string;
-  accountType: string;
-  bankName: string;
-}
-
-const defaultBanks = [
-  { value: 'credit_agricole', labelAr: 'كريدي أجريكول', labelEn: 'Crédit Agricole' },
-  { value: 'nbe', labelAr: 'البنك الأهلي المصري', labelEn: 'National Bank of Egypt' },
-  { value: 'cash', labelAr: 'نقدي', labelEn: 'Cash' },
-  { value: 'other', labelAr: 'أخرى', labelEn: 'Other' },
-];
+const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
 
 const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
 
