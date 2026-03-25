@@ -633,21 +633,56 @@ const SalaryReports = () => {
     { header: ar ? 'إجمالي مساهمات ص.ع' : 'Total Employer', key: 'totalEmployer' },
   ];
 
-  const getDetailExportDataFull = () => detailedSortedRecords.map(e => ({
-    ...getDetailExportData().find(d => d.id === (e.employeeCode || e.employeeId) && d.net === e.netSalary) || {},
-    id: e.employeeCode || e.employeeId,
-    name: ar ? e.employeeName : e.employeeNameEn,
-    dept: e.department,
-    station: getStationLabel(e.stationLocation),
-    basic: e.basicSalary, transport: e.transportAllowance, incentives: e.incentives,
-    stationAllow: e.stationAllowance, mobileAllow: e.mobileAllowance, living: e.livingAllowance,
-    overtime: e.overtimePay, bonus: e.bonusAmount, gross: e.gross,
-    insurance: e.employeeInsurance, loans: e.loanPayment, advances: e.advanceAmount,
-    mobileBill: e.mobileBill, leaveDed: e.leaveDeduction, penalty: e.penaltyAmount,
-    totalDed: e.totalDeductions, net: e.netSalary,
-    empIns: e.employerSocialInsurance, health: e.healthInsurance, tax: e.incomeTax,
-    totalEmployer: e.employerSocialInsurance + e.healthInsurance + e.incomeTax,
-  }));
+  const getDetailExportDataFull = () => {
+    const result: Record<string, unknown>[] = [];
+    const grandTotals = calcStationTotals(detailedSortedRecords);
+    detailedByStation.forEach((records, stKey) => {
+      const stTotals = calcStationTotals(records);
+      records.forEach(e => {
+        result.push({
+          id: e.employeeCode || e.employeeId,
+          name: ar ? e.employeeName : e.employeeNameEn,
+          dept: e.department,
+          station: getStationLabel(e.stationLocation),
+          basic: e.basicSalary, transport: e.transportAllowance, incentives: e.incentives,
+          stationAllow: e.stationAllowance, mobileAllow: e.mobileAllowance, living: e.livingAllowance,
+          overtime: e.overtimePay, bonus: e.bonusAmount, gross: e.gross,
+          insurance: e.employeeInsurance, loans: e.loanPayment, advances: e.advanceAmount,
+          mobileBill: e.mobileBill, leaveDed: e.leaveDeduction, penalty: e.penaltyAmount,
+          totalDed: e.totalDeductions, net: e.netSalary,
+          empIns: e.employerSocialInsurance, health: e.healthInsurance, tax: e.incomeTax,
+          totalEmployer: e.employerSocialInsurance + e.healthInsurance + e.incomeTax,
+        });
+      });
+      // Station subtotal row
+      result.push({
+        id: '', name: ar ? `إجمالي ${getStationLabel(stKey)}` : `${getStationLabel(stKey)} Total`,
+        dept: `(${stTotals.count})`, station: '',
+        basic: stTotals.basic, transport: stTotals.transport, incentives: stTotals.incentives,
+        stationAllow: stTotals.stationAllow, mobileAllow: stTotals.mobileAllow, living: stTotals.living,
+        overtime: stTotals.overtime, bonus: stTotals.bonus, gross: stTotals.gross,
+        insurance: stTotals.insurance, loans: stTotals.loans, advances: stTotals.advances,
+        mobileBill: stTotals.mobileBill, leaveDed: stTotals.leaveDed, penalty: stTotals.penalty,
+        totalDed: stTotals.totalDed, net: stTotals.net,
+        empIns: stTotals.empIns, health: stTotals.health, tax: stTotals.tax,
+        totalEmployer: stTotals.empIns + stTotals.health + stTotals.tax,
+      });
+    });
+    // Grand total
+    result.push({
+      id: '', name: ar ? 'الإجمالي العام' : 'Grand Total',
+      dept: `(${grandTotals.count})`, station: '',
+      basic: grandTotals.basic, transport: grandTotals.transport, incentives: grandTotals.incentives,
+      stationAllow: grandTotals.stationAllow, mobileAllow: grandTotals.mobileAllow, living: grandTotals.living,
+      overtime: grandTotals.overtime, bonus: grandTotals.bonus, gross: grandTotals.gross,
+      insurance: grandTotals.insurance, loans: grandTotals.loans, advances: grandTotals.advances,
+      mobileBill: grandTotals.mobileBill, leaveDed: grandTotals.leaveDed, penalty: grandTotals.penalty,
+      totalDed: grandTotals.totalDed, net: grandTotals.net,
+      empIns: grandTotals.empIns, health: grandTotals.health, tax: grandTotals.tax,
+      totalEmployer: grandTotals.empIns + grandTotals.health + grandTotals.tax,
+    });
+    return result;
+  };
 
   const getMonthlyExportColumns = () => [
     { header: ar ? 'الشهر' : 'Month', key: 'month' },
