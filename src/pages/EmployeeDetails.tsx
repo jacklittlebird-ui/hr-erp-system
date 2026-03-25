@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   ArrowRight, Save, Edit, Eye, User, Phone, CreditCard, Briefcase, Wallet, Calendar,
   Shield, FileCheck, Award, Building2, Clock, CalendarDays, MapPin,
-  BarChart3, AlertTriangle, FileText, Receipt, HandCoins, GraduationCap, StickyNote, IdCard, Gift,
+  BarChart3, AlertTriangle, FileText, Receipt, HandCoins, GraduationCap, StickyNote, IdCard, Gift, Landmark,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BasicInfoTab } from '@/components/employees/tabs/BasicInfoTab';
@@ -35,6 +35,7 @@ import { LoansAdvancesTab } from '@/components/employees/tabs/LoansAdvancesTab';
 import { TrainingTab } from '@/components/employees/tabs/TrainingTab';
 import { NotesTab } from '@/components/employees/tabs/NotesTab';
 import { BonusesEidTab } from '@/components/employees/tabs/BonusesEidTab';
+import { BankAccountTab } from '@/components/employees/tabs/BankAccountTab';
 import { EmployeeIdCards } from '@/components/training/EmployeeIdCards';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { toast } from '@/hooks/use-toast';
@@ -49,6 +50,7 @@ const allDetailTabs = [
   { id: 'identity', icon: CreditCard, labelKey: 'employees.tabs.identity' },
   { id: 'job', icon: Briefcase, labelKey: 'employees.tabs.jobInfo' },
   { id: 'salary', icon: Wallet, labelKey: 'employees.tabs.salary' },
+  { id: 'bankAccount', icon: Landmark, labelKey: 'employees.tabs.bankAccount' },
   { id: 'leave', icon: Calendar, labelKey: 'employees.tabs.leaveBalance' },
   { id: 'insurance', icon: Shield, labelKey: 'employees.tabs.insurance' },
   { id: 'permits', icon: FileCheck, labelKey: 'employees.tabs.permits' },
@@ -156,6 +158,7 @@ const EmployeeDetails = () => {
       case 'identity': return <IdentityTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
       case 'job': return <JobInfoTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
       case 'salary': return <SalaryTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
+      case 'bankAccount': return <BankAccountTab employee={employee} onUpdate={effectiveHandler} readOnly={isViewMode} />;
       case 'leave': return <LeaveBalanceTab employee={employee} onUpdate={effectiveHandler} onDirectSave={async (updates) => { if (!isViewMode) await updateEmployee(employee.id, updates); }} readOnly={isViewMode} />;
       case 'leaveRecord': return <LeaveRecordTab employee={employee} />;
       case 'missionRecord': return <MissionRecordTab employee={employee} />;
@@ -284,7 +287,7 @@ const EmployeeDetails = () => {
 
         {/* Tab Content */}
         <div className={cn("border rounded-xl bg-card overflow-hidden", isViewMode && "relative")}>
-          {isViewMode && ['basic', 'contact', 'identity', 'job', 'salary', 'leave', 'insurance', 'permits', 'certificates', 'notes'].includes(activeTab) && (
+          {isViewMode && ['basic', 'contact', 'identity', 'job', 'salary', 'bankAccount', 'leave', 'insurance', 'permits', 'certificates', 'notes'].includes(activeTab) && (
             <div className="absolute inset-0 z-10 pointer-events-auto" style={{ background: 'transparent' }}>
               <style>{`
                 .view-mode-overlay input, .view-mode-overlay select, .view-mode-overlay textarea, .view-mode-overlay button[role="combobox"] {
@@ -294,7 +297,7 @@ const EmployeeDetails = () => {
               `}</style>
             </div>
           )}
-          <div className={isViewMode && ['basic', 'contact', 'identity', 'job', 'salary', 'leave', 'insurance', 'permits', 'certificates', 'notes'].includes(activeTab) ? 'view-mode-overlay' : ''}>
+          <div className={isViewMode && ['basic', 'contact', 'identity', 'job', 'salary', 'bankAccount', 'leave', 'insurance', 'permits', 'certificates', 'notes'].includes(activeTab) ? 'view-mode-overlay' : ''}>
             {renderTabContent()}
           </div>
         </div>

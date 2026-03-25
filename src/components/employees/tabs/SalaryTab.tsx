@@ -10,9 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { Save, Landmark, Calendar, Plus, Edit, Trash2, Wallet, TrendingUp, TrendingDown, Building2 } from 'lucide-react';
+import { Save, Calendar, Edit, Trash2, Wallet, TrendingUp, TrendingDown, Building2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { stationLocations } from '@/data/stationLocations';
 
@@ -21,20 +20,6 @@ interface SalaryTabProps {
   onUpdate?: (updates: Partial<Employee>) => void;
   readOnly?: boolean;
 }
-
-interface BankInfo {
-  accountNumber: string;
-  bankId: string;
-  accountType: string;
-  bankName: string;
-}
-
-const defaultBanks = [
-  { value: 'credit_agricole', labelAr: 'كريدي أجريكول', labelEn: 'Crédit Agricole' },
-  { value: 'nbe', labelAr: 'البنك الأهلي المصري', labelEn: 'National Bank of Egypt' },
-  { value: 'cash', labelAr: 'نقدي', labelEn: 'Cash' },
-  { value: 'other', labelAr: 'أخرى', labelEn: 'Other' },
-];
 
 const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
 
@@ -46,15 +31,6 @@ export const SalaryTab = ({ employee, onUpdate, readOnly }: SalaryTabProps) => {
   const ar = language === 'ar';
   const { salaryRecords, saveSalaryRecord, deleteSalaryRecord } = useSalaryData();
 
-  const [bankInfo, setBankInfo] = useState<BankInfo>({
-    accountNumber: employee.bankAccountNumber || '',
-    bankId: employee.bankIdNumber || '',
-    accountType: employee.bankAccountType || '',
-    bankName: employee.bankName || '',
-  });
-  const [banks, setBanks] = useState(defaultBanks);
-  const [showAddBank, setShowAddBank] = useState(false);
-  const [newBank, setNewBank] = useState({ labelAr: '', labelEn: '' });
 
   const [selectedYear, setSelectedYear] = useState('');
   const [formData, setFormData] = useState({
@@ -105,25 +81,6 @@ export const SalaryTab = ({ employee, onUpdate, readOnly }: SalaryTabProps) => {
     toast({ title: ar ? 'تم الحفظ' : 'Saved', description: ar ? `تم حفظ راتب سنة ${selectedYear}` : `Salary for ${selectedYear} saved` });
   };
 
-  const updateBankField = (field: keyof BankInfo, value: string) => {
-    setBankInfo(p => ({ ...p, [field]: value }));
-    const fieldMap: Record<keyof BankInfo, keyof Employee> = {
-      accountNumber: 'bankAccountNumber',
-      bankId: 'bankIdNumber',
-      accountType: 'bankAccountType',
-      bankName: 'bankName',
-    };
-    onUpdate?.({ [fieldMap[field]]: value });
-  };
-
-  const handleAddBank = () => {
-    if (!newBank.labelAr || !newBank.labelEn) return;
-    const value = newBank.labelEn.toLowerCase().replace(/\s+/g, '_');
-    setBanks(prev => [...prev, { value, ...newBank }]);
-    setShowAddBank(false);
-    setNewBank({ labelAr: '', labelEn: '' });
-    toast({ title: ar ? 'تمت الإضافة' : 'Added' });
-  };
 
   const handleDeleteRecord = (year: string) => {
     deleteSalaryRecord(employee.id, year);
@@ -144,46 +101,6 @@ export const SalaryTab = ({ employee, onUpdate, readOnly }: SalaryTabProps) => {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {/* ====== BANK INFO ====== */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className={cn("flex items-center gap-2 text-lg", isRTL && "flex-row-reverse")}>
-            <Landmark className="h-5 w-5 text-primary" />
-            {ar ? 'بيانات الحساب البنكي' : 'Bank Account Info'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-1.5">
-              <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'رقم الحساب البنكي' : 'Bank Account Number'}</Label>
-              <Input value={bankInfo.accountNumber} onChange={e => updateBankField('accountNumber', e.target.value)} className={cn("h-9 text-sm", isRTL && "text-right")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'رقم الـ ID البنكي' : 'Bank ID Number'}</Label>
-              <Input value={bankInfo.bankId} onChange={e => updateBankField('bankId', e.target.value)} className={cn("h-9 text-sm", isRTL && "text-right")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'نوع الحساب البنكي' : 'Account Type'}</Label>
-              <Input value={bankInfo.accountType} onChange={e => updateBankField('accountType', e.target.value)} className={cn("h-9 text-sm", isRTL && "text-right")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'اسم البنك' : 'Bank Name'}</Label>
-              <div className="flex gap-2">
-                <Select value={bankInfo.bankName} onValueChange={v => updateBankField('bankName', v)}>
-                  <SelectTrigger className="h-9 text-sm flex-1"><SelectValue placeholder={ar ? '-- اختر البنك --' : '-- Select --'} /></SelectTrigger>
-                  <SelectContent>
-                    {banks.map(b => <SelectItem key={b.value} value={b.value}>{ar ? b.labelAr : b.labelEn}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button size="sm" variant="outline" className="h-9 px-2" onClick={() => setShowAddBank(true)}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* ====== SALARY ENTRY ====== */}
       <Card>
         <CardHeader className="pb-3">
@@ -359,27 +276,6 @@ export const SalaryTab = ({ employee, onUpdate, readOnly }: SalaryTabProps) => {
         </Card>
       )}
 
-      {/* Add Bank Dialog */}
-      <Dialog open={showAddBank} onOpenChange={setShowAddBank}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{ar ? 'إضافة بنك جديد' : 'Add New Bank'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>{ar ? 'اسم البنك (عربي)' : 'Bank Name (Arabic)'}</Label>
-              <Input value={newBank.labelAr} onChange={e => setNewBank(p => ({ ...p, labelAr: e.target.value }))} className={cn(isRTL && "text-right")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>{ar ? 'اسم البنك (إنجليزي)' : 'Bank Name (English)'}</Label>
-              <Input value={newBank.labelEn} onChange={e => setNewBank(p => ({ ...p, labelEn: e.target.value }))} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={handleAddBank}>{ar ? 'إضافة' : 'Add'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
