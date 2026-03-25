@@ -50,6 +50,7 @@ export const PayrollProcessing = () => {
 
   const period = `${selectedYear}-${selectedMonth}`;
   const roundToNearestEighth = (value: number) => Math.round(value * 8) / 8;
+  const roundToNearestQuarter = (value: number) => Math.round(value * 4) / 4;
   const normalizeQuarterInput = (value: number) => roundToNearestEighth(value || 0);
 
   // Fetch active loans, approved advances, and mobile bills from DB
