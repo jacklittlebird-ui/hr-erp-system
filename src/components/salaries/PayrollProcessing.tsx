@@ -50,6 +50,7 @@ export const PayrollProcessing = () => {
 
   const period = `${selectedYear}-${selectedMonth}`;
   const roundToNearestEighth = (value: number) => Math.round(value * 8) / 8;
+  const roundToNearestQuarter = (value: number) => Math.round(value * 4) / 4;
   const normalizeQuarterInput = (value: number) => roundToNearestEighth(value || 0);
 
   // Fetch active loans, approved advances, and mobile bills from DB
@@ -115,13 +116,13 @@ export const PayrollProcessing = () => {
 
   // Daily rate based on baseGross (excluding livingAllowance and overtimePay)
   const baseDailyRate = baseGross / 30;
-  const leaveDeduction = roundToNearestEighth(baseDailyRate * leaveDays);
+  const leaveDeduction = roundToNearestQuarter(baseDailyRate * leaveDays);
   const basicSalary = salaryRecord?.basicSalary || 0;
   const penaltyAmount = useMemo(() => {
-    if (penaltyType === 'amount') return penaltyValue;
-    if (penaltyType === 'days') return roundToNearestEighth((basicSalary / 30) * penaltyValue);
-    return Math.round((penaltyValue / 100) * baseGross);
-  }, [penaltyType, penaltyValue, basicSalary, baseGross]);
+    if (penaltyType === 'amount') return roundToNearestQuarter(penaltyValue);
+    if (penaltyType === 'days') return roundToNearestQuarter((basicSalary / 30) * penaltyValue);
+    return roundToNearestQuarter((penaltyValue / 100) * basicSalary);
+  }, [penaltyType, penaltyValue, basicSalary]);
 
   const totalDeductions = employeeInsurance + loanPayment + advanceAmount + mobileBill + leaveDeduction + penaltyAmount;
   const grossWithBonus = gross + bonusAmount;
@@ -188,11 +189,11 @@ export const PayrollProcessing = () => {
     const mb = getEmployeeMobileBill(empId, period);
     const ld = empId === selectedEmployee ? normalizeQuarterInput(leaveDays) : 0;
     const leaveDailyRate = bg / 30;
-    const lded = roundToNearestEighth(leaveDailyRate * ld);
+    const lded = roundToNearestQuarter(leaveDailyRate * ld);
     const pt = empId === selectedEmployee ? penaltyType : 'amount';
     const pv = empId === selectedEmployee ? (pt === 'days' ? normalizeQuarterInput(penaltyValue) : penaltyValue) : 0;
     const penaltyDailyRate = sr.basicSalary / 30;
-    const pa = pt === 'amount' ? pv : pt === 'days' ? roundToNearestEighth(penaltyDailyRate * pv) : Math.round((pv / 100) * bg);
+    const pa = pt === 'amount' ? roundToNearestQuarter(pv) : pt === 'days' ? roundToNearestQuarter(penaltyDailyRate * pv) : roundToNearestQuarter((pv / 100) * sr.basicSalary);
     const td = sr.employeeInsurance + lp + aa + mb + lded + pa;
 
     return {
