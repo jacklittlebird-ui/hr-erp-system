@@ -113,7 +113,7 @@ export const PayrollProcessing = () => {
 
   // Daily rate based on baseGross (excluding livingAllowance and overtimePay)
   const baseDailyRate = baseGross / 30;
-  const leaveDeduction = Math.round(baseDailyRate * leaveDays);
+  const leaveDeduction = Math.round(baseDailyRate * leaveDays * 100) / 100;
   const basicSalary = salaryRecord?.basicSalary || 0;
   const penaltyAmount = useMemo(() => {
     if (penaltyType === 'amount') return penaltyValue;
@@ -189,7 +189,7 @@ export const PayrollProcessing = () => {
     const ld = empId === selectedEmployee ? leaveDays : 0;
     // Use baseGross (bg) for daily rate calculations (excludes livingAllowance and overtimePay)
     const dr = bg / 30;
-    const lded = Math.round(dr * ld);
+    const lded = Math.round(dr * ld * 100) / 100;
     const pt = empId === selectedEmployee ? penaltyType : 'amount';
     const pv = empId === selectedEmployee ? penaltyValue : 0;
     const pa = pt === 'amount' ? pv : pt === 'days' ? Math.round(dr * pv) : Math.round((pv / 100) * bg);
@@ -523,7 +523,7 @@ export const PayrollProcessing = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <Label className={cn("text-xs", isRTL && "text-right block")}>{ar ? 'عدد الأيام' : 'Days'}</Label>
-                        <Input type="number" value={leaveDays || ''} onChange={e => setLeaveDays(parseFloat(e.target.value) || 0)} className={cn("h-9 text-sm", isRTL && "text-right")} min={0} />
+                        <Input type="number" step="0.01" value={leaveDays || ''} onChange={e => setLeaveDays(parseFloat(e.target.value) || 0)} className={cn("h-9 text-sm", isRTL && "text-right")} min={0} />
                       </div>
                       {readOnlyField(ar ? 'قيمة الخصم (تلقائي)' : 'Deduction (Auto)', leaveDeduction)}
                     </div>
