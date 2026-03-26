@@ -2,7 +2,7 @@ import React, { createContext, useContext, useCallback, useState, useEffect, use
 import { supabase } from '@/integrations/supabase/client';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { trackQuery, debouncedFetch, invalidateCache } from '@/lib/queryOptimizer';
+import { trackQuery } from '@/lib/queryOptimizer';
 
 export interface Loan {
   id: string;
