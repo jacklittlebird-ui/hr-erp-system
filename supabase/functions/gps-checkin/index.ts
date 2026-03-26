@@ -28,33 +28,124 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
 // ─── In-memory dedup & rate limit (per isolate) ────────────────────────────
 
 const recentCheckins = new Map<string, number>();
-const MIN_INTERVAL_MS = 5 * 60_000; // 5 minutes between check-ins
-const DEDUP_WINDOW_MS = 10_000;     // ignore identical within 10 seconds
+const MIN_INTERVAL_MS = 5 * 60_000;
+const DEDUP_WINDOW_MS = 10_000;
 const MAX_DEVICES_PER_DAY = 3;
+const MAX_DEVICES_PER_USER = 3;
+const DEVICE_EXPIRY_DAYS = 90;
+const SOFT_MATCH_THRESHOLD = 2; // need 2/3 of (browser, os, deviceType) to match
 
 function isDeduplicate(userId: string, eventType: string): boolean {
   const key = `${userId}:${eventType}`;
   const last = recentCheckins.get(key);
-  if (last && Date.now() - last < DEDUP_WINDOW_MS) return true;
-  return false;
+  return !!(last && Date.now() - last < DEDUP_WINDOW_MS);
 }
 
 function isMinIntervalViolated(userId: string, eventType: string): boolean {
   const key = `${userId}:${eventType}`;
   const last = recentCheckins.get(key);
-  if (last && Date.now() - last < MIN_INTERVAL_MS) return true;
-  return false;
+  return !!(last && Date.now() - last < MIN_INTERVAL_MS);
 }
 
 function recordCheckin(userId: string, eventType: string): void {
   recentCheckins.set(`${userId}:${eventType}`, Date.now());
-  // Prune old entries every 100 records
   if (recentCheckins.size > 500) {
     const cutoff = Date.now() - MIN_INTERVAL_MS;
     for (const [k, v] of recentCheckins) {
       if (v < cutoff) recentCheckins.delete(k);
     }
   }
+}
+
+// ─── Device binding helper ─────────────────────────────────────────────────
+
+interface DeviceMeta {
+  browser?: string;
+  os?: string;
+  deviceType?: string;
+}
+
+function softMatchScore(
+  meta: DeviceMeta,
+  record: { browser?: string; os?: string; device_type?: string }
+): number {
+  let score = 0;
+  if (meta.browser && meta.browser === record.browser) score++;
+  if (meta.os && meta.os === record.os) score++;
+  if (meta.deviceType && meta.deviceType === record.device_type) score++;
+  return score;
+}
+
+async function resolveDevice(
+  supabaseAdmin: any,
+  userId: string,
+  deviceId: string,
+  meta: DeviceMeta | null
+): Promise<{ allowed: boolean; reason?: string; action?: string }> {
+  const now = new Date().toISOString();
+
+  // Get all active, non-expired devices for this user
+  const { data: userDevices } = await supabaseAdmin
+    .from("user_devices")
+    .select("id, device_id, browser, os, device_type, expires_at, is_active")
+    .eq("user_id", userId)
+    .eq("is_active", true);
+
+  const devices = (userDevices || []).filter(
+    (d: any) => !d.expires_at || new Date(d.expires_at) > new Date()
+  );
+
+  // Exact match — device already registered
+  const exactMatch = devices.find((d: any) => d.device_id === deviceId);
+  if (exactMatch) {
+    // Update last_used_at
+    await supabaseAdmin
+      .from("user_devices")
+      .update({ last_used_at: now })
+      .eq("id", exactMatch.id);
+    return { allowed: true };
+  }
+
+  // No exact match — try soft matching if meta provided
+  if (meta && devices.length > 0) {
+    for (const dev of devices) {
+      const score = softMatchScore(meta, dev);
+      if (score >= SOFT_MATCH_THRESHOLD) {
+        // Same physical device, different localStorage ID → update device_id
+        await supabaseAdmin
+          .from("user_devices")
+          .update({
+            device_id: deviceId,
+            last_used_at: now,
+            browser: meta.browser || dev.browser,
+            os: meta.os || dev.os,
+            device_type: meta.deviceType || dev.device_type,
+          })
+          .eq("id", dev.id);
+        return { allowed: true, action: "soft_match_updated" };
+      }
+    }
+  }
+
+  // No match — can we register a new device?
+  if (devices.length < MAX_DEVICES_PER_USER) {
+    await supabaseAdmin.from("user_devices").insert({
+      user_id: userId,
+      device_id: deviceId,
+      browser: meta?.browser || null,
+      os: meta?.os || null,
+      device_type: meta?.deviceType || null,
+      expires_at: new Date(Date.now() + DEVICE_EXPIRY_DAYS * 86400_000).toISOString(),
+    });
+    return { allowed: true, action: "new_device_registered" };
+  }
+
+  // Max devices reached — reject with update prompt
+  return {
+    allowed: false,
+    reason: "device_limit",
+    action: "show_update_button",
+  };
 }
 
 // ─── Monitoring ────────────────────────────────────────────────────────────
@@ -74,7 +165,6 @@ Deno.serve(async (req) => {
   totalRequests++;
 
   try {
-    // ── Auth ──
     const authHeader = req.headers.get("authorization");
     if (!authHeader) return json({ error: "Missing auth" }, 401);
 
@@ -87,24 +177,23 @@ Deno.serve(async (req) => {
     if (userErr || !user) return json({ error: "Invalid token" }, 401);
     const userId = user.id;
 
-    // ── Parse body ──
-    const { event_type, gps_lat, gps_lng, gps_accuracy, device_id } = await req.json();
+    const { event_type, gps_lat, gps_lng, gps_accuracy, device_id, device_meta } = await req.json();
     if (!event_type || !gps_lat || !gps_lng || !device_id) {
       return json({ error: "Missing fields" }, 400);
     }
 
-    // ── Dedup check (10s window) ──
+    // Dedup check
     if (isDeduplicate(userId, event_type)) {
       totalDuplicates++;
       return json({ ok: true, event_type, deduplicated: true }, 200);
     }
 
-    // ── Min interval check (5 min) ──
+    // Min interval check
     if (isMinIntervalViolated(userId, event_type)) {
       return json({ error: "يرجى الانتظار 5 دقائق / Please wait 5 minutes between check-ins" }, 429);
     }
 
-    // ── Single optimized query: employee + station + role ──
+    // Resolve employee
     const { data: role } = await supabaseAdmin
       .from("user_roles")
       .select("employee_id")
@@ -116,7 +205,7 @@ Deno.serve(async (req) => {
     if (!role?.employee_id) return json({ error: "Employee not found" }, 404);
     const employeeId = role.employee_id;
 
-    // Combined employee + station query
+    // Get station
     const { data: emp } = await supabaseAdmin
       .from("employees")
       .select("station_id, stations(id, checkin_method)")
@@ -131,7 +220,7 @@ Deno.serve(async (req) => {
       return json({ error: "GPS check-in not enabled for this station" }, 403);
     }
 
-    // ── Device fraud check: max devices per day ──
+    // Device fraud check: max distinct users per device per day
     const todayStr = new Date().toISOString().split("T")[0];
     const { count: deviceUserCount } = await supabaseAdmin
       .from("attendance_events")
@@ -141,39 +230,48 @@ Deno.serve(async (req) => {
       .neq("user_id", userId);
 
     if ((deviceUserCount ?? 0) >= MAX_DEVICES_PER_DAY) {
-      // Log fraud alert
       await supabaseAdmin.from("device_alerts").insert({
-        user_id: userId,
-        device_id,
+        user_id: userId, device_id,
         reason: "max_devices_exceeded",
         meta: { date: todayStr, count: deviceUserCount },
       });
       return json({ error: "تم تجاوز الحد الأقصى للأجهزة / Device limit exceeded" }, 403);
     }
 
-    // ── Device binding check ──
-    const { data: existingDevice } = await supabaseAdmin
-      .from("user_devices")
-      .select("device_id")
-      .eq("user_id", userId)
-      .limit(1)
-      .single();
+    // ─── Multi-device binding with soft matching ───
+    const deviceResult = await resolveDevice(
+      supabaseAdmin,
+      userId,
+      device_id,
+      device_meta ? {
+        browser: device_meta.browser,
+        os: device_meta.os,
+        deviceType: device_meta.deviceType,
+      } : null
+    );
 
-    if (existingDevice) {
-      if (existingDevice.device_id !== device_id) {
-        await supabaseAdmin.from("device_alerts").insert({
-          user_id: userId,
-          device_id,
-          reason: "device_mismatch",
-          meta: { expected: existingDevice.device_id, got: device_id },
-        });
-        return json({ error: "جهاز غير مصرح / Unauthorized device" }, 403);
-      }
-    } else {
-      await supabaseAdmin.from("user_devices").insert({ user_id: userId, device_id });
+    if (!deviceResult.allowed) {
+      await supabaseAdmin.from("device_alerts").insert({
+        user_id: userId, device_id,
+        reason: "device_limit_reached",
+        meta: { action: deviceResult.action },
+      });
+      return json({
+        error: "تم الوصول للحد الأقصى للأجهزة (3). يرجى تحديث الأجهزة / Max devices (3) reached. Please update your devices.",
+        device_limit: true,
+      }, 403);
     }
 
-    // ── GPS geofence validation ──
+    // Log device action if noteworthy
+    if (deviceResult.action) {
+      await supabaseAdmin.from("device_alerts").insert({
+        user_id: userId, device_id,
+        reason: deviceResult.action,
+        meta: { device_meta: device_meta || null },
+      });
+    }
+
+    // GPS geofence validation
     const { data: locations } = await supabaseAdmin
       .from("qr_locations")
       .select("id, name_ar, latitude, longitude, radius_m")
@@ -203,13 +301,13 @@ Deno.serve(async (req) => {
       }, 403);
     }
 
-    // ── Record the check-in (mark dedup immediately) ──
+    // Record the check-in
     recordCheckin(userId, event_type);
 
     const now = new Date();
     const dateStr = now.toISOString().split("T")[0];
 
-    // ── Attendance rule check ──
+    // Attendance rule check
     const { data: assignment } = await supabaseAdmin
       .from("attendance_assignments")
       .select("rule_id, attendance_rules(schedule_type)")
@@ -221,7 +319,7 @@ Deno.serve(async (req) => {
     const scheduleType = (assignment?.attendance_rules as any)?.schedule_type || "fixed";
     const isFlexible = ["flexible", "fully-flexible", "fully_flexible"].includes(scheduleType);
 
-    // ── Fire-and-forget: attendance event logging ──
+    // Fire-and-forget: attendance event logging
     const eventPromise = supabaseAdmin.from("attendance_events").insert({
       user_id: userId,
       employee_id: employeeId,
@@ -233,11 +331,10 @@ Deno.serve(async (req) => {
       gps_lng,
     });
 
-    // ── Attendance record upsert ──
+    // Attendance record upsert
     let recordPromise: Promise<any>;
 
     if (event_type === "check_in") {
-      // Close any open record first, then insert new
       recordPromise = (async () => {
         const { data: openRecord } = await supabaseAdmin
           .from("attendance_records")
@@ -265,7 +362,6 @@ Deno.serve(async (req) => {
         });
       })();
     } else {
-      // check_out
       recordPromise = (async () => {
         const { data: openRecord } = await supabaseAdmin
           .from("attendance_records")
@@ -290,7 +386,6 @@ Deno.serve(async (req) => {
       })();
     }
 
-    // Run event log and record in parallel
     const [, recordResult] = await Promise.allSettled([eventPromise, recordPromise]);
 
     if (recordResult.status === "rejected") {
