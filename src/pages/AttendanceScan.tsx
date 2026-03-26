@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { getOrCreateDeviceId } from "@/lib/device";
+import { getOrCreateDeviceId, getDeviceMeta } from "@/lib/device";
 import { performCheckin } from "@/lib/attendanceQueue";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -51,7 +51,7 @@ const AttendanceScan = () => {
             "content-type": "application/json",
             authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ token, event_type: eventType, device_id, gps }),
+          body: JSON.stringify({ token, event_type: eventType, device_id, gps, device_meta: getDeviceMeta() }),
         }
       );
 

@@ -15,7 +15,7 @@ import { toast } from '@/hooks/use-toast';
 import { usePortalEmployee } from '@/hooks/usePortalEmployee';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { supabase } from '@/integrations/supabase/client';
-import { getOrCreateDeviceId } from '@/lib/device';
+import { getOrCreateDeviceId, getDeviceMeta } from '@/lib/device';
 import QrScanner from '@/components/attendance/QrScanner';
 import { GpsCheckinButton } from '@/components/portal/GpsCheckinButton';
 
@@ -135,7 +135,7 @@ export const PortalDashboard = () => {
             'content-type': 'application/json',
             authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ token, event_type: qrEventType, device_id, gps }),
+          body: JSON.stringify({ token, event_type: qrEventType, device_id, gps, device_meta: getDeviceMeta() }),
         }
       );
 

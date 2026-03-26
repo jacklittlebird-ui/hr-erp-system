@@ -1,15 +1,7 @@
 /**
  * Attendance Queue & Anti-Fraud Utilities
- *
- * Features:
- *  • Request deduplication (ignore within 10s)
- *  • Rate limiting (1 request per 10s per employee)
- *  • Random delay distribution (0–3s)
- *  • Employee data cache (5 min)
- *  • Station data cache (10 min)
- *  • Response queue with immediate UI feedback
- *  • Performance monitoring
  */
+import type { DeviceMeta } from '@/lib/device';
 
 // ─── Rate Limiting ──────────────────────────────────────────────────────────
 
@@ -207,6 +199,7 @@ interface CheckinParams {
   gpsLat: number;
   gpsLng: number;
   gpsAccuracy: number;
+  deviceMeta?: DeviceMeta;
 }
 
 interface CheckinResult {
@@ -257,6 +250,7 @@ export async function performCheckin(params: CheckinParams): Promise<CheckinResu
             gps_lng: params.gpsLng,
             gps_accuracy: params.gpsAccuracy,
             device_id: params.deviceId,
+            device_meta: params.deviceMeta || null,
           }),
         }
       );
