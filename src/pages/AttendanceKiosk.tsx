@@ -23,12 +23,13 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /** Get the current 30-min bucket number */
-const getBucket = () => Math.floor(Date.now() / 1000 / 1800);
+const getBucket = () => Math.floor(Date.now() / (30 * 60 * 1000));
 
 /** Seconds remaining until the next bucket */
 const getSecondsToNextBucket = () => {
-  const nowSec = Math.floor(Date.now() / 1000);
-  return (Math.floor(nowSec / 1800) + 1) * 1800 - nowSec;
+  const nowMs = Date.now();
+  const bucketMs = 30 * 60 * 1000;
+  return Math.floor(((Math.floor(nowMs / bucketMs) + 1) * bucketMs - nowMs) / 1000);
 };
 
 const AttendanceKiosk = () => {
