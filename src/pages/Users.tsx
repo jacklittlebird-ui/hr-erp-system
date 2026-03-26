@@ -18,9 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { ALL_MODULES, MODULE_LABELS, ModuleKey } from '@/hooks/useModulePermissions';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandList, CommandEmpty, CommandItem } from '@/components/ui/command';
 import {
   Plus, Search, Shield, Users as UsersIcon, UserCheck, MapPin, User,
-  RefreshCw, Eye, EyeOff, Edit, Trash2, Layers, ShieldCheck, Lock, Settings2, Upload,
+  RefreshCw, Eye, EyeOff, Edit, Trash2, Layers, ShieldCheck, Lock, Settings2, Upload, Check, ChevronsUpDown,
 } from 'lucide-react';
 import { EMPLOYEE_CREDENTIALS } from '@/data/employeeCredentials';
 
