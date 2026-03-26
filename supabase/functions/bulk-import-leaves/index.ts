@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
 
   for (let i = 0; i < overtimeInserts.length; i += 200) {
     const batch = overtimeInserts.slice(i, i + 200);
-    const { error } = await supabase.from('overtime_requests').insert(batch);
+    const { error } = await supabase.from('overtime_requests').upsert(batch, { onConflict: 'employee_id,date,overtime_type', ignoreDuplicates: true });
     if (error) errors.push(`Overtime batch ${i}: ${error.message}`);
     else otCount += batch.length;
   }
