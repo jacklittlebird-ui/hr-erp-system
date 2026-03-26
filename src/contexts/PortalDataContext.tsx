@@ -173,6 +173,7 @@ interface PortalDataContextType {
   ensureTraining: () => Promise<void>;
   ensureMissions: () => Promise<void>;
   ensureViolations: () => Promise<void>;
+  ensureRequests: () => Promise<void>;
   ensureDocuments: () => Promise<void>;
 }
 
@@ -520,11 +521,45 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     await ensureLeaves();
   }, [ensureLeaves]);
 
+  const ensureRequests = useCallback(async () => {
+    if (loaded.current.has('requests') || (isEmployee && !scopedEmployeeId)) return;
+    loaded.current.add('requests');
+
+    await debouncedFetch(`portal_requests_${scopedEmployeeId || 'all'}`, async () => {
+      const q = supabase.from('employee_requests').select('id, employee_id, type_ar, type_en, date, status, reason').order('created_at', { ascending: false }).limit(50);
+      if (scopedEmployeeId) q.eq('employee_id', scopedEmployeeId);
+      try {
+        const { data } = await q;
+        trackQuery('portal_requests', data?.length || 0);
+        if (data) {
+          setRequests(data.map((r: any) => ({
+            id: r.id, employeeId: r.employee_id,
+            typeAr: r.type_ar, typeEn: r.type_en,
+            date: r.date, status: r.status as any,
+          })));
+        }
+      } catch (err) {
+        console.error('Portal requests fetch error:', err);
+        loaded.current.delete('requests');
+      }
+      return true;
+    }, { ttlMs: 30_000 });
+  }, [isEmployee, scopedEmployeeId]);
+
   const getRequests = useCallback((empId: string) => requests.filter(r => r.employeeId === empId), [requests]);
   
-  const addRequest = useCallback(async (req: Omit<EmployeeRequest, 'id' | 'status'>) => {
-    setRequests(prev => [...prev, { ...req, id: Date.now(), status: 'pending' as const }]);
-  }, []);
+  const addRequest = useCallback(async (req: Omit<EmployeeRequest, 'id' | 'status'> & { reason?: string }) => {
+    await supabase.from('employee_requests').insert({
+      employee_id: req.employeeId,
+      type_ar: req.typeAr,
+      type_en: req.typeEn,
+      date: req.date,
+      reason: (req as any).reason || null,
+    } as any);
+    invalidateCache('portal_requests');
+    loaded.current.delete('requests');
+    await ensureRequests();
+  }, [ensureRequests]);
 
   const getDocuments = useCallback((empId: string) => documents.filter(d => d.employeeId === empId), [documents]);
   
@@ -551,7 +586,7 @@ export const PortalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       getRequests, addRequest,
       getDocuments, addDocument,
       ensureLeaves, ensureLoans, ensureEvaluations,
-      ensureTraining, ensureMissions, ensureViolations, ensureDocuments,
+      ensureTraining, ensureMissions, ensureViolations, ensureRequests, ensureDocuments,
     }}>
       {children}
     </PortalDataContext.Provider>

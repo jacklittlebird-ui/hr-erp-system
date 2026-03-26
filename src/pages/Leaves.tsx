@@ -13,6 +13,7 @@ import { LeaveCalendar } from '@/components/leaves/LeaveCalendar';
 import { LeaveApprovals } from '@/components/leaves/LeaveApprovals';
 import { RequestFilters } from '@/components/leaves/RequestFilters';
 import { ViolationsManagement } from '@/components/leaves/ViolationsManagement';
+import { EmployeeRequestsList } from '@/components/leaves/EmployeeRequestsList';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -23,7 +24,7 @@ import {
   EmployeeLeaveBalance,
   MISSION_TIME_CONFIG,
 } from '@/types/leaves';
-import { FileText, Plus, CheckCircle, BarChart3, Calendar, ShieldCheck, Briefcase, PlusCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { FileText, Plus, CheckCircle, BarChart3, Calendar, ShieldCheck, Briefcase, PlusCircle, AlertTriangle, RefreshCw, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -39,6 +40,7 @@ const Leaves = () => {
   const [missionRequests, setMissionRequests] = useState<MissionRequest[]>([]);
   const [overtimeRequests, setOvertimeRequests] = useState<OvertimeRequest[]>([]);
   const [leaveBalances, setLeaveBalances] = useState<EmployeeLeaveBalance[]>([]);
+  const [employeeRequests, setEmployeeRequests] = useState<any[]>([]);
   const [departments, setDepartments] = useState<DeptOption[]>([]);
   const [stations, setStations] = useState<StationOption[]>([]);
 
@@ -179,6 +181,20 @@ const Leaves = () => {
       };
     });
     setLeaveBalances(balances);
+
+    // Employee requests (from portal)
+    const { data: empReqs } = await supabase.from('employee_requests').select('id, employee_id, type_ar, type_en, reason, date, status').order('created_at', { ascending: false });
+    setEmployeeRequests((empReqs || []).map((r: any) => {
+      const info = getEmpInfo(r.employee_id);
+      const e = empMap.get(r.employee_id);
+      return {
+        id: r.id, employeeId: r.employee_id,
+        employeeName: info.employeeName, employeeNameAr: info.employeeNameAr,
+        employeeCode: e?.employee_code || '',
+        typeAr: r.type_ar, typeEn: r.type_en,
+        reason: r.reason, date: r.date, status: r.status,
+      };
+    }));
   };
 
   useEffect(() => { fetchData(); }, [language]);
@@ -200,6 +216,17 @@ const Leaves = () => {
   const filteredMissions = useMemo(() => filterRequests(missionRequests), [missionRequests, searchQuery, selectedDepartment, selectedStation]);
   const filteredOvertime = useMemo(() => filterRequests(overtimeRequests), [overtimeRequests, searchQuery, selectedDepartment, selectedStation]);
   const filteredBalances = useMemo(() => filterRequests(leaveBalances), [leaveBalances, searchQuery, selectedDepartment, selectedStation]);
+  const filteredEmployeeRequests = useMemo(() => {
+    return employeeRequests.filter(r => {
+      const matchSearch = !searchQuery ||
+        r.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.employeeNameAr.includes(searchQuery) ||
+        r.employeeCode.includes(searchQuery);
+      const matchDept = selectedDepartment === 'all' || empDeptMap.get(r.employeeId) === selectedDepartment;
+      const matchStation = selectedStation === 'all' || empStationMap.get(r.employeeId) === selectedStation;
+      return matchSearch && matchDept && matchStation;
+    });
+  }, [employeeRequests, searchQuery, selectedDepartment, selectedStation]);
 
   // Handlers
   const handleApproveLeave = async (id: string) => { await supabase.from('leave_requests').update({ status: 'approved' }).eq('id', id); fetchData(); };
@@ -297,9 +324,10 @@ const Leaves = () => {
   const pendingCount = leaveRequests.filter(r => r.status === 'pending').length +
     permissionRequests.filter(r => r.status === 'pending').length +
     missionRequests.filter(r => r.status === 'pending').length +
-    overtimeRequests.filter(r => r.status === 'pending').length;
+    overtimeRequests.filter(r => r.status === 'pending').length +
+    employeeRequests.filter(r => r.status === 'pending').length;
 
-  const showFilters = ['leaves', 'permissions', 'missions', 'overtime', 'approvals', 'balance', 'violations'].includes(activeTab);
+  const showFilters = ['leaves', 'permissions', 'missions', 'overtime', 'approvals', 'balance', 'violations', 'emp-requests'].includes(activeTab);
 
   return (
     <DashboardLayout>
@@ -315,12 +343,15 @@ const Leaves = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={cn("grid w-full grid-cols-4 lg:grid-cols-9 mb-6")} dir="rtl">
+          <TabsList className={cn("grid w-full grid-cols-5 lg:grid-cols-10 mb-6")} dir="rtl">
             <TabsTrigger value="leaves" className="flex items-center gap-1.5"><FileText className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.leaves')}</span></TabsTrigger>
             <TabsTrigger value="permissions" className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.permissions')}</span></TabsTrigger>
             <TabsTrigger value="missions" className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.missions')}</span></TabsTrigger>
             <TabsTrigger value="overtime" className="flex items-center gap-1.5"><PlusCircle className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.overtime')}</span></TabsTrigger>
             <TabsTrigger value="violations" className="flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" /><span className="hidden lg:inline">{language === 'ar' ? 'المخالفات' : 'Violations'}</span></TabsTrigger>
+            <TabsTrigger value="emp-requests" className="flex items-center gap-1.5 relative"><ClipboardList className="w-4 h-4" /><span className="hidden lg:inline">{language === 'ar' ? 'الطلبات' : 'Requests'}</span>
+              {employeeRequests.filter(r => r.status === 'pending').length > 0 && (<span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">{employeeRequests.filter(r => r.status === 'pending').length}</span>)}
+            </TabsTrigger>
             <TabsTrigger value="new" className="flex items-center gap-1.5"><Plus className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.newRequest')}</span></TabsTrigger>
             <TabsTrigger value="approvals" className="flex items-center gap-1.5 relative"><CheckCircle className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.approvals')}</span>
               {pendingCount > 0 && (<span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">{pendingCount}</span>)}
@@ -366,6 +397,7 @@ const Leaves = () => {
           </TabsContent>
           <TabsContent value="balance"><LeaveBalanceOverview balances={filteredBalances} /></TabsContent>
           <TabsContent value="calendar"><LeaveCalendar requests={filteredLeaves.filter(r => r.status === 'approved')} /></TabsContent>
+          <TabsContent value="emp-requests"><EmployeeRequestsList requests={filteredEmployeeRequests} onRefresh={fetchData} /></TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>

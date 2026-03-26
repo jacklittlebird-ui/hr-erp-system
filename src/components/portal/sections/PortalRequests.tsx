@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePortalData } from '@/contexts/PortalDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,8 +17,9 @@ export const PortalRequests = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language } = useLanguage();
   const ar = language === 'ar';
-  const { getRequests, addRequest } = usePortalData();
-  const requests = useMemo(() => getRequests(PORTAL_EMPLOYEE_ID), [getRequests]);
+  const { getRequests, addRequest, ensureRequests } = usePortalData();
+  useEffect(() => { ensureRequests(); }, [ensureRequests]);
+  const requests = useMemo(() => getRequests(PORTAL_EMPLOYEE_ID), [getRequests, PORTAL_EMPLOYEE_ID]);
   const [showDialog, setShowDialog] = useState(false);
   const [reqType, setReqType] = useState('');
   const [reason, setReason] = useState('');
@@ -38,7 +39,7 @@ export const PortalRequests = () => {
     if (!reqType) { toast.error(ar ? 'يرجى اختيار نوع الطلب' : 'Please select request type'); return; }
     if (!reason.trim()) { toast.error(ar ? 'يرجى كتابة السبب' : 'Please enter a reason'); return; }
     const t = reqTypes.find(r => r.value === reqType);
-    addRequest({ employeeId: PORTAL_EMPLOYEE_ID, typeAr: t?.ar || '', typeEn: t?.en || '', date: new Date().toISOString().split('T')[0] });
+    addRequest({ employeeId: PORTAL_EMPLOYEE_ID, typeAr: t?.ar || '', typeEn: t?.en || '', date: new Date().toISOString().split('T')[0], reason } as any);
     toast.success(ar ? 'تم تقديم الطلب بنجاح' : 'Request submitted');
     setShowDialog(false); setReqType(''); setReason('');
   };
