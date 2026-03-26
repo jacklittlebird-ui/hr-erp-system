@@ -68,71 +68,57 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const scopedEmployeeId = isEmployee ? user?.employeeUuid : null;
 
   const fetchLoans = useCallback(async () => {
-    const cacheKey = `loans_${scopedEmployeeId || 'all'}`;
+    let query;
+    if (isEmployee && scopedEmployeeId) {
+      query = supabase.from('loans').select(EMPLOYEE_LOAN_COLS).eq('employee_id', scopedEmployeeId).order('created_at', { ascending: false }).limit(20);
+    } else {
+      query = supabase.from('loans').select(LOAN_COLS).order('created_at', { ascending: false });
+    }
+    const { data } = await query;
+    trackQuery('loans', data?.length || 0);
     
-    const result = await debouncedFetch(cacheKey, async () => {
-      let query;
-      if (isEmployee && scopedEmployeeId) {
-        query = supabase.from('loans').select(EMPLOYEE_LOAN_COLS).eq('employee_id', scopedEmployeeId).order('created_at', { ascending: false }).limit(20);
-      } else {
-        query = supabase.from('loans').select(LOAN_COLS).order('created_at', { ascending: false });
-      }
-      const { data } = await query;
-      trackQuery('loans', data?.length || 0);
-      
-      return (data || []).map((l: any) => ({
-        id: l.id,
-        employeeId: l.employee_id,
-        employeeName: l.employees?.name_ar || '',
-        station: l.employees?.stations?.code || '',
-        amount: l.amount,
-        installments: l.installments_count,
-        monthlyPayment: l.monthly_installment || 0,
-        paidInstallments: l.paid_count || 0,
-        paidAmount: (l.paid_count || 0) * (l.monthly_installment || 0),
-        remainingAmount: l.remaining || 0,
-        startDate: l.start_date,
-        status: l.status as Loan['status'],
-        notes: l.reason || '',
-        calculationMethod: 'auto' as const,
-      }));
-    }, { ttlMs: 60_000 });
-    
-    setLoans(result);
+    setLoans((data || []).map((l: any) => ({
+      id: l.id,
+      employeeId: l.employee_id,
+      employeeName: l.employees?.name_ar || '',
+      station: l.employees?.stations?.code || '',
+      amount: l.amount,
+      installments: l.installments_count,
+      monthlyPayment: l.monthly_installment || 0,
+      paidInstallments: l.paid_count || 0,
+      paidAmount: (l.paid_count || 0) * (l.monthly_installment || 0),
+      remainingAmount: l.remaining || 0,
+      startDate: l.start_date,
+      status: l.status as Loan['status'],
+      notes: l.reason || '',
+      calculationMethod: 'auto' as const,
+    })));
   }, [isEmployee, scopedEmployeeId]);
 
   const fetchAdvances = useCallback(async () => {
-    const cacheKey = `advances_${scopedEmployeeId || 'all'}`;
+    let query;
+    if (isEmployee && scopedEmployeeId) {
+      query = supabase.from('advances').select(EMPLOYEE_ADVANCE_COLS).eq('employee_id', scopedEmployeeId).order('created_at', { ascending: false }).limit(20);
+    } else {
+      query = supabase.from('advances').select(ADVANCE_COLS).order('created_at', { ascending: false });
+    }
+    const { data } = await query;
+    trackQuery('advances', data?.length || 0);
     
-    const result = await debouncedFetch(cacheKey, async () => {
-      let query;
-      if (isEmployee && scopedEmployeeId) {
-        query = supabase.from('advances').select(EMPLOYEE_ADVANCE_COLS).eq('employee_id', scopedEmployeeId).order('created_at', { ascending: false }).limit(20);
-      } else {
-        query = supabase.from('advances').select(ADVANCE_COLS).order('created_at', { ascending: false });
-      }
-      const { data } = await query;
-      trackQuery('advances', data?.length || 0);
-      
-      return (data || []).map((a: any) => ({
-        id: a.id,
-        employeeId: a.employee_id,
-        employeeName: a.employees?.name_ar || '',
-        station: a.employees?.stations?.code || '',
-        amount: a.amount,
-        requestDate: a.created_at.split('T')[0],
-        deductionMonth: a.deduction_month,
-        status: a.status as Advance['status'],
-        reason: a.reason || '',
-      }));
-    }, { ttlMs: 60_000 });
-    
-    setAdvances(result);
+    setAdvances((data || []).map((a: any) => ({
+      id: a.id,
+      employeeId: a.employee_id,
+      employeeName: a.employees?.name_ar || '',
+      station: a.employees?.stations?.code || '',
+      amount: a.amount,
+      requestDate: a.created_at.split('T')[0],
+      deductionMonth: a.deduction_month,
+      status: a.status as Advance['status'],
+      reason: a.reason || '',
+    })));
   }, [isEmployee, scopedEmployeeId]);
 
   const refreshData = useCallback(async () => {
-    invalidateCache('loans_');
-    invalidateCache('advances_');
     await Promise.all([fetchLoans(), fetchAdvances()]);
   }, [fetchLoans, fetchAdvances]);
 
@@ -147,8 +133,6 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
-        invalidateCache('loans_');
-        invalidateCache('advances_');
         fetchLoans();
         fetchAdvances();
       }

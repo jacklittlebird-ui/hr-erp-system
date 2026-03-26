@@ -140,36 +140,32 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const fetchEmployeeMap = useCallback(async () => {
     if (isEmployee) return;
 
-    const result = await debouncedFetch('payroll_empMap', async () => {
-      const [empsRes, deptsRes, stationsRes] = await Promise.all([
-        supabase.from('employees').select('id, employee_code, name_ar, name_en, department_id, station_id').order('employee_code'),
-        supabase.from('departments').select('id, name_ar'),
-        supabase.from('stations').select('id, code'),
-      ]);
-      trackQuery('payroll_empMap', (empsRes.data?.length || 0) + (deptsRes.data?.length || 0) + (stationsRes.data?.length || 0));
-      
-      const deptMap: Record<string, string> = {};
-      (deptsRes.data || []).forEach(d => { deptMap[d.id] = d.name_ar; });
-      const stationMap: Record<string, string> = {};
-      (stationsRes.data || []).forEach(s => { stationMap[s.id] = s.code; });
+    const [empsRes, deptsRes, stationsRes] = await Promise.all([
+      supabase.from('employees').select('id, employee_code, name_ar, name_en, department_id, station_id').order('employee_code'),
+      supabase.from('departments').select('id, name_ar'),
+      supabase.from('stations').select('id, code'),
+    ]);
+    trackQuery('payroll_empMap', (empsRes.data?.length || 0) + (deptsRes.data?.length || 0) + (stationsRes.data?.length || 0));
+    
+    const deptMap: Record<string, string> = {};
+    (deptsRes.data || []).forEach(d => { deptMap[d.id] = d.name_ar; });
+    const stationMap: Record<string, string> = {};
+    (stationsRes.data || []).forEach(s => { stationMap[s.id] = s.code; });
 
-      const map: Record<string, { code: string; nameAr: string; nameEn: string; department: string; station: string }> = {};
-      (empsRes.data || []).forEach(e => {
-        map[e.id] = {
-          code: e.employee_code || '',
-          nameAr: e.name_ar || '',
-          nameEn: e.name_en || '',
-          department: e.department_id ? (deptMap[e.department_id] || '') : '',
-          station: e.station_id ? (stationMap[e.station_id] || '') : '',
-        };
-      });
-      return map;
-    }, { ttlMs: 120_000 });
-
-    setEmployeeMap(result);
+    const map: Record<string, { code: string; nameAr: string; nameEn: string; department: string; station: string }> = {};
+    (empsRes.data || []).forEach(e => {
+      map[e.id] = {
+        code: e.employee_code || '',
+        nameAr: e.name_ar || '',
+        nameEn: e.name_en || '',
+        department: e.department_id ? (deptMap[e.department_id] || '') : '',
+        station: e.station_id ? (stationMap[e.station_id] || '') : '',
+      };
+    });
+    setEmployeeMap(map);
   }, [isEmployee]);
 
-  const fetchEntriesDirect = useCallback(async () => {
+  const fetchEntries = useCallback(async () => {
     let query;
     if (isEmployee && scopedEmployeeId) {
       query = supabase.from('payroll_entries').select(EMPLOYEE_PAYROLL_COLS).eq('employee_id', scopedEmployeeId).limit(24);
@@ -179,28 +175,7 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const { data, error } = await query;
     trackQuery('payroll', data?.length || 0);
     const entries = (!error && data) ? data.map(mapRowToEntry) : [];
-    const cacheKey = `payroll_entries_${scopedEmployeeId || 'all'}`;
-    setCache(cacheKey, entries);
     setRawEntries(entries);
-  }, [isEmployee, scopedEmployeeId]);
-
-  const fetchEntries = useCallback(async () => {
-    const cacheKey = `payroll_entries_${scopedEmployeeId || 'all'}`;
-    
-    const result = await debouncedFetch(cacheKey, async () => {
-      let query;
-      if (isEmployee && scopedEmployeeId) {
-        query = supabase.from('payroll_entries').select(EMPLOYEE_PAYROLL_COLS).eq('employee_id', scopedEmployeeId).limit(24);
-      } else {
-        query = supabase.from('payroll_entries').select(PAYROLL_COLS);
-      }
-      const { data, error } = await query;
-      trackQuery('payroll', data?.length || 0);
-      if (!error && data) return data.map(mapRowToEntry);
-      return [];
-    }, { ttlMs: 60_000 });
-
-    setRawEntries(result);
   }, [isEmployee, scopedEmployeeId]);
 
   const payrollEntries = useMemo(() => {
