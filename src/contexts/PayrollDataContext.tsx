@@ -169,6 +169,21 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setEmployeeMap(result);
   }, [isEmployee]);
 
+  const fetchEntriesDirect = useCallback(async () => {
+    let query;
+    if (isEmployee && scopedEmployeeId) {
+      query = supabase.from('payroll_entries').select(EMPLOYEE_PAYROLL_COLS).eq('employee_id', scopedEmployeeId).limit(24);
+    } else {
+      query = supabase.from('payroll_entries').select(PAYROLL_COLS);
+    }
+    const { data, error } = await query;
+    trackQuery('payroll', data?.length || 0);
+    const entries = (!error && data) ? data.map(mapRowToEntry) : [];
+    const cacheKey = `payroll_entries_${scopedEmployeeId || 'all'}`;
+    setCache(cacheKey, entries);
+    setRawEntries(entries);
+  }, [isEmployee, scopedEmployeeId]);
+
   const fetchEntries = useCallback(async () => {
     const cacheKey = `payroll_entries_${scopedEmployeeId || 'all'}`;
     
