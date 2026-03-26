@@ -273,7 +273,7 @@ const AttendanceKiosk = () => {
     }
   }, [selectedLocation, session, geoStatus, userCoords]);
 
-  // Initial generation + bucket-change detection every 5 seconds
+  // Initial generation + bucket-change detection every 10 seconds
   useEffect(() => {
     if (!selectedLocation || !session?.access_token || geoStatus !== "allowed" || !userCoords) return;
 
@@ -288,7 +288,7 @@ const AttendanceKiosk = () => {
       if (currentBucket !== lastBucketRef.current) {
         generateQRCodes();
       }
-    }, 5000); // check every 5 seconds
+    }, 10000); // check every 10 seconds
 
     return () => clearInterval(checkInterval);
   }, [selectedLocation, session, geoStatus, userCoords, generateQRCodes]);
