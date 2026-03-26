@@ -260,6 +260,7 @@ export async function performCheckin(params: CheckinParams): Promise<CheckinResu
             gps_lng: params.gpsLng,
             gps_accuracy: params.gpsAccuracy,
             device_id: params.deviceId,
+            device_meta: params.deviceMeta || null,
           }),
         }
       );
