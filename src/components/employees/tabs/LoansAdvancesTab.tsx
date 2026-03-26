@@ -42,7 +42,9 @@ export const LoansAdvancesTab = ({ employee }: LoansAdvancesTabProps) => {
           <TableHeader>
             <TableRow className="bg-primary text-primary-foreground">
               <TableHead className="text-primary-foreground">{ar ? 'المبلغ' : 'Amount'}</TableHead>
+              <TableHead className="text-primary-foreground">{ar ? 'القسط الشهري' : 'Monthly'}</TableHead>
               <TableHead className="text-primary-foreground">{ar ? 'الأقساط' : 'Installments'}</TableHead>
+              <TableHead className="text-primary-foreground">{ar ? 'المسدد' : 'Paid'}</TableHead>
               <TableHead className="text-primary-foreground">{ar ? 'المتبقي' : 'Remaining'}</TableHead>
               <TableHead className="text-primary-foreground">{ar ? 'التاريخ' : 'Date'}</TableHead>
               <TableHead className="text-primary-foreground">{ar ? 'الحالة' : 'Status'}</TableHead>
@@ -50,13 +52,15 @@ export const LoansAdvancesTab = ({ employee }: LoansAdvancesTabProps) => {
           </TableHeader>
           <TableBody>
             {empLoans.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-4 text-muted-foreground">{ar ? 'لا توجد قروض' : 'No loans'}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-4 text-muted-foreground">{ar ? 'لا توجد قروض' : 'No loans'}</TableCell></TableRow>
             ) : (
               empLoans.map(l => (
                 <TableRow key={l.id}>
                   <TableCell className="font-bold">{l.amount.toLocaleString()}</TableCell>
-                  <TableCell>{l.installments}</TableCell>
-                  <TableCell>{l.remainingAmount.toLocaleString()}</TableCell>
+                  <TableCell>{l.monthlyPayment.toLocaleString()}</TableCell>
+                  <TableCell>{l.paidInstallments}/{l.installments}</TableCell>
+                  <TableCell className="text-green-600">{l.paidAmount.toLocaleString()}</TableCell>
+                  <TableCell className="text-destructive">{l.remainingAmount.toLocaleString()}</TableCell>
                   <TableCell>{formatDate(l.startDate)}</TableCell>
                   <TableCell>{statusBadge(l.status)}</TableCell>
                 </TableRow>
