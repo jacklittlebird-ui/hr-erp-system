@@ -285,8 +285,15 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     addNotification({ titleAr: 'تم حذف كشف الراتب', titleEn: 'Payroll entry deleted', type: 'warning', module: 'payroll' });
   }, [addNotification, fetchEntries]);
 
+  const refreshPayroll = useCallback(async () => {
+    invalidateCache('payroll_entries');
+    invalidateCache('payroll_empMap');
+    await fetchEmployeeMap();
+    await fetchEntries();
+  }, [fetchEmployeeMap, fetchEntries]);
+
   return (
-    <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll: fetchEntries, savePayrollEntry, savePayrollEntries, deletePayrollEntry, getPayrollEntry, getMonthlyPayroll, getEmployeePayroll }}>
+    <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll, savePayrollEntry, savePayrollEntries, deletePayrollEntry, getPayrollEntry, getMonthlyPayroll, getEmployeePayroll }}>
       {children}
     </PayrollDataContext.Provider>
   );
