@@ -2,16 +2,6 @@
  * Attendance Queue & Anti-Fraud Utilities
  */
 import type { DeviceMeta } from '@/lib/device';
- *
- * Features:
- *  • Request deduplication (ignore within 10s)
- *  • Rate limiting (1 request per 10s per employee)
- *  • Random delay distribution (0–3s)
- *  • Employee data cache (5 min)
- *  • Station data cache (10 min)
- *  • Response queue with immediate UI feedback
- *  • Performance monitoring
- */
 
 // ─── Rate Limiting ──────────────────────────────────────────────────────────
 
