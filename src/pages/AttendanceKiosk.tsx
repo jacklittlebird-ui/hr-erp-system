@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { QrCode, RefreshCw, MapPin, ShieldAlert, ShieldCheck, Loader2, LogOut } from "lucide-react";
 import QRCode from "qrcode";
 import { PortalWelcomeBanner } from '@/components/portal/PortalWelcomeBanner';
+import { resetSessionTimer } from '@/lib/security';
 
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -21,25 +22,86 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/** Get the current 30-min bucket number */
+const getBucket = () => Math.floor(Date.now() / 1000 / 1800);
+
+/** Seconds remaining until the next bucket */
+const getSecondsToNextBucket = () => {
+  const nowSec = Math.floor(Date.now() / 1000);
+  return (Math.floor(nowSec / 1800) + 1) * 1800 - nowSec;
+};
+
 const AttendanceKiosk = () => {
   const { language } = useLanguage();
   const { session, logout } = useAuth();
   const ar = language === "ar";
 
   const QR_COUNT = 3;
-  const QR_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
   const [qrSrcs, setQrSrcs] = useState<string[]>(["", "", ""]);
   const [locations, setLocations] = useState<any[]>([]);
   const [selectedLocation, setSelectedLocation] = useState("");
-  const [countdown, setCountdown] = useState(30 * 60); // 30 min in seconds
+  const [countdown, setCountdown] = useState(getSecondsToNextBucket());
   const [error, setError] = useState("");
-  const intervalRef = useRef<number>();
+  const lastBucketRef = useRef<number>(getBucket());
+  const isGeneratingRef = useRef(false);
 
   // Geolocation state
   const [geoStatus, setGeoStatus] = useState<"checking" | "allowed" | "denied" | "out_of_range" | "no_coords">("checking");
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const watchRef = useRef<number | null>(null);
+
+  // ── Keep-alive: prevent session timeout ──
+  // The kiosk runs unattended all day, so we continuously reset the
+  // inactivity timer to prevent auto-logout.
+  useEffect(() => {
+    const keepAlive = setInterval(() => {
+      resetSessionTimer(() => {}); // reset the 30-min inactivity timer
+    }, 5 * 60 * 1000); // every 5 min
+    return () => clearInterval(keepAlive);
+  }, []);
+
+  // ── Keep-alive: Wake Lock API (prevent screen sleep) ──
+  useEffect(() => {
+    let wakeLock: WakeLockSentinel | null = null;
+
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+          wakeLock?.addEventListener('release', () => {
+            // Re-acquire on release (e.g. tab switch)
+            setTimeout(requestWakeLock, 1000);
+          });
+        }
+      } catch { /* ignore */ }
+    };
+
+    requestWakeLock();
+
+    // Re-acquire wake lock when page becomes visible again
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      wakeLock?.release().catch(() => {});
+    };
+  }, []);
+
+  // ── Keep-alive: refresh Supabase token before it expires ──
+  useEffect(() => {
+    const tokenRefresh = setInterval(async () => {
+      try {
+        await supabase.auth.refreshSession();
+      } catch { /* ignore */ }
+    }, 10 * 60 * 1000); // every 10 min
+    return () => clearInterval(tokenRefresh);
+  }, []);
 
   // Fetch locations
   useEffect(() => {
@@ -119,73 +181,90 @@ const AttendanceKiosk = () => {
     }
   }, [userCoords, selectedLocation, locations, ar]);
 
-  // Generate QR token every 4.8s — only if location is verified
+  // ── QR generation: bucket-aware approach ──
+  // Instead of a 30-min setInterval (which drifts), we check every 5 seconds
+  // if the time bucket has changed, and only regenerate when it does.
+  const generateQRCodes = useCallback(async () => {
+    if (isGeneratingRef.current) return;
+    if (!selectedLocation || !session?.access_token || geoStatus !== "allowed" || !userCoords) return;
+
+    isGeneratingRef.current = true;
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+
+    try {
+      const url = `https://${projectId}.supabase.co/functions/v1/generate-qr-token`;
+      const results = await Promise.all(
+        Array.from({ length: QR_COUNT }, () =>
+          fetch(url, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              location_id: selectedLocation,
+              gps_lat: userCoords.lat,
+              gps_lng: userCoords.lng,
+            }),
+          }).then(r => r.json().then(j => ({ ok: r.ok, json: j })))
+        )
+      );
+
+      const srcs: string[] = [];
+      let hasError = false;
+      for (const r of results) {
+        if (!r.ok || !r.json.token) {
+          hasError = true;
+          srcs.push("");
+        } else {
+          const src = await QRCode.toDataURL(r.json.token, {
+            width: 280,
+            margin: 2,
+            color: { dark: "#000000", light: "#ffffff" },
+          });
+          srcs.push(src);
+        }
+      }
+      setQrSrcs(srcs);
+      if (!hasError) {
+        setError("");
+        lastBucketRef.current = getBucket();
+      }
+    } catch (e: any) {
+      console.error("[Kiosk] QR fetch error:", e);
+      setError(e.message);
+    } finally {
+      isGeneratingRef.current = false;
+    }
+  }, [selectedLocation, session, geoStatus, userCoords]);
+
+  // Initial generation + bucket-change detection every 5 seconds
   useEffect(() => {
     if (!selectedLocation || !session?.access_token || geoStatus !== "allowed" || !userCoords) return;
 
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+    // Generate immediately on mount / when deps change
+    generateQRCodes();
 
-    const tick = async () => {
-      try {
-        const url = `https://${projectId}.supabase.co/functions/v1/generate-qr-token`;
-        const results = await Promise.all(
-          Array.from({ length: QR_COUNT }, () =>
-            fetch(url, {
-              method: "POST",
-              headers: {
-                "content-type": "application/json",
-                authorization: `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({
-                location_id: selectedLocation,
-                gps_lat: userCoords.lat,
-                gps_lng: userCoords.lng,
-              }),
-            }).then(r => r.json().then(j => ({ ok: r.ok, json: j })))
-          )
-        );
-        const srcs: string[] = [];
-        let hasError = false;
-        for (const r of results) {
-          if (!r.ok || !r.json.token) {
-            hasError = true;
-            srcs.push("");
-          } else {
-            const src = await QRCode.toDataURL(r.json.token, {
-              width: 280,
-              margin: 2,
-              color: { dark: "#000000", light: "#ffffff" },
-            });
-            srcs.push(src);
-          }
-        }
-        setQrSrcs(srcs);
-        if (!hasError) {
-          setError("");
-          // Calculate seconds until next 30-min bucket
-          const nowSec = Math.floor(Date.now() / 1000);
-          const bucket = 1800;
-          const nextBucket = (Math.floor(nowSec / bucket) + 1) * bucket;
-          setCountdown(nextBucket - nowSec);
-        }
-      } catch (e: any) {
-        console.error("[Kiosk] QR fetch error:", e);
-        setError(e.message);
+    const checkInterval = setInterval(() => {
+      const currentBucket = getBucket();
+      // Update countdown
+      setCountdown(getSecondsToNextBucket());
+      // If bucket changed, regenerate
+      if (currentBucket !== lastBucketRef.current) {
+        generateQRCodes();
       }
-    };
+    }, 5000); // check every 5 seconds
 
-    tick();
-    intervalRef.current = window.setInterval(tick, QR_INTERVAL_MS);
+    return () => clearInterval(checkInterval);
+  }, [selectedLocation, session, geoStatus, userCoords, generateQRCodes]);
 
-    const countdownInterval = window.setInterval(() => {
-      setCountdown((prev) => (prev > 1 ? prev - 1 : 0));
+  // Countdown ticker (cosmetic, every second)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(getSecondsToNextBucket());
     }, 1000);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      clearInterval(countdownInterval);
-    };
-  }, [selectedLocation, session, geoStatus, userCoords]);
+    return () => clearInterval(timer);
+  }, []);
 
   // Clear QR when not allowed
   useEffect(() => {
@@ -223,8 +302,6 @@ const AttendanceKiosk = () => {
       </div>
     );
   };
-
-  const hasAnyQr = qrSrcs.some(s => s !== "");
 
   return (
     <div
