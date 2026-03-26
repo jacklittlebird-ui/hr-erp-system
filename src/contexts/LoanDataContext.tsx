@@ -152,7 +152,7 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
     if (error) throw error;
     addNotification({ titleAr: `تم إضافة قرض جديد: ${loan.employeeName}`, titleEn: `New loan added: ${loan.employeeName}`, type: 'info', module: 'loan' });
-    invalidateCache('loans_');
+    
     await fetchLoans();
   }, [addNotification, fetchLoans]);
 
@@ -168,7 +168,7 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const { error } = await supabase.from('loans').update(dbUpdates).eq('id', id);
     if (error) throw error;
-    invalidateCache('loans_');
+    
     await fetchLoans();
   }, [fetchLoans]);
 
@@ -176,7 +176,7 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     await supabase.from('loan_installments').delete().eq('loan_id', id);
     const { error } = await supabase.from('loans').delete().eq('id', id);
     if (error) throw error;
-    invalidateCache('loans_');
+    
     await fetchLoans();
   }, [fetchLoans]);
 
@@ -191,7 +191,7 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (installmentError) throw installmentError;
     if (!installments || installments.length === 0) {
-      invalidateCache('loans_');
+      
       await fetchLoans();
       return;
     }
@@ -207,7 +207,7 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       status: newPaid >= (loanRow.installments_count || 1) ? 'completed' : 'active',
     }).eq('id', loanId);
 
-    invalidateCache('loans_');
+    
     await fetchLoans();
   }, [fetchLoans]);
 
@@ -221,7 +221,7 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
     if (error) throw error;
     addNotification({ titleAr: `تم إضافة سلفة جديدة: ${advance.employeeName}`, titleEn: `New advance added: ${advance.employeeName}`, type: 'info', module: 'loan' });
-    invalidateCache('advances_');
+    
     await fetchAdvances();
   }, [addNotification, fetchAdvances]);
 
@@ -235,14 +235,14 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const { error } = await supabase.from('advances').update(dbUpdates).eq('id', id);
     if (error) throw error;
-    invalidateCache('advances_');
+    
     await fetchAdvances();
   }, [fetchAdvances]);
 
   const deleteAdvance = useCallback(async (id: string) => {
     const { error } = await supabase.from('advances').delete().eq('id', id);
     if (error) throw error;
-    invalidateCache('advances_');
+    
     await fetchAdvances();
   }, [fetchAdvances]);
 

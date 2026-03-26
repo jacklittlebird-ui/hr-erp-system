@@ -206,7 +206,7 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        invalidateCache('payroll_');
+        
         fetchEmployeeMap();
         fetchEntries();
       }
@@ -233,17 +233,17 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const savePayrollEntry = useCallback(async (entry: ProcessedPayroll) => {
     await upsertEntry(entry);
-    await fetchEntriesDirect();
+    await fetchEntries();
     addNotification({ titleAr: `تم معالجة مسير الراتب: ${entry.employeeName}`, titleEn: `Payroll processed: ${entry.employeeNameEn}`, type: 'success', module: 'payroll' });
-  }, [addNotification, fetchEntriesDirect]);
+  }, [addNotification, fetchEntries]);
 
   const savePayrollEntries = useCallback(async (entries: ProcessedPayroll[]) => {
     for (const entry of entries) {
       await upsertEntry(entry);
     }
-    await fetchEntriesDirect();
+    await fetchEntries();
     addNotification({ titleAr: `تم معالجة مسير الرواتب لـ ${entries.length} موظف`, titleEn: `Payroll processed for ${entries.length} employees`, type: 'success', module: 'payroll' });
-  }, [addNotification, fetchEntriesDirect]);
+  }, [addNotification, fetchEntries]);
 
   const getPayrollEntry = useCallback((employeeId: string, month: string, year: string) => {
     return payrollEntries.find(e => e.employeeId === employeeId && e.month === month && e.year === year);
@@ -268,15 +268,15 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.error('Error deleting payroll entry:', error);
       return;
     }
-    await fetchEntriesDirect();
+    await fetchEntries();
     addNotification({ titleAr: 'تم حذف كشف الراتب', titleEn: 'Payroll entry deleted', type: 'warning', module: 'payroll' });
-  }, [addNotification, fetchEntriesDirect]);
+  }, [addNotification, fetchEntries]);
 
   const refreshPayroll = useCallback(async () => {
-    invalidateCache('payroll_empMap');
+    
     await fetchEmployeeMap();
-    await fetchEntriesDirect();
-  }, [fetchEmployeeMap, fetchEntriesDirect]);
+    await fetchEntries();
+  }, [fetchEmployeeMap, fetchEntries]);
 
   return (
     <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll, savePayrollEntry, savePayrollEntries, deletePayrollEntry, getPayrollEntry, getMonthlyPayroll, getEmployeePayroll }}>
