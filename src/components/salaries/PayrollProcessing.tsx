@@ -48,6 +48,9 @@ export const PayrollProcessing = () => {
   const [dbAdvances, setDbAdvances] = useState<{ id: string; employee_id: string; amount: number; deduction_month: string }[]>([]);
   const [dbMobileBills, setDbMobileBills] = useState<{ employee_id: string; amount: number; deduction_month: string }[]>([]);
 
+  const roundToNearestQuarter = (v: number) => Math.round(v * 4) / 4;
+  const roundToNearestEighth = (v: number) => Math.round(v * 8) / 8;
+  const period = `${selectedYear}-${selectedMonth}`;
   const normalizeQuarterInput = (value: number) => roundToNearestEighth(value || 0);
 
   // Fetch active loans, approved advances, and mobile bills from DB
