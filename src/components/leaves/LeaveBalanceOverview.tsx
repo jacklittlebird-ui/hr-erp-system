@@ -127,8 +127,9 @@ export const LeaveBalanceOverview = ({ balances }: LeaveBalanceOverviewProps) =>
                       {language === 'ar' ? balance.employeeNameAr : balance.employeeName}
                     </TableCell>
                     <TableCell>{t(`dept.${balance.department.toLowerCase()}`)}</TableCell>
-                    <TableCell>{balance.station}</TableCell>
-                    <TableCell>
+                     <TableCell>{balance.station}</TableCell>
+                     <TableCell>{balance.hireDate ? balance.hireDate.split('-').reverse().join('/') : '—'}</TableCell>
+                     <TableCell>
                       <div className="flex flex-col items-center">
                         <span className="text-sm font-medium text-stat-blue">
                           {balance.annualRemaining} / {balance.annualTotal}

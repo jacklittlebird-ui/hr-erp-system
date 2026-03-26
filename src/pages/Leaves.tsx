@@ -174,6 +174,7 @@ const Leaves = () => {
         employeeId: e.id, employeeName: e.name_en, employeeNameAr: e.name_ar,
         department: d ? (language === 'ar' ? d.name_ar : d.name_en) : '',
         station: s ? (language === 'ar' ? s.name_ar : s.name_en) : '',
+        hireDate: e.hire_date || '',
         annualTotal, annualUsed, annualRemaining: annualTotal - annualUsed,
         sickTotal, sickUsed, sickRemaining: sickTotal - sickUsed,
         casualTotal, casualUsed, casualRemaining: casualTotal - casualUsed,
