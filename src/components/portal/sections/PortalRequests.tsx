@@ -39,7 +39,7 @@ export const PortalRequests = () => {
     if (!reqType) { toast.error(ar ? 'يرجى اختيار نوع الطلب' : 'Please select request type'); return; }
     if (!reason.trim()) { toast.error(ar ? 'يرجى كتابة السبب' : 'Please enter a reason'); return; }
     const t = reqTypes.find(r => r.value === reqType);
-    addRequest({ employeeId: PORTAL_EMPLOYEE_ID, typeAr: t?.ar || '', typeEn: t?.en || '', date: new Date().toISOString().split('T')[0] });
+    addRequest({ employeeId: PORTAL_EMPLOYEE_ID, typeAr: t?.ar || '', typeEn: t?.en || '', date: new Date().toISOString().split('T')[0], reason } as any);
     toast.success(ar ? 'تم تقديم الطلب بنجاح' : 'Request submitted');
     setShowDialog(false); setReqType(''); setReason('');
   };
