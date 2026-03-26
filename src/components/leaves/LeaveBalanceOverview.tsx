@@ -1,17 +1,92 @@
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BarChart3, CalendarDays, Stethoscope, Coffee, Clock } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { BarChart3, CalendarDays, Stethoscope, Coffee, Clock, Edit, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EmployeeLeaveBalance } from '@/types/leaves';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface LeaveBalanceOverviewProps {
   balances: EmployeeLeaveBalance[];
+  onRefresh?: () => void;
 }
 
-export const LeaveBalanceOverview = ({ balances }: LeaveBalanceOverviewProps) => {
+export const LeaveBalanceOverview = ({ balances, onRefresh }: LeaveBalanceOverviewProps) => {
   const { t, isRTL, language } = useLanguage();
+  const { toast } = useToast();
+  const isAr = language === 'ar';
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingBalance, setEditingBalance] = useState<EmployeeLeaveBalance | null>(null);
+  const [form, setForm] = useState({ annualTotal: 0, sickTotal: 0, casualTotal: 0, permissionsTotal: 0 });
+  const [saving, setSaving] = useState(false);
+
+  const openEdit = (balance: EmployeeLeaveBalance) => {
+    setEditingBalance(balance);
+    setForm({
+      annualTotal: balance.annualTotal,
+      sickTotal: balance.sickTotal,
+      casualTotal: balance.casualTotal,
+      permissionsTotal: balance.permissionsTotal,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!editingBalance) return;
+    setSaving(true);
+    const currentYear = new Date().getFullYear();
+
+    const payload = {
+      employee_id: editingBalance.employeeId,
+      year: currentYear,
+      annual_total: form.annualTotal,
+      annual_used: editingBalance.annualUsed,
+      sick_total: form.sickTotal,
+      sick_used: editingBalance.sickUsed,
+      casual_total: form.casualTotal,
+      casual_used: editingBalance.casualUsed,
+      permissions_total: form.permissionsTotal,
+      permissions_used: editingBalance.permissionsUsed,
+    };
+
+    // Try update first, then insert
+    const { data: existing } = await supabase
+      .from('leave_balances')
+      .select('id')
+      .eq('employee_id', editingBalance.employeeId)
+      .eq('year', currentYear)
+      .maybeSingle();
+
+    let error;
+    if (existing) {
+      ({ error } = await supabase
+        .from('leave_balances')
+        .update(payload)
+        .eq('employee_id', editingBalance.employeeId)
+        .eq('year', currentYear));
+    } else {
+      ({ error } = await supabase
+        .from('leave_balances')
+        .insert(payload));
+    }
+
+    if (error) {
+      toast({ title: isAr ? 'خطأ' : 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: isAr ? 'تم الحفظ' : 'Saved', description: isAr ? 'تم تحديث الرصيد بنجاح' : 'Balance updated successfully' });
+      setEditDialogOpen(false);
+      onRefresh?.();
+    }
+    setSaving(false);
+  };
 
   const totalAnnualUsed = balances.reduce((sum, b) => sum + b.annualUsed, 0);
   const totalAnnualTotal = balances.reduce((sum, b) => sum + b.annualTotal, 0);
@@ -25,43 +100,27 @@ export const LeaveBalanceOverview = ({ balances }: LeaveBalanceOverviewProps) =>
   const summaryCards = [
     {
       title: t('leaves.balance.annualLeave'),
-      used: totalAnnualUsed,
-      total: totalAnnualTotal,
-      icon: CalendarDays,
-      color: 'text-stat-blue',
-      bgColor: 'bg-stat-blue-bg',
-      iconBg: 'bg-stat-blue',
-      unit: language === 'ar' ? 'يوم' : 'days',
+      used: totalAnnualUsed, total: totalAnnualTotal,
+      icon: CalendarDays, color: 'text-stat-blue', bgColor: 'bg-stat-blue-bg', iconBg: 'bg-stat-blue',
+      unit: isAr ? 'يوم' : 'days',
     },
     {
       title: t('leaves.balance.sickLeave'),
-      used: totalSickUsed,
-      total: totalSickTotal,
-      icon: Stethoscope,
-      color: 'text-stat-coral',
-      bgColor: 'bg-stat-coral-bg',
-      iconBg: 'bg-stat-coral',
-      unit: language === 'ar' ? 'يوم' : 'days',
+      used: totalSickUsed, total: totalSickTotal,
+      icon: Stethoscope, color: 'text-stat-coral', bgColor: 'bg-stat-coral-bg', iconBg: 'bg-stat-coral',
+      unit: isAr ? 'يوم' : 'days',
     },
     {
       title: t('leaves.balance.casualLeave'),
-      used: totalCasualUsed,
-      total: totalCasualTotal,
-      icon: Coffee,
-      color: 'text-stat-green',
-      bgColor: 'bg-stat-green-bg',
-      iconBg: 'bg-stat-green',
-      unit: language === 'ar' ? 'يوم' : 'days',
+      used: totalCasualUsed, total: totalCasualTotal,
+      icon: Coffee, color: 'text-stat-green', bgColor: 'bg-stat-green-bg', iconBg: 'bg-stat-green',
+      unit: isAr ? 'يوم' : 'days',
     },
     {
       title: t('leaves.balance.permissions'),
-      used: totalPermissionsUsed,
-      total: totalPermissionsTotal,
-      icon: Clock,
-      color: 'text-stat-purple',
-      bgColor: 'bg-stat-purple-bg',
-      iconBg: 'bg-stat-purple',
-      unit: language === 'ar' ? 'ساعة' : 'hrs',
+      used: totalPermissionsUsed, total: totalPermissionsTotal,
+      icon: Clock, color: 'text-stat-purple', bgColor: 'bg-stat-purple-bg', iconBg: 'bg-stat-purple',
+      unit: isAr ? 'ساعة' : 'hrs',
     },
   ];
 
@@ -110,15 +169,16 @@ export const LeaveBalanceOverview = ({ balances }: LeaveBalanceOverviewProps) =>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className={cn(isRTL && "text-right")}>{language === 'ar' ? 'كود الموظف' : 'Employee ID'}</TableHead>
+                  <TableHead className={cn(isRTL && "text-right")}>{isAr ? 'كود الموظف' : 'Employee ID'}</TableHead>
                   <TableHead className={cn(isRTL && "text-right")}>{t('leaves.balance.employee')}</TableHead>
                   <TableHead className={cn(isRTL && "text-right")}>{t('leaves.balance.department')}</TableHead>
-                   <TableHead className={cn(isRTL && "text-right")}>{language === 'ar' ? 'المكان' : 'Station'}</TableHead>
-                   <TableHead className={cn(isRTL && "text-right")}>{language === 'ar' ? 'تاريخ التعيين' : 'Hire Date'}</TableHead>
+                  <TableHead className={cn(isRTL && "text-right")}>{isAr ? 'المكان' : 'Station'}</TableHead>
+                  <TableHead className={cn(isRTL && "text-right")}>{isAr ? 'تاريخ التعيين' : 'Hire Date'}</TableHead>
                   <TableHead className={cn("text-center", isRTL && "text-right")}>{t('leaves.balance.annualLeave')}</TableHead>
                   <TableHead className={cn("text-center", isRTL && "text-right")}>{t('leaves.balance.sickLeave')}</TableHead>
                   <TableHead className={cn("text-center", isRTL && "text-right")}>{t('leaves.balance.casualLeave')}</TableHead>
                   <TableHead className={cn("text-center", isRTL && "text-right")}>{t('leaves.balance.permissions')}</TableHead>
+                  <TableHead className="text-center">{isAr ? 'تعديل' : 'Edit'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -126,12 +186,12 @@ export const LeaveBalanceOverview = ({ balances }: LeaveBalanceOverviewProps) =>
                   <TableRow key={balance.employeeId}>
                     <TableCell className="font-medium">{balance.employeeCode || '—'}</TableCell>
                     <TableCell className="font-medium">
-                      {language === 'ar' ? balance.employeeNameAr : balance.employeeName}
+                      {isAr ? balance.employeeNameAr : balance.employeeName}
                     </TableCell>
                     <TableCell>{t(`dept.${balance.department.toLowerCase()}`)}</TableCell>
-                     <TableCell>{balance.station}</TableCell>
-                     <TableCell>{balance.hireDate ? balance.hireDate.split('-').reverse().join('/') : '—'}</TableCell>
-                     <TableCell>
+                    <TableCell>{balance.station}</TableCell>
+                    <TableCell>{balance.hireDate ? balance.hireDate.split('-').reverse().join('/') : '—'}</TableCell>
+                    <TableCell>
                       <div className="flex flex-col items-center">
                         <span className="text-sm font-medium text-stat-blue">
                           {balance.annualRemaining} / {balance.annualTotal}
@@ -175,6 +235,11 @@ export const LeaveBalanceOverview = ({ balances }: LeaveBalanceOverviewProps) =>
                         />
                       </div>
                     </TableCell>
+                    <TableCell className="text-center">
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(balance)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -182,6 +247,52 @@ export const LeaveBalanceOverview = ({ balances }: LeaveBalanceOverviewProps) =>
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Balance Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isAr ? 'تعديل رصيد الإجازات' : 'Edit Leave Balance'}</DialogTitle>
+          </DialogHeader>
+          {editingBalance && (
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground mb-2">
+                {isAr ? editingBalance.employeeNameAr : editingBalance.employeeName} — {editingBalance.employeeCode}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>{isAr ? 'الإجازة السنوية (إجمالي)' : 'Annual Leave (Total)'}</Label>
+                  <Input type="number" min={0} value={form.annualTotal} onChange={e => setForm(f => ({ ...f, annualTotal: Number(e.target.value) }))} />
+                  <p className="text-xs text-muted-foreground mt-1">{isAr ? 'مستخدم:' : 'Used:'} {editingBalance.annualUsed}</p>
+                </div>
+                <div>
+                  <Label>{isAr ? 'الإجازة المرضية (إجمالي)' : 'Sick Leave (Total)'}</Label>
+                  <Input type="number" min={0} value={form.sickTotal} onChange={e => setForm(f => ({ ...f, sickTotal: Number(e.target.value) }))} />
+                  <p className="text-xs text-muted-foreground mt-1">{isAr ? 'مستخدم:' : 'Used:'} {editingBalance.sickUsed}</p>
+                </div>
+                <div>
+                  <Label>{isAr ? 'الإجازة العارضة (إجمالي)' : 'Casual Leave (Total)'}</Label>
+                  <Input type="number" min={0} value={form.casualTotal} onChange={e => setForm(f => ({ ...f, casualTotal: Number(e.target.value) }))} />
+                  <p className="text-xs text-muted-foreground mt-1">{isAr ? 'مستخدم:' : 'Used:'} {editingBalance.casualUsed}</p>
+                </div>
+                <div>
+                  <Label>{isAr ? 'الأذونات (إجمالي ساعات)' : 'Permissions (Total hrs)'}</Label>
+                  <Input type="number" min={0} value={form.permissionsTotal} onChange={e => setForm(f => ({ ...f, permissionsTotal: Number(e.target.value) }))} />
+                  <p className="text-xs text-muted-foreground mt-1">{isAr ? 'مستخدم:' : 'Used:'} {editingBalance.permissionsUsed}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>{isAr ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleSave} disabled={saving} className="gap-2">
+              <Save className="w-4 h-4" />
+              {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ' : 'Save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
