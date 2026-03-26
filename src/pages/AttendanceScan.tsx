@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { getOrCreateDeviceId } from "@/lib/device";
+import { getOrCreateDeviceId, getDeviceMeta } from "@/lib/device";
 import { performCheckin } from "@/lib/attendanceQueue";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
