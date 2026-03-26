@@ -135,7 +135,7 @@ export const PortalDashboard = () => {
             'content-type': 'application/json',
             authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ token, event_type: qrEventType, device_id, gps }),
+          body: JSON.stringify({ token, event_type: qrEventType, device_id, gps, device_meta: getDeviceMeta() }),
         }
       );
 
