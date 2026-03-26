@@ -258,19 +258,17 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const savePayrollEntry = useCallback(async (entry: ProcessedPayroll) => {
     await upsertEntry(entry);
-    invalidateCache('payroll_entries');
-    await fetchEntries();
+    await fetchEntriesDirect();
     addNotification({ titleAr: `تم معالجة مسير الراتب: ${entry.employeeName}`, titleEn: `Payroll processed: ${entry.employeeNameEn}`, type: 'success', module: 'payroll' });
-  }, [addNotification, fetchEntries]);
+  }, [addNotification, fetchEntriesDirect]);
 
   const savePayrollEntries = useCallback(async (entries: ProcessedPayroll[]) => {
     for (const entry of entries) {
       await upsertEntry(entry);
     }
-    invalidateCache('payroll_entries');
-    await fetchEntries();
+    await fetchEntriesDirect();
     addNotification({ titleAr: `تم معالجة مسير الرواتب لـ ${entries.length} موظف`, titleEn: `Payroll processed for ${entries.length} employees`, type: 'success', module: 'payroll' });
-  }, [addNotification, fetchEntries]);
+  }, [addNotification, fetchEntriesDirect]);
 
   const getPayrollEntry = useCallback((employeeId: string, month: string, year: string) => {
     return payrollEntries.find(e => e.employeeId === employeeId && e.month === month && e.year === year);
@@ -295,17 +293,15 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.error('Error deleting payroll entry:', error);
       return;
     }
-    invalidateCache('payroll_entries');
-    await fetchEntries();
+    await fetchEntriesDirect();
     addNotification({ titleAr: 'تم حذف كشف الراتب', titleEn: 'Payroll entry deleted', type: 'warning', module: 'payroll' });
-  }, [addNotification, fetchEntries]);
+  }, [addNotification, fetchEntriesDirect]);
 
   const refreshPayroll = useCallback(async () => {
-    invalidateCache('payroll_entries');
     invalidateCache('payroll_empMap');
     await fetchEmployeeMap();
-    await fetchEntries();
-  }, [fetchEmployeeMap, fetchEntries]);
+    await fetchEntriesDirect();
+  }, [fetchEmployeeMap, fetchEntriesDirect]);
 
   return (
     <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll, savePayrollEntry, savePayrollEntries, deletePayrollEntry, getPayrollEntry, getMonthlyPayroll, getEmployeePayroll }}>
