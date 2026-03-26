@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePayrollData } from '@/contexts/PayrollDataContext';
 import { useSalaryData } from '@/contexts/SalaryDataContext';
@@ -19,7 +19,7 @@ export const PortalSalary = () => {
   const PORTAL_EMPLOYEE_ID = usePortalEmployee();
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
-  const { getEmployeePayroll } = usePayrollData();
+  const { getEmployeePayroll, refreshPayroll } = usePayrollData();
   const { getLatestSalaryRecord } = useSalaryData();
   const { getEmployeeActiveLoans, getEmployeeMonthlyLoanPayment } = useLoanData();
 
@@ -29,6 +29,10 @@ export const PortalSalary = () => {
   const monthlyLoanPayment = useMemo(() => getEmployeeMonthlyLoanPayment(PORTAL_EMPLOYEE_ID), [getEmployeeMonthlyLoanPayment]);
   const latest = payroll[0];
   const [selectedSlip, setSelectedSlip] = useState<typeof latest | null>(null);
+
+  useEffect(() => {
+    refreshPayroll();
+  }, [refreshPayroll, PORTAL_EMPLOYEE_ID]);
 
   const months = ar
     ? ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']

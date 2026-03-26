@@ -57,8 +57,31 @@ const PayrollDataContext = createContext<PayrollDataContextType | undefined>(und
 // Only select needed columns (not SELECT *)
 const PAYROLL_COLS = 'employee_id, month, year, basic_salary, transport_allowance, incentives, station_allowance, mobile_allowance, living_allowance, overtime_pay, bonus_type, bonus_value, bonus_amount, gross, employee_insurance, loan_payment, advance_amount, mobile_bill, leave_days, leave_deduction, penalty_type, penalty_value, penalty_amount, total_deductions, net_salary, employer_social_insurance, health_insurance, income_tax, processed_at, id';
 
-// Employee portal only needs summary columns
-const EMPLOYEE_PAYROLL_COLS = 'employee_id, month, year, basic_salary, gross, total_deductions, net_salary, processed_at, id';
+// Salary data is sensitive, so employee views also receive the full processed breakdown.
+const EMPLOYEE_PAYROLL_COLS = PAYROLL_COLS;
+const FETCH_BATCH_SIZE = 1000;
+
+const fetchAllBatches = async <T,>(
+  fetchPage: (from: number, to: number) => Promise<{ data: T[] | null; error: unknown }>
+): Promise<T[]> => {
+  const rows: T[] = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await fetchPage(from, from + FETCH_BATCH_SIZE - 1);
+    if (error) {
+      console.error('Error fetching paginated payroll data:', error);
+      break;
+    }
+
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < FETCH_BATCH_SIZE) break;
+    from += FETCH_BATCH_SIZE;
+  }
+
+  return rows;
+};
 
 const mapRowToEntry = (r: any): ProcessedPayroll => ({
   employeeId: r.employee_id,
@@ -137,23 +160,120 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const isEmployee = user?.role === 'employee';
   const scopedEmployeeId = isEmployee ? user?.employeeUuid : null;
 
+  const hydratePayrollEntries = useCallback(async (entries: ProcessedPayroll[]) => {
+    if (!entries.length) return entries;
+
+    const employeeIds = new Set(entries.map(entry => entry.employeeId));
+    const periods = Array.from(new Set(entries.map(entry => `${entry.year}-${entry.month}`)));
+
+    const [loanRows, advanceRows, mobileBillRows] = await Promise.all([
+      fetchAllBatches<{ employee_id: string; monthly_installment: number | null }>((from, to) => {
+        let query = supabase
+          .from('loans')
+          .select('employee_id, monthly_installment')
+          .eq('status', 'active')
+          .range(from, to);
+
+        if (isEmployee && scopedEmployeeId) {
+          query = query.eq('employee_id', scopedEmployeeId);
+        }
+
+        return query;
+      }),
+      periods.length
+        ? fetchAllBatches<{ employee_id: string; amount: number | null; deduction_month: string }>((from, to) => {
+            let query = supabase
+              .from('advances')
+              .select('employee_id, amount, deduction_month')
+              .in('deduction_month', periods)
+              .in('status', ['approved', 'deducted'])
+              .range(from, to);
+
+            if (isEmployee && scopedEmployeeId) {
+              query = query.eq('employee_id', scopedEmployeeId);
+            }
+
+            return query;
+          })
+        : Promise.resolve([]),
+      periods.length
+        ? fetchAllBatches<{ employee_id: string; amount: number | null; deduction_month: string }>((from, to) => {
+            let query = supabase
+              .from('mobile_bills')
+              .select('employee_id, amount, deduction_month')
+              .in('deduction_month', periods)
+              .range(from, to);
+
+            if (isEmployee && scopedEmployeeId) {
+              query = query.eq('employee_id', scopedEmployeeId);
+            }
+
+            return query;
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const loanMap = new Map<string, number>();
+    loanRows.forEach((row) => {
+      if (!employeeIds.has(row.employee_id)) return;
+      loanMap.set(row.employee_id, (loanMap.get(row.employee_id) || 0) + (row.monthly_installment || 0));
+    });
+
+    const advanceMap = new Map<string, number>();
+    advanceRows.forEach((row) => {
+      if (!employeeIds.has(row.employee_id)) return;
+      const key = `${row.employee_id}-${row.deduction_month}`;
+      advanceMap.set(key, (advanceMap.get(key) || 0) + (row.amount || 0));
+    });
+
+    const mobileBillMap = new Map<string, number>();
+    mobileBillRows.forEach((row) => {
+      if (!employeeIds.has(row.employee_id)) return;
+      const key = `${row.employee_id}-${row.deduction_month}`;
+      mobileBillMap.set(key, (mobileBillMap.get(key) || 0) + (row.amount || 0));
+    });
+
+    return entries.map((entry) => {
+      const periodKey = `${entry.employeeId}-${entry.year}-${entry.month}`;
+      const loanPayment = loanMap.get(entry.employeeId) ?? entry.loanPayment;
+      const advanceAmount = advanceMap.get(periodKey) ?? entry.advanceAmount;
+      const mobileBill = mobileBillMap.get(periodKey) ?? entry.mobileBill;
+      const totalDeductions = entry.employeeInsurance + loanPayment + advanceAmount + mobileBill + entry.leaveDeduction + entry.penaltyAmount;
+
+      return {
+        ...entry,
+        loanPayment,
+        advanceAmount,
+        mobileBill,
+        totalDeductions,
+        netSalary: entry.gross + entry.bonusAmount - totalDeductions,
+      };
+    });
+  }, [isEmployee, scopedEmployeeId]);
+
   const fetchEmployeeMap = useCallback(async () => {
     if (isEmployee) return;
 
-    const [empsRes, deptsRes, stationsRes] = await Promise.all([
-      supabase.from('employees').select('id, employee_code, name_ar, name_en, department_id, station_id').order('employee_code'),
-      supabase.from('departments').select('id, name_ar'),
-      supabase.from('stations').select('id, code'),
+    const [employees, departments, stations] = await Promise.all([
+      fetchAllBatches<any>((from, to) =>
+        supabase.from('employees').select('id, employee_code, name_ar, name_en, department_id, station_id').order('employee_code').range(from, to)
+      ),
+      fetchAllBatches<any>((from, to) =>
+        supabase.from('departments').select('id, name_ar').range(from, to)
+      ),
+      fetchAllBatches<any>((from, to) =>
+        supabase.from('stations').select('id, code').range(from, to)
+      ),
     ]);
-    trackQuery('payroll_empMap', (empsRes.data?.length || 0) + (deptsRes.data?.length || 0) + (stationsRes.data?.length || 0));
+    trackQuery('payroll_empMap', employees.length + departments.length + stations.length);
     
     const deptMap: Record<string, string> = {};
-    (deptsRes.data || []).forEach(d => { deptMap[d.id] = d.name_ar; });
+    departments.forEach(d => { deptMap[d.id] = d.name_ar; });
     const stationMap: Record<string, string> = {};
-    (stationsRes.data || []).forEach(s => { stationMap[s.id] = s.code; });
+    stations.forEach(s => { stationMap[s.id] = s.code; });
 
     const map: Record<string, { code: string; nameAr: string; nameEn: string; department: string; station: string }> = {};
-    (empsRes.data || []).forEach(e => {
+    employees.forEach(e => {
       map[e.id] = {
         code: e.employee_code || '',
         nameAr: e.name_ar || '',
@@ -168,15 +288,22 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const fetchEntries = useCallback(async () => {
     let query;
     if (isEmployee && scopedEmployeeId) {
-      query = supabase.from('payroll_entries').select(EMPLOYEE_PAYROLL_COLS).eq('employee_id', scopedEmployeeId).limit(24);
+      query = supabase.from('payroll_entries').select(EMPLOYEE_PAYROLL_COLS).eq('employee_id', scopedEmployeeId).order('year', { ascending: false }).order('month', { ascending: false }).limit(24);
+      const { data, error } = await query;
+      trackQuery('payroll', data?.length || 0);
+      const entries = (!error && data) ? data.map(mapRowToEntry) : [];
+      const hydratedEntries = await hydratePayrollEntries(entries);
+      setRawEntries(hydratedEntries);
     } else {
-      query = supabase.from('payroll_entries').select(PAYROLL_COLS);
+      const data = await fetchAllBatches<any>((from, to) =>
+        supabase.from('payroll_entries').select(PAYROLL_COLS).order('year', { ascending: false }).order('month', { ascending: false }).range(from, to)
+      );
+      trackQuery('payroll', data.length || 0);
+      const entries = data.map(mapRowToEntry);
+      const hydratedEntries = await hydratePayrollEntries(entries);
+      setRawEntries(hydratedEntries);
     }
-    const { data, error } = await query;
-    trackQuery('payroll', data?.length || 0);
-    const entries = (!error && data) ? data.map(mapRowToEntry) : [];
-    setRawEntries(entries);
-  }, [isEmployee, scopedEmployeeId]);
+  }, [hydratePayrollEntries, isEmployee, scopedEmployeeId]);
 
   const payrollEntries = useMemo(() => {
     return rawEntries.map(entry => {

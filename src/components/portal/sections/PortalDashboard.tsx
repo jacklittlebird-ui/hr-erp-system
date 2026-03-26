@@ -26,7 +26,7 @@ export const PortalDashboard = () => {
   const { language } = useLanguage();
   const ar = language === 'ar';
   const { session } = useAuth();
-  const { getEmployeePayroll } = usePayrollData();
+  const { getEmployeePayroll, refreshPayroll } = usePayrollData();
   const { records, getMonthlyStats, refresh: refreshAttendance } = useAttendanceData();
   const { getLeaveBalances, getEvaluations, getLeaveRequests, getMissions, getRequests, ensureLeaves, ensureEvaluations, ensureMissions } = usePortalData();
   useEffect(() => { ensureLeaves(); }, [ensureLeaves]);
@@ -85,6 +85,10 @@ export const PortalDashboard = () => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    refreshPayroll();
+  }, [refreshPayroll]);
 
   const monthlyStats = useMemo(() => getMonthlyStats(PORTAL_EMPLOYEE_ID, new Date().getFullYear(), new Date().getMonth()), [getMonthlyStats]);
   const latestPayroll = useMemo(() => {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePayrollData } from '@/contexts/PayrollDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,10 +48,14 @@ type EmployeeGroupedRow =
 export const SalaryReports = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
-  const { payrollEntries } = usePayrollData();
+  const { payrollEntries, refreshPayroll } = usePayrollData();
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [station, setStation] = useState('all');
   const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
+
+  useEffect(() => {
+    refreshPayroll();
+  }, [refreshPayroll, selectedYear]);
 
   const filtered = useMemo(
     () => payrollEntries.filter((e) => e.year === selectedYear && (station === 'all' || e.stationLocation === station)),

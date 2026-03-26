@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePayrollData } from '@/contexts/PayrollDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,13 +16,17 @@ import { useReportExport } from '@/hooks/useReportExport';
 export const SalarySlips = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
-  const { getMonthlyPayroll } = usePayrollData();
+  const { getMonthlyPayroll, refreshPayroll } = usePayrollData();
   const { reportRef, handlePrint, exportToCSV, exportToPDF } = useReportExport();
   const [search, setSearch] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [selectedStation, setSelectedStation] = useState('all');
   const [selectedSlipEmpId, setSelectedSlipEmpId] = useState<string | null>(null);
+
+  useEffect(() => {
+    refreshPayroll();
+  }, [refreshPayroll, selectedMonth, selectedYear]);
 
   const months = [
     { value: '01', label: ar ? 'يناير' : 'January' }, { value: '02', label: ar ? 'فبراير' : 'February' },
