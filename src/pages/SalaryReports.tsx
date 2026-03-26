@@ -29,6 +29,11 @@ const SalaryReports = () => {
   const [department, setDepartment] = useState('all');
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Always fetch fresh data on mount
+  useEffect(() => {
+    refreshPayroll();
+  }, []);
+
   const monthNamesAr = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
   const monthNamesEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const monthNames = ar ? monthNamesAr : monthNamesEn;
