@@ -2,7 +2,7 @@ import React, { createContext, useContext, useCallback, useState, useEffect, use
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { trackQuery, debouncedFetch, invalidateCache, setCache } from '@/lib/queryOptimizer';
+import { trackQuery } from '@/lib/queryOptimizer';
 
 export interface ProcessedPayroll {
   employeeId: string;
@@ -140,36 +140,32 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const fetchEmployeeMap = useCallback(async () => {
     if (isEmployee) return;
 
-    const result = await debouncedFetch('payroll_empMap', async () => {
-      const [empsRes, deptsRes, stationsRes] = await Promise.all([
-        supabase.from('employees').select('id, employee_code, name_ar, name_en, department_id, station_id').order('employee_code'),
-        supabase.from('departments').select('id, name_ar'),
-        supabase.from('stations').select('id, code'),
-      ]);
-      trackQuery('payroll_empMap', (empsRes.data?.length || 0) + (deptsRes.data?.length || 0) + (stationsRes.data?.length || 0));
-      
-      const deptMap: Record<string, string> = {};
-      (deptsRes.data || []).forEach(d => { deptMap[d.id] = d.name_ar; });
-      const stationMap: Record<string, string> = {};
-      (stationsRes.data || []).forEach(s => { stationMap[s.id] = s.code; });
+    const [empsRes, deptsRes, stationsRes] = await Promise.all([
+      supabase.from('employees').select('id, employee_code, name_ar, name_en, department_id, station_id').order('employee_code'),
+      supabase.from('departments').select('id, name_ar'),
+      supabase.from('stations').select('id, code'),
+    ]);
+    trackQuery('payroll_empMap', (empsRes.data?.length || 0) + (deptsRes.data?.length || 0) + (stationsRes.data?.length || 0));
+    
+    const deptMap: Record<string, string> = {};
+    (deptsRes.data || []).forEach(d => { deptMap[d.id] = d.name_ar; });
+    const stationMap: Record<string, string> = {};
+    (stationsRes.data || []).forEach(s => { stationMap[s.id] = s.code; });
 
-      const map: Record<string, { code: string; nameAr: string; nameEn: string; department: string; station: string }> = {};
-      (empsRes.data || []).forEach(e => {
-        map[e.id] = {
-          code: e.employee_code || '',
-          nameAr: e.name_ar || '',
-          nameEn: e.name_en || '',
-          department: e.department_id ? (deptMap[e.department_id] || '') : '',
-          station: e.station_id ? (stationMap[e.station_id] || '') : '',
-        };
-      });
-      return map;
-    }, { ttlMs: 120_000 });
-
-    setEmployeeMap(result);
+    const map: Record<string, { code: string; nameAr: string; nameEn: string; department: string; station: string }> = {};
+    (empsRes.data || []).forEach(e => {
+      map[e.id] = {
+        code: e.employee_code || '',
+        nameAr: e.name_ar || '',
+        nameEn: e.name_en || '',
+        department: e.department_id ? (deptMap[e.department_id] || '') : '',
+        station: e.station_id ? (stationMap[e.station_id] || '') : '',
+      };
+    });
+    setEmployeeMap(map);
   }, [isEmployee]);
 
-  const fetchEntriesDirect = useCallback(async () => {
+  const fetchEntries = useCallback(async () => {
     let query;
     if (isEmployee && scopedEmployeeId) {
       query = supabase.from('payroll_entries').select(EMPLOYEE_PAYROLL_COLS).eq('employee_id', scopedEmployeeId).limit(24);
@@ -179,28 +175,7 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const { data, error } = await query;
     trackQuery('payroll', data?.length || 0);
     const entries = (!error && data) ? data.map(mapRowToEntry) : [];
-    const cacheKey = `payroll_entries_${scopedEmployeeId || 'all'}`;
-    setCache(cacheKey, entries);
     setRawEntries(entries);
-  }, [isEmployee, scopedEmployeeId]);
-
-  const fetchEntries = useCallback(async () => {
-    const cacheKey = `payroll_entries_${scopedEmployeeId || 'all'}`;
-    
-    const result = await debouncedFetch(cacheKey, async () => {
-      let query;
-      if (isEmployee && scopedEmployeeId) {
-        query = supabase.from('payroll_entries').select(EMPLOYEE_PAYROLL_COLS).eq('employee_id', scopedEmployeeId).limit(24);
-      } else {
-        query = supabase.from('payroll_entries').select(PAYROLL_COLS);
-      }
-      const { data, error } = await query;
-      trackQuery('payroll', data?.length || 0);
-      if (!error && data) return data.map(mapRowToEntry);
-      return [];
-    }, { ttlMs: 60_000 });
-
-    setRawEntries(result);
   }, [isEmployee, scopedEmployeeId]);
 
   const payrollEntries = useMemo(() => {
@@ -231,7 +206,7 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        invalidateCache('payroll_');
+        
         fetchEmployeeMap();
         fetchEntries();
       }
@@ -258,17 +233,17 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const savePayrollEntry = useCallback(async (entry: ProcessedPayroll) => {
     await upsertEntry(entry);
-    await fetchEntriesDirect();
+    await fetchEntries();
     addNotification({ titleAr: `تم معالجة مسير الراتب: ${entry.employeeName}`, titleEn: `Payroll processed: ${entry.employeeNameEn}`, type: 'success', module: 'payroll' });
-  }, [addNotification, fetchEntriesDirect]);
+  }, [addNotification, fetchEntries]);
 
   const savePayrollEntries = useCallback(async (entries: ProcessedPayroll[]) => {
     for (const entry of entries) {
       await upsertEntry(entry);
     }
-    await fetchEntriesDirect();
+    await fetchEntries();
     addNotification({ titleAr: `تم معالجة مسير الرواتب لـ ${entries.length} موظف`, titleEn: `Payroll processed for ${entries.length} employees`, type: 'success', module: 'payroll' });
-  }, [addNotification, fetchEntriesDirect]);
+  }, [addNotification, fetchEntries]);
 
   const getPayrollEntry = useCallback((employeeId: string, month: string, year: string) => {
     return payrollEntries.find(e => e.employeeId === employeeId && e.month === month && e.year === year);
@@ -293,15 +268,15 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.error('Error deleting payroll entry:', error);
       return;
     }
-    await fetchEntriesDirect();
+    await fetchEntries();
     addNotification({ titleAr: 'تم حذف كشف الراتب', titleEn: 'Payroll entry deleted', type: 'warning', module: 'payroll' });
-  }, [addNotification, fetchEntriesDirect]);
+  }, [addNotification, fetchEntries]);
 
   const refreshPayroll = useCallback(async () => {
-    invalidateCache('payroll_empMap');
+    
     await fetchEmployeeMap();
-    await fetchEntriesDirect();
-  }, [fetchEmployeeMap, fetchEntriesDirect]);
+    await fetchEntries();
+  }, [fetchEmployeeMap, fetchEntries]);
 
   return (
     <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll, savePayrollEntry, savePayrollEntries, deletePayrollEntry, getPayrollEntry, getMonthlyPayroll, getEmployeePayroll }}>
