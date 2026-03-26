@@ -209,6 +209,7 @@ interface CheckinParams {
   gpsLat: number;
   gpsLng: number;
   gpsAccuracy: number;
+  deviceMeta?: DeviceMeta;
 }
 
 interface CheckinResult {
