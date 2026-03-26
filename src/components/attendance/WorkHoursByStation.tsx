@@ -116,7 +116,7 @@ export const WorkHoursByStation = () => {
 
       const data = allData;
 
-      if (!error && data) {
+      if (data.length > 0) {
         const empMap: Record<string, EmployeeHours> = {};
 
         data.forEach((r: any) => {
