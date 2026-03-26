@@ -60,6 +60,7 @@ export const AdvancesList = () => {
     approved: { ar: 'موافق عليه', en: 'Approved', color: 'bg-blue-100 text-blue-700 border-blue-300' },
     rejected: { ar: 'مرفوض', en: 'Rejected', color: 'bg-red-100 text-red-700 border-red-300' },
     deducted: { ar: 'تم الخصم', en: 'Deducted', color: 'bg-green-100 text-green-700 border-green-300' },
+    cancelled: { ar: 'ملغى', en: 'Cancelled', color: 'bg-gray-100 text-gray-700 border-gray-300' },
   };
 
   const uniqueDeductionMonths = useMemo(() => {
