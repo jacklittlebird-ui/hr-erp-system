@@ -343,12 +343,15 @@ const Leaves = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={cn("grid w-full grid-cols-4 lg:grid-cols-9 mb-6")} dir="rtl">
+          <TabsList className={cn("grid w-full grid-cols-5 lg:grid-cols-10 mb-6")} dir="rtl">
             <TabsTrigger value="leaves" className="flex items-center gap-1.5"><FileText className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.leaves')}</span></TabsTrigger>
             <TabsTrigger value="permissions" className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.permissions')}</span></TabsTrigger>
             <TabsTrigger value="missions" className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.missions')}</span></TabsTrigger>
             <TabsTrigger value="overtime" className="flex items-center gap-1.5"><PlusCircle className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.overtime')}</span></TabsTrigger>
             <TabsTrigger value="violations" className="flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" /><span className="hidden lg:inline">{language === 'ar' ? 'المخالفات' : 'Violations'}</span></TabsTrigger>
+            <TabsTrigger value="emp-requests" className="flex items-center gap-1.5 relative"><ClipboardList className="w-4 h-4" /><span className="hidden lg:inline">{language === 'ar' ? 'الطلبات' : 'Requests'}</span>
+              {employeeRequests.filter(r => r.status === 'pending').length > 0 && (<span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">{employeeRequests.filter(r => r.status === 'pending').length}</span>)}
+            </TabsTrigger>
             <TabsTrigger value="new" className="flex items-center gap-1.5"><Plus className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.newRequest')}</span></TabsTrigger>
             <TabsTrigger value="approvals" className="flex items-center gap-1.5 relative"><CheckCircle className="w-4 h-4" /><span className="hidden lg:inline">{t('leaves.tabs.approvals')}</span>
               {pendingCount > 0 && (<span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">{pendingCount}</span>)}
