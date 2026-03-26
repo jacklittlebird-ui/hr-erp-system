@@ -1,5 +1,7 @@
 /**
  * Attendance Queue & Anti-Fraud Utilities
+ */
+import type { DeviceMeta } from '@/lib/device';
  *
  * Features:
  *  • Request deduplication (ignore within 10s)
