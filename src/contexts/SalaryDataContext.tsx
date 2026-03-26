@@ -2,7 +2,7 @@ import React, { createContext, useContext, useCallback, useState, useEffect, use
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { trackQuery, debouncedFetch, invalidateCache } from '@/lib/queryOptimizer';
+import { trackQuery } from '@/lib/queryOptimizer';
 
 export interface SalaryRecord {
   year: string;
@@ -69,22 +69,16 @@ export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const scopedEmployeeId = isEmployee ? user?.employeeUuid : null;
 
   const fetchRecords = useCallback(async () => {
-    const cacheKey = `salary_${scopedEmployeeId || 'all'}`;
-    
-    const result = await debouncedFetch(cacheKey, async () => {
-      let query;
-      if (isEmployee && scopedEmployeeId) {
-        query = supabase.from('salary_records').select(EMPLOYEE_SALARY_COLS).eq('employee_id', scopedEmployeeId).limit(5);
-      } else {
-        query = supabase.from('salary_records').select(SALARY_COLS);
-      }
-      const { data, error } = await query;
-      trackQuery('salary', data?.length || 0);
-      if (!error && data) return data.map(mapRow);
-      return [];
-    }, { ttlMs: 120_000 });
+    let query;
+    if (isEmployee && scopedEmployeeId) {
+      query = supabase.from('salary_records').select(EMPLOYEE_SALARY_COLS).eq('employee_id', scopedEmployeeId).limit(5);
+    } else {
+      query = supabase.from('salary_records').select(SALARY_COLS);
+    }
 
-    setSalaryRecords(result);
+    const { data, error } = await query;
+    trackQuery('salary', data?.length || 0);
+    setSalaryRecords(!error && data ? data.map(mapRow) : []);
   }, [isEmployee, scopedEmployeeId]);
 
   const hasMounted = useRef(false);
@@ -97,7 +91,6 @@ export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        invalidateCache('salary_');
         fetchRecords();
       }
     });
@@ -140,7 +133,6 @@ export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (error) { console.error('Error inserting salary record:', error); return; }
     }
 
-    invalidateCache('salary_');
     await fetchRecords();
     addNotification({ titleAr: `تم حفظ سجل الراتب`, titleEn: `Salary record saved`, type: 'success', module: 'salary' });
   }, [salaryRecords, addNotification, fetchRecords]);
@@ -148,7 +140,6 @@ export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const deleteSalaryRecord = useCallback(async (employeeId: string, year: string) => {
     const { error } = await supabase.from('salary_records').delete().eq('employee_id', employeeId).eq('year', year);
     if (error) { console.error('Error deleting salary record:', error); return; }
-    invalidateCache('salary_');
     await fetchRecords();
     addNotification({ titleAr: `تم حذف سجل الراتب`, titleEn: `Salary record deleted`, type: 'warning', module: 'salary' });
   }, [addNotification, fetchRecords]);

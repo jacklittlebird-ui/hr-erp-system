@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePayrollData } from '@/contexts/PayrollDataContext';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
@@ -15,13 +15,17 @@ import { stationLocations } from '@/data/stationLocations';
 export const SalaryTransfer = () => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
-  const { getMonthlyPayroll } = usePayrollData();
+  const { getMonthlyPayroll, refreshPayroll } = usePayrollData();
   const { employees } = useEmployeeData();
   const { exportToCSV } = useReportExport();
 
   const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [selectedStation, setSelectedStation] = useState('all');
+
+  useEffect(() => {
+    refreshPayroll();
+  }, [refreshPayroll, selectedMonth, selectedYear]);
 
   const months = [
     { value: '01', label: ar ? 'يناير' : 'January' },

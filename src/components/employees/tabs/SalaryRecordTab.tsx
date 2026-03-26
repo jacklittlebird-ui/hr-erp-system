@@ -1,11 +1,11 @@
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { cn } from '@/lib/utils';
 import { Receipt } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { usePayrollData } from '@/contexts/PayrollDataContext';
 
 interface PayrollEntry {
   id: string;
@@ -55,45 +55,39 @@ const monthNames: Record<string, { ar: string; en: string }> = {
 export const SalaryRecordTab = ({ employee }: SalaryRecordTabProps) => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
-  const [records, setRecords] = useState<PayrollEntry[]>([]);
+  const { getEmployeePayroll, refreshPayroll } = usePayrollData();
 
-  const fetchPayroll = useCallback(async () => {
-    const { data } = await supabase
-      .from('payroll_entries')
-      .select('*')
-      .eq('employee_id', employee.id)
-      .order('year', { ascending: false })
-      .order('month', { ascending: false });
-    if (data) {
-      setRecords(data.map(r => ({
-        id: r.id,
-        month: r.month,
-        year: r.year,
-        basicSalary: r.basic_salary ?? 0,
-        transportAllowance: r.transport_allowance ?? 0,
-        incentives: r.incentives ?? 0,
-        stationAllowance: r.station_allowance ?? 0,
-        mobileAllowance: r.mobile_allowance ?? 0,
-        livingAllowance: r.living_allowance ?? 0,
-        overtimePay: r.overtime_pay ?? 0,
-        bonusAmount: r.bonus_amount ?? 0,
-        gross: r.gross ?? 0,
-        employeeInsurance: r.employee_insurance ?? 0,
-        healthInsurance: r.health_insurance ?? 0,
-        employerSocialInsurance: r.employer_social_insurance ?? 0,
-        incomeTax: r.income_tax ?? 0,
-        loanPayment: r.loan_payment ?? 0,
-        advanceAmount: r.advance_amount ?? 0,
-        mobileBill: r.mobile_bill ?? 0,
-        leaveDeduction: r.leave_deduction ?? 0,
-        penaltyAmount: r.penalty_amount ?? 0,
-        totalDeductions: r.total_deductions ?? 0,
-        netSalary: r.net_salary ?? 0,
-      })));
-    }
-  }, [employee.id]);
+  useEffect(() => {
+    refreshPayroll();
+  }, [refreshPayroll]);
 
-  useEffect(() => { fetchPayroll(); }, [fetchPayroll]);
+  const records = useMemo<PayrollEntry[]>(() => {
+    return getEmployeePayroll(employee.id).map((record) => ({
+      id: `${record.employeeId}-${record.year}-${record.month}`,
+      month: record.month,
+      year: record.year,
+      basicSalary: record.basicSalary,
+      transportAllowance: record.transportAllowance,
+      incentives: record.incentives,
+      stationAllowance: record.stationAllowance,
+      mobileAllowance: record.mobileAllowance,
+      livingAllowance: record.livingAllowance,
+      overtimePay: record.overtimePay,
+      bonusAmount: record.bonusAmount,
+      gross: record.gross,
+      employeeInsurance: record.employeeInsurance,
+      healthInsurance: record.healthInsurance,
+      employerSocialInsurance: record.employerSocialInsurance,
+      incomeTax: record.incomeTax,
+      loanPayment: record.loanPayment,
+      advanceAmount: record.advanceAmount,
+      mobileBill: record.mobileBill,
+      leaveDeduction: record.leaveDeduction,
+      penaltyAmount: record.penaltyAmount,
+      totalDeductions: record.totalDeductions,
+      netSalary: record.netSalary,
+    }));
+  }, [employee.id, getEmployeePayroll]);
 
   const getMonthLabel = (m: string) => {
     const mn = monthNames[m];
