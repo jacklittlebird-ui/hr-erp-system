@@ -100,7 +100,7 @@ export const PayrollProcessing = () => {
       }
 
       // Mark advances for this month as deducted
-      const empAdvances = dbAdvances.filter(a => a.employee_id === empId && a.deduction_month === period);
+      const empAdvances = dbAdvances.filter(a => a.employee_id === empId && a.deduction_month === period && a.status === 'approved');
       for (const adv of empAdvances) {
         await supabase.from('advances').update({ status: 'deducted' }).eq('id', adv.id);
       }
