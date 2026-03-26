@@ -173,6 +173,7 @@ interface PortalDataContextType {
   ensureTraining: () => Promise<void>;
   ensureMissions: () => Promise<void>;
   ensureViolations: () => Promise<void>;
+  ensureRequests: () => Promise<void>;
   ensureDocuments: () => Promise<void>;
 }
 
