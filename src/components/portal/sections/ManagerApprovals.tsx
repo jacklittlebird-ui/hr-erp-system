@@ -163,7 +163,7 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
   return (
     <div className="space-y-4">
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="bg-gradient-to-br from-[hsl(var(--stat-blue))]/10 to-transparent border-[hsl(var(--stat-blue))]/20">
           <CardContent className="p-4 text-center">
             <Calendar className="h-6 w-6 mx-auto mb-1 text-[hsl(var(--stat-blue))]" />
@@ -183,6 +183,13 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
             <RefreshCw className="h-6 w-6 mx-auto mb-1 text-[hsl(var(--stat-green))]" />
             <div className="text-2xl font-bold text-[hsl(var(--stat-green))]">{pendingCounts.overtime}</div>
             <div className="text-xs text-muted-foreground">{t('إضافي معلق', 'Pending Overtime')}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/20">
+          <CardContent className="p-4 text-center">
+            <MapPin className="h-6 w-6 mx-auto mb-1 text-purple-500" />
+            <div className="text-2xl font-bold text-purple-500">{pendingCounts.missions}</div>
+            <div className="text-xs text-muted-foreground">{t('مأموريات معلقة', 'Pending Missions')}</div>
           </CardContent>
         </Card>
       </div>
