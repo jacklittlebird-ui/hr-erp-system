@@ -114,7 +114,7 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
   };
 
   const handleReject = async () => {
-    const table = rejectType === 'leave' ? 'leave_requests' : rejectType === 'permission' ? 'permission_requests' : 'overtime_requests';
+    const table = rejectType === 'leave' ? 'leave_requests' : rejectType === 'permission' ? 'permission_requests' : rejectType === 'mission' ? 'missions' : 'overtime_requests';
     const updateData: any = { status: 'rejected' };
     if (rejectType === 'leave') updateData.rejection_reason = rejectReason;
     const { error } = await supabase.from(table).update(updateData).eq('id', rejectId);
