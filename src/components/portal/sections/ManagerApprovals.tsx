@@ -152,11 +152,13 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
     leaves: leaveRequests.filter(r => r.status === 'pending').length,
     permissions: permissionRequests.filter(r => r.status === 'pending').length,
     overtime: overtimeRequests.filter(r => r.status === 'pending').length,
-  }), [leaveRequests, permissionRequests, overtimeRequests]);
+    missions: missionRequests.filter(r => r.status === 'pending').length,
+  }), [leaveRequests, permissionRequests, overtimeRequests, missionRequests]);
 
   const filteredLeaves = filterByStatus(leaveRequests);
   const filteredPermissions = filterByStatus(permissionRequests);
   const filteredOvertime = filterByStatus(overtimeRequests);
+  const filteredMissions = filterByStatus(missionRequests);
 
   return (
     <div className="space-y-4">
