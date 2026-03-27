@@ -219,7 +219,7 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
 
       {/* Inner tabs */}
       <Tabs defaultValue="leaves" dir={isRTL ? 'rtl' : 'ltr'}>
-        <TabsList className="inline-grid grid-cols-3" dir="rtl">
+        <TabsList className="inline-grid grid-cols-4" dir="rtl">
           <TabsTrigger value="leaves" className="gap-1 text-xs md:text-sm">
             <Calendar className="h-3.5 w-3.5" />
             {t('الإجازات', 'Leaves')}
@@ -234,6 +234,11 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
             <RefreshCw className="h-3.5 w-3.5" />
             {t('الإضافي', 'Overtime')}
             {pendingCounts.overtime > 0 && <Badge variant="destructive" className="ms-1 h-5 min-w-5 text-[10px] px-1">{pendingCounts.overtime}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="missions" className="gap-1 text-xs md:text-sm">
+            <MapPin className="h-3.5 w-3.5" />
+            {t('المأموريات', 'Missions')}
+            {pendingCounts.missions > 0 && <Badge variant="destructive" className="ms-1 h-5 min-w-5 text-[10px] px-1">{pendingCounts.missions}</Badge>}
           </TabsTrigger>
         </TabsList>
 
