@@ -404,6 +404,59 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Missions */}
+        <TabsContent value="missions">
+          <Card>
+            <CardHeader><CardTitle>{t('طلبات المأموريات', 'Mission Requests')}</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">{t('الموظف', 'Employee')}</TableHead>
+                    <TableHead className="text-right">{t('النوع', 'Type')}</TableHead>
+                    <TableHead className="text-right">{t('التاريخ', 'Date')}</TableHead>
+                    <TableHead className="text-right">{t('الوجهة', 'Destination')}</TableHead>
+                    <TableHead className="text-right">{t('السبب', 'Reason')}</TableHead>
+                    <TableHead className="text-right">{t('الحالة', 'Status')}</TableHead>
+                    <TableHead className="text-right">{t('إجراء', 'Action')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMissions.length === 0 && (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t('لا توجد طلبات', 'No requests')}</TableCell></TableRow>
+                  )}
+                  {filteredMissions.map(req => {
+                    const emp = empMap.get(req.employee_id);
+                    const typeLabel = missionTypeLabels[req.mission_type];
+                    return (
+                      <TableRow key={req.id}>
+                        <TableCell className="font-medium">{ar ? emp?.nameAr : emp?.nameEn || '-'}</TableCell>
+                        <TableCell>{typeLabel ? (ar ? typeLabel.ar : typeLabel.en) : req.mission_type}</TableCell>
+                        <TableCell>{req.date}</TableCell>
+                        <TableCell>{req.destination || '-'}</TableCell>
+                        <TableCell className="max-w-[150px] truncate">{req.reason || '-'}</TableCell>
+                        <TableCell>{getStatusBadge(req.status)}</TableCell>
+                        <TableCell>
+                          {req.status === 'pending' && (
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-[hsl(var(--stat-green))]" onClick={() => handleApprove('mission', req.id)}>
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => openReject('mission', req.id)}>
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Rejection Dialog */}
