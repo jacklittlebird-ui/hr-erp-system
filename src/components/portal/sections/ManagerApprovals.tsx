@@ -66,7 +66,7 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
 
   // Rejection dialog
   const [rejectDialog, setRejectDialog] = useState(false);
-  const [rejectType, setRejectType] = useState<'leave' | 'permission' | 'overtime'>('leave');
+  const [rejectType, setRejectType] = useState<'leave' | 'permission' | 'overtime' | 'mission'>('leave');
   const [rejectId, setRejectId] = useState('');
   const [rejectReason, setRejectReason] = useState('');
 
