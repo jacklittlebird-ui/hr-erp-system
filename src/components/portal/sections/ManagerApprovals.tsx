@@ -106,7 +106,7 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
     }
   };
 
-  const openReject = (type: 'leave' | 'permission' | 'overtime', id: string) => {
+  const openReject = (type: 'leave' | 'permission' | 'overtime' | 'mission', id: string) => {
     setRejectType(type);
     setRejectId(id);
     setRejectReason('');
