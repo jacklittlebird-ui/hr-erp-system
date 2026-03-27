@@ -80,14 +80,16 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
   const fetchAll = useCallback(async () => {
     if (empIds.length === 0) return;
     setLoading(true);
-    const [leaves, permissions, overtime] = await Promise.all([
+    const [leaves, permissions, overtime, missions] = await Promise.all([
       supabase.from('leave_requests').select('*').in('employee_id', empIds).order('created_at', { ascending: false }),
       supabase.from('permission_requests').select('*').in('employee_id', empIds).order('created_at', { ascending: false }),
       supabase.from('overtime_requests').select('*').in('employee_id', empIds).order('created_at', { ascending: false }),
+      supabase.from('missions').select('*').in('employee_id', empIds).order('created_at', { ascending: false }),
     ]);
     setLeaveRequests(leaves.data || []);
     setPermissionRequests(permissions.data || []);
     setOvertimeRequests(overtime.data || []);
+    setMissionRequests(missions.data || []);
     setLoading(false);
   }, [empIds]);
 
