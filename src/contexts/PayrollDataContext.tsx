@@ -166,20 +166,7 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const employeeIds = new Set(entries.map(entry => entry.employeeId));
     const periods = Array.from(new Set(entries.map(entry => `${entry.year}-${entry.month}`)));
 
-    const [loanRows, advanceRows, mobileBillRows] = await Promise.all([
-      fetchAllBatches<{ employee_id: string; monthly_installment: number | null }>(async (from, to) => {
-        let query = supabase
-          .from('loans')
-          .select('employee_id, monthly_installment')
-          .eq('status', 'active')
-          .range(from, to);
-
-        if (isEmployee && scopedEmployeeId) {
-          query = query.eq('employee_id', scopedEmployeeId);
-        }
-
-        return await query;
-      }),
+    const [advanceRows, mobileBillRows] = await Promise.all([
       periods.length
         ? fetchAllBatches<{ employee_id: string; amount: number | null; deduction_month: string }>(async (from, to) => {
             let query = supabase
@@ -213,12 +200,6 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         : Promise.resolve([]),
     ]);
 
-    const loanMap = new Map<string, number>();
-    loanRows.forEach((row) => {
-      if (!employeeIds.has(row.employee_id)) return;
-      loanMap.set(row.employee_id, (loanMap.get(row.employee_id) || 0) + (row.monthly_installment || 0));
-    });
-
     const advanceMap = new Map<string, number>();
     advanceRows.forEach((row) => {
       if (!employeeIds.has(row.employee_id)) return;
@@ -235,10 +216,10 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     return entries.map((entry) => {
       const periodKey = `${entry.employeeId}-${entry.year}-${entry.month}`;
-      // Use stored loan_payment from payroll record (already correct at processing time)
-      // Only override with live data if loan is still active (to catch edits)
-      const liveLoan = loanMap.get(entry.employeeId);
-      const loanPayment = liveLoan !== undefined ? liveLoan : entry.loanPayment;
+      // Always use the stored loan_payment from payroll record — it was calculated
+      // correctly at processing time and accounts for ALL loans active in that period
+      // (including loans that may have since been completed).
+      const loanPayment = entry.loanPayment;
       const advanceAmount = advanceMap.get(periodKey) ?? 0;
       const mobileBill = mobileBillMap.get(periodKey) ?? 0;
       const totalDeductions = entry.employeeInsurance + loanPayment + advanceAmount + mobileBill + entry.leaveDeduction + entry.penaltyAmount;
