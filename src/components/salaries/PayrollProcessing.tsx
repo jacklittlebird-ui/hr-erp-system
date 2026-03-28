@@ -45,6 +45,7 @@ export const PayrollProcessing = () => {
 
   // DB-fetched loans & advances
   const [dbLoans, setDbLoans] = useState<{ id: string; employee_id: string; monthly_installment: number; installments_count: number; paid_count: number; remaining: number }[]>([]);
+  const [dbInstallments, setDbInstallments] = useState<{ loan_id: string; employee_id: string; amount: number; due_date: string; status: string }[]>([]);
   const [dbAdvances, setDbAdvances] = useState<{ id: string; employee_id: string; amount: number; deduction_month: string; status: string }[]>([]);
   const [dbMobileBills, setDbMobileBills] = useState<{ employee_id: string; amount: number; deduction_month: string }[]>([]);
 
