@@ -235,8 +235,10 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     return entries.map((entry) => {
       const periodKey = `${entry.employeeId}-${entry.year}-${entry.month}`;
-      // Always use live data; if no active loan/advance/bill exists, the amount is 0
-      const loanPayment = loanMap.get(entry.employeeId) ?? 0;
+      // Use stored loan_payment from payroll record (already correct at processing time)
+      // Only override with live data if loan is still active (to catch edits)
+      const liveLoan = loanMap.get(entry.employeeId);
+      const loanPayment = liveLoan !== undefined ? liveLoan : entry.loanPayment;
       const advanceAmount = advanceMap.get(periodKey) ?? 0;
       const mobileBill = mobileBillMap.get(periodKey) ?? 0;
       const totalDeductions = entry.employeeInsurance + loanPayment + advanceAmount + mobileBill + entry.leaveDeduction + entry.penaltyAmount;
