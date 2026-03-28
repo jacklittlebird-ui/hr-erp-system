@@ -166,7 +166,25 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const employeeIds = new Set(entries.map(entry => entry.employeeId));
     const periods = Array.from(new Set(entries.map(entry => `${entry.year}-${entry.month}`)));
 
-    const [advanceRows, mobileBillRows] = await Promise.all([
+    const dueDates = periods.map((period) => `${period}-01`);
+
+    const [loanInstallmentRows, advanceRows, mobileBillRows] = await Promise.all([
+      dueDates.length
+        ? fetchAllBatches<{ employee_id: string; amount: number | null; due_date: string }>(async (from, to) => {
+            let query = supabase
+              .from('loan_installments')
+              .select('employee_id, amount, due_date')
+              .in('due_date', dueDates)
+              .eq('status', 'pending')
+              .range(from, to);
+
+            if (isEmployee && scopedEmployeeId) {
+              query = query.eq('employee_id', scopedEmployeeId);
+            }
+
+            return await query;
+          })
+        : Promise.resolve([]),
       periods.length
         ? fetchAllBatches<{ employee_id: string; amount: number | null; deduction_month: string }>(async (from, to) => {
             let query = supabase
@@ -200,6 +218,15 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         : Promise.resolve([]),
     ]);
 
+    const loanInstallmentMap = new Map<string, number>();
+    loanInstallmentRows.forEach((row) => {
+      if (!employeeIds.has(row.employee_id)) return;
+      const duePeriod = row.due_date?.slice(0, 7);
+      if (!duePeriod) return;
+      const key = `${row.employee_id}-${duePeriod}`;
+      loanInstallmentMap.set(key, (loanInstallmentMap.get(key) || 0) + (row.amount || 0));
+    });
+
     const advanceMap = new Map<string, number>();
     advanceRows.forEach((row) => {
       if (!employeeIds.has(row.employee_id)) return;
@@ -216,10 +243,11 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     return entries.map((entry) => {
       const periodKey = `${entry.employeeId}-${entry.year}-${entry.month}`;
-      // Always use the stored loan_payment from payroll record — it was calculated
-      // correctly at processing time and accounts for ALL loans active in that period
-      // (including loans that may have since been completed).
-      const loanPayment = entry.loanPayment;
+      const liveLoanPayment = loanInstallmentMap.get(periodKey);
+      // Prefer live installment data for active/current loans so edits and replacements
+      // appear immediately in payroll reports, but fall back to stored history when the
+      // loan has since been completed or no live installment exists anymore.
+      const loanPayment = liveLoanPayment ?? entry.loanPayment;
       const advanceAmount = advanceMap.get(periodKey) ?? 0;
       const mobileBill = mobileBillMap.get(periodKey) ?? 0;
       const totalDeductions = entry.employeeInsurance + loanPayment + advanceAmount + mobileBill + entry.leaveDeduction + entry.penaltyAmount;
