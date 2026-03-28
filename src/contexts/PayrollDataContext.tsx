@@ -166,20 +166,7 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const employeeIds = new Set(entries.map(entry => entry.employeeId));
     const periods = Array.from(new Set(entries.map(entry => `${entry.year}-${entry.month}`)));
 
-    const [loanRows, advanceRows, mobileBillRows] = await Promise.all([
-      fetchAllBatches<{ employee_id: string; monthly_installment: number | null }>(async (from, to) => {
-        let query = supabase
-          .from('loans')
-          .select('employee_id, monthly_installment')
-          .eq('status', 'active')
-          .range(from, to);
-
-        if (isEmployee && scopedEmployeeId) {
-          query = query.eq('employee_id', scopedEmployeeId);
-        }
-
-        return await query;
-      }),
+    const [advanceRows, mobileBillRows] = await Promise.all([
       periods.length
         ? fetchAllBatches<{ employee_id: string; amount: number | null; deduction_month: string }>(async (from, to) => {
             let query = supabase
