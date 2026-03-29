@@ -49,9 +49,6 @@ const TrainingPortal = () => {
               <Globe className="w-4 h-4" />
               <span className="text-xs">{ar ? 'EN' : 'عربي'}</span>
             </Button>
-              <Globe className="w-4 h-4" />
-              <span className="text-xs">{ar ? 'EN' : 'عربي'}</span>
-            </Button>
             <NotificationDropdown variant="portal" portalFilter="training" />
             <Button variant="ghost" size="sm" onClick={logout} className="gap-2 text-destructive hover:text-destructive">
               <LogOut className="w-4 h-4" />
