@@ -203,7 +203,7 @@ export const AttendanceList = () => {
   // Reset page when filters change
   useEffect(() => {
     setPage(0);
-  }, [selectedMonth, selectedYear, selectedDay, selectedStation, selectedDept, statusFilter]);
+  }, [dateFrom, dateTo, selectedStation, selectedDept, statusFilter]);
 
   // Client-side search filter (name search)
   const filteredRecords = useMemo(() => {
