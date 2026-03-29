@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, X, Calendar, Edit2, Star } from 'lucide-react';
+import { Search, Plus, X, Calendar, Edit2, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
@@ -87,9 +87,16 @@ export const TrainingRecords = () => {
   const [searchStation, setSearchStation] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false);
+  const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
+  const [bulkSelectedEmployeeIds, setBulkSelectedEmployeeIds] = useState<string[]>([]);
+  const [bulkSearchName, setBulkSearchName] = useState('');
+  const [bulkSaving, setBulkSaving] = useState(false);
   const [trainingRecords, setTrainingRecords] = useState<TrainingRecord[]>([]);
   const [courseOptions, setCourseOptions] = useState<CourseOption[]>([]);
   const [newRecord, setNewRecord] = useState({
+    courseId: '', startDate: '', endDate: '', result: 'pending' as 'passed' | 'failed' | 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, hasSs: false, hasCb: false, plannedDate: '', cost: '',
+  });
+  const [bulkRecord, setBulkRecord] = useState({
     courseId: '', startDate: '', endDate: '', result: 'pending' as 'passed' | 'failed' | 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, hasSs: false, hasCb: false, plannedDate: '', cost: '',
   });
   const [providerOptions, setProviderOptions] = useState<string[]>([]);
@@ -321,6 +328,51 @@ export const TrainingRecords = () => {
     })));
   };
 
+  const handleBulkAdd = async () => {
+    if (bulkSelectedEmployeeIds.length === 0 || !bulkRecord.courseId) {
+      toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'اختر الدورة والموظفين' : 'Select course and employees', variant: 'destructive' });
+      return;
+    }
+    setBulkSaving(true);
+    const statusMap = { passed: 'completed', failed: 'failed', pending: 'enrolled' } as const;
+    const costVal = bulkRecord.cost ? parseFloat(bulkRecord.cost) : 0;
+    const totalCostVal = Math.round(costVal * 1.3 * 100) / 100;
+    const rows = bulkSelectedEmployeeIds.map(empId => ({
+      employee_id: empId,
+      course_id: bulkRecord.courseId,
+      start_date: bulkRecord.startDate || null,
+      end_date: bulkRecord.endDate || null,
+      status: statusMap[bulkRecord.result],
+      score: bulkRecord.score ? parseFloat(bulkRecord.score) : null,
+      provider: bulkRecord.provider || null,
+      location: bulkRecord.location || null,
+      has_cert: bulkRecord.hasCert,
+      has_cr: bulkRecord.hasCr,
+      has_ss: bulkRecord.hasSs,
+      has_cb: bulkRecord.hasCb,
+      planned_date: bulkRecord.plannedDate || null,
+      cost: costVal,
+      total_cost: totalCostVal,
+    }));
+    // Insert in batches of 200
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += 200) {
+      const batch = rows.slice(i, i + 200);
+      const { error } = await supabase.from('training_records').insert(batch as any);
+      if (!error) inserted += batch.length;
+    }
+    toast({ title: ar ? 'تمت الإضافة' : 'Added', description: ar ? `تم إضافة ${inserted} سجل تدريب` : `${inserted} training records added` });
+    setIsBulkAddOpen(false);
+    setBulkSelectedEmployeeIds([]);
+    setBulkRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, hasSs: false, hasCb: false, plannedDate: '', cost: '' });
+    setBulkSaving(false);
+  };
+
+  const bulkFilteredEmployees = trainingEmployees.filter(emp => {
+    if (!bulkSearchName) return true;
+    return emp.nameEn.toLowerCase().includes(bulkSearchName.toLowerCase()) || emp.nameAr.includes(bulkSearchName);
+  });
+
   const getResultBadge = (result: string) => {
     switch(result) {
       case 'passed': return <Badge className="bg-stat-green">{t('training.result.passed')}</Badge>;
@@ -413,7 +465,10 @@ export const TrainingRecords = () => {
               <CardContent className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">{t('training.records.title')}</h3>
-                  <Button onClick={() => setIsAddRecordOpen(true)}><Plus className="h-4 w-4 mr-2" />{t('training.records.add')}</Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setIsBulkAddOpen(true)}><Users className="h-4 w-4 mr-2" />{ar ? 'إضافة مجمعة' : 'Bulk Add'}</Button>
+                    <Button onClick={() => setIsAddRecordOpen(true)}><Plus className="h-4 w-4 mr-2" />{t('training.records.add')}</Button>
+                  </div>
                 </div>
                 <Table>
                   <TableHeader>
@@ -586,6 +641,97 @@ export const TrainingRecords = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddRecordOpen(false)}>{t('common.cancel')}</Button>
             <Button onClick={editingRecordId ? handleUpdateRecord : handleAddRecord}>{t('common.save')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Add Dialog */}
+      <Dialog open={isBulkAddOpen} onOpenChange={(open) => { setIsBulkAddOpen(open); if (!open) { setBulkSelectedEmployeeIds([]); setBulkSearchName(''); setBulkRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, hasSs: false, hasCb: false, plannedDate: '', cost: '' }); } }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{ar ? 'إضافة دورة تدريبية مجمعة' : 'Bulk Add Training Record'}</DialogTitle></DialogHeader>
+          
+          <div className="space-y-3 border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-semibold">{ar ? 'اختر الموظفين' : 'Select Employees'} ({bulkSelectedEmployeeIds.length})</Label>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setBulkSelectedEmployeeIds(bulkFilteredEmployees.map(e => e.id))}>{ar ? 'تحديد الكل' : 'Select All'}</Button>
+                <Button variant="outline" size="sm" onClick={() => setBulkSelectedEmployeeIds([])}>{ar ? 'إلغاء الكل' : 'Clear All'}</Button>
+              </div>
+            </div>
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder={ar ? 'بحث بالاسم...' : 'Search by name...'} value={bulkSearchName} onChange={(e) => setBulkSearchName(e.target.value)} className="pr-10" />
+            </div>
+            <div className="max-h-[200px] overflow-y-auto border rounded-md divide-y">
+              {bulkFilteredEmployees.map(emp => (
+                <label key={emp.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer text-sm">
+                  <Checkbox checked={bulkSelectedEmployeeIds.includes(emp.id)} onCheckedChange={(checked) => { setBulkSelectedEmployeeIds(prev => checked ? [...prev, emp.id] : prev.filter(id => id !== emp.id)); }} />
+                  <span className="font-medium">{ar ? emp.nameAr : emp.nameEn}</span>
+                  <span className="text-muted-foreground text-xs">{emp.department} - {emp.station}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <Label>{t('training.courseName')}</Label>
+              <Select value={bulkRecord.courseId} onValueChange={(v) => {
+                const sc = courseOptions.find(c => c.id === v);
+                let pd = bulkRecord.plannedDate;
+                if (bulkRecord.endDate && sc) { const d = new Date(bulkRecord.endDate); d.setFullYear(d.getFullYear() + sc.validityYears); d.setMonth(d.getMonth() - 1); pd = d.toISOString().split('T')[0]; }
+                setBulkRecord({ ...bulkRecord, courseId: v, plannedDate: pd });
+              }}>
+                <SelectTrigger><SelectValue placeholder={ar ? '-- اختر الدورة --' : '-- Select Course --'} /></SelectTrigger>
+                <SelectContent>{courseOptions.map(c => (<SelectItem key={c.id} value={c.id}>{ar ? c.nameAr : c.nameEn}</SelectItem>))}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{ar ? 'الجهة المقدمة' : 'Provider'}</Label>
+              <Select value={bulkRecord.provider} onValueChange={(v) => setBulkRecord({ ...bulkRecord, provider: v })}>
+                <SelectTrigger><SelectValue placeholder={ar ? '-- اختر --' : '-- Select --'} /></SelectTrigger>
+                <SelectContent>{providerOptions.map(p => (<SelectItem key={p} value={p}>{p}</SelectItem>))}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{ar ? 'مكان الدورة' : 'Location'}</Label>
+              <Select value={bulkRecord.location} onValueChange={(v) => setBulkRecord({ ...bulkRecord, location: v })}>
+                <SelectTrigger><SelectValue placeholder={ar ? '-- اختر --' : '-- Select --'} /></SelectTrigger>
+                <SelectContent>{locationOptions.map(l => (<SelectItem key={l} value={l}>{l}</SelectItem>))}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>{t('training.startDate')}</Label><Input type="date" value={bulkRecord.startDate} onChange={(e) => setBulkRecord({ ...bulkRecord, startDate: e.target.value })} /></div>
+            <div><Label>{t('training.endDate')}</Label><Input type="date" value={bulkRecord.endDate} onChange={(e) => {
+              const endDate = e.target.value; const sc = courseOptions.find(c => c.id === bulkRecord.courseId); let pd = '';
+              if (endDate && sc) { const d = new Date(endDate); d.setFullYear(d.getFullYear() + sc.validityYears); d.setMonth(d.getMonth() - 1); pd = d.toISOString().split('T')[0]; }
+              setBulkRecord({ ...bulkRecord, endDate, plannedDate: pd });
+            }} /></div>
+            <div>
+              <Label>{t('training.result')}</Label>
+              <Select value={bulkRecord.result} onValueChange={(v) => setBulkRecord({ ...bulkRecord, result: v as any })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">{t('training.result.pending')}</SelectItem>
+                  <SelectItem value="passed">{t('training.result.passed')}</SelectItem>
+                  <SelectItem value="failed">{t('training.result.failed')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>{t('training.percentage')}</Label><Input type="number" value={bulkRecord.score} onChange={(e) => setBulkRecord({ ...bulkRecord, score: e.target.value })} /></div>
+            <div><Label>{ar ? 'تاريخ التخطيط' : 'Planned Date'}</Label><Input type="date" value={bulkRecord.plannedDate} readOnly className="bg-muted" /></div>
+            <div><Label>{ar ? 'قيمة الدورة' : 'Course Value'}</Label><Input type="number" value={bulkRecord.cost} onChange={(e) => setBulkRecord({ ...bulkRecord, cost: e.target.value })} placeholder="0" /></div>
+            <div className="col-span-2 flex gap-6 items-center pt-2">
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={bulkRecord.hasCert} onCheckedChange={(v) => setBulkRecord({ ...bulkRecord, hasCert: !!v })} /><span>Cert</span></label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={bulkRecord.hasCr} onCheckedChange={(v) => setBulkRecord({ ...bulkRecord, hasCr: !!v })} /><span>CR</span></label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={bulkRecord.hasSs} onCheckedChange={(v) => setBulkRecord({ ...bulkRecord, hasSs: !!v })} /><span>SS</span></label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={bulkRecord.hasCb} onCheckedChange={(v) => setBulkRecord({ ...bulkRecord, hasCb: !!v })} /><span>CB</span></label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkAddOpen(false)}>{t('common.cancel')}</Button>
+            <Button onClick={handleBulkAdd} disabled={bulkSaving || bulkSelectedEmployeeIds.length === 0}>
+              {bulkSaving ? (ar ? 'جاري الحفظ...' : 'Saving...') : (ar ? `إضافة لـ ${bulkSelectedEmployeeIds.length} موظف` : `Add for ${bulkSelectedEmployeeIds.length} employees`)}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
