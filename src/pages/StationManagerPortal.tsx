@@ -181,16 +181,15 @@ const StationManagerPortal = () => {
   }, [stationEmployees, todayPresentCount]);
 
   // === Attendance tab state ===
-  const [attMonth, setAttMonth] = useState(new Date().getMonth());
-  const [attYear, setAttYear] = useState(new Date().getFullYear());
+  const nowAtt = new Date();
+  const attFirstOfMonth = `${nowAtt.getFullYear()}-${String(nowAtt.getMonth() + 1).padStart(2, '0')}-01`;
+  const attTodayStr = nowAtt.toISOString().split('T')[0];
+  const [attDateFrom, setAttDateFrom] = useState(attFirstOfMonth);
+  const [attDateTo, setAttDateTo] = useState(attTodayStr);
   const [attSearch, setAttSearch] = useState('');
   const [attDeptFilter, setAttDeptFilter] = useState('all');
   const [attRecords, setAttRecords] = useState<any[]>([]);
   const [attLoading, setAttLoading] = useState(false);
-
-  const attMonths = ar
-    ? ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
-    : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   const fetchAttendance = useCallback(async () => {
     if (stationEmployees.length === 0) { setAttRecords([]); return; }
