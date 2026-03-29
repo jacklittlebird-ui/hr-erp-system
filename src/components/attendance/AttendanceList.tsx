@@ -341,34 +341,14 @@ export const AttendanceList = () => {
             </SelectContent>
           </Select>
 
-          <Select value={selectedMonth} onValueChange={(v) => { setSelectedMonth(v); setSelectedDay('all'); }}>
-            <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {months.map(m => (
-                <SelectItem key={m.value} value={m.value}>{ar ? m.ar : m.en}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedDay} onValueChange={setSelectedDay}>
-            <SelectTrigger className="w-[100px]">
-              <CalendarDays className="w-4 h-4 shrink-0 opacity-50" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{ar ? 'كل الأيام' : 'All Days'}</SelectItem>
-              {daysInMonth.map(d => (
-                <SelectItem key={d} value={d}>{d}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground whitespace-nowrap">{ar ? 'من' : 'From'}</label>
+            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-[150px]" />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground whitespace-nowrap">{ar ? 'إلى' : 'To'}</label>
+            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-[150px]" />
+          </div>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
