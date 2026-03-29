@@ -86,15 +86,15 @@ export const PortalAttendance = () => {
               <Calendar className="w-4 h-4 md:w-5 md:h-5" />
               {ar ? 'سجل الحضور الشهري' : 'Monthly Record'}
             </CardTitle>
-            <div className="flex gap-2">
-              <Select value={month.toString()} onValueChange={v => setMonth(+v)}>
-                <SelectTrigger className="w-[100px] md:w-[120px] h-8 text-xs md:text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>{months.map((m, i) => <SelectItem key={i} value={i.toString()}>{m}</SelectItem>)}</SelectContent>
-              </Select>
-              <Select value={year.toString()} onValueChange={v => setYear(+v)}>
-                <SelectTrigger className="w-[80px] md:w-[90px] h-8 text-xs md:text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>{[2024,2025,2026].map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex items-center gap-2">
+                <label className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">{ar ? 'من' : 'From'}</label>
+                <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-[140px] md:w-[160px] h-8 text-xs md:text-sm" />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">{ar ? 'إلى' : 'To'}</label>
+                <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-[140px] md:w-[160px] h-8 text-xs md:text-sm" />
+              </div>
             </div>
           </div>
         </CardHeader>
