@@ -359,7 +359,7 @@ export const TrainingRecords = () => {
         </Card>
         <div className="space-y-1 max-h-[500px] overflow-y-auto">
           {filteredEmployees.map(emp => (
-            <button key={emp.id} onClick={() => setSelectedEmployee(emp)}
+            <button key={emp.id} onClick={() => setSelectedEmployeeId(emp.id)}
               className={cn("w-full text-start px-3 py-2 rounded-lg transition-colors text-sm",
                 selectedEmployee?.id === emp.id ? "bg-primary text-primary-foreground" : "hover:bg-muted text-primary")}>
               {language === 'ar' ? emp.nameAr : emp.nameEn}
