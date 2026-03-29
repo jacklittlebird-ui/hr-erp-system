@@ -48,12 +48,12 @@ export const AttendanceRecordTab = ({ employee }: AttendanceRecordTabProps) => {
   const { language, isRTL } = useLanguage();
   const ar = language === 'ar';
   const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1).padStart(2, '0'));
-  const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
+  const todayStr = now.toISOString().split('T')[0];
+  const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const [dateFrom, setDateFrom] = useState(firstOfMonth);
+  const [dateTo, setDateTo] = useState(todayStr);
   const [logs, setLogs] = useState<AttendanceLog[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const years = Array.from({ length: 3 }, (_, i) => String(now.getFullYear() - i));
 
   useEffect(() => {
     const fetchLogs = async () => {
