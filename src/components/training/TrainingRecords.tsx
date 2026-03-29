@@ -328,6 +328,51 @@ export const TrainingRecords = () => {
     })));
   };
 
+  const handleBulkAdd = async () => {
+    if (bulkSelectedEmployeeIds.length === 0 || !bulkRecord.courseId) {
+      toast({ title: ar ? 'خطأ' : 'Error', description: ar ? 'اختر الدورة والموظفين' : 'Select course and employees', variant: 'destructive' });
+      return;
+    }
+    setBulkSaving(true);
+    const statusMap = { passed: 'completed', failed: 'failed', pending: 'enrolled' } as const;
+    const costVal = bulkRecord.cost ? parseFloat(bulkRecord.cost) : 0;
+    const totalCostVal = Math.round(costVal * 1.3 * 100) / 100;
+    const rows = bulkSelectedEmployeeIds.map(empId => ({
+      employee_id: empId,
+      course_id: bulkRecord.courseId,
+      start_date: bulkRecord.startDate || null,
+      end_date: bulkRecord.endDate || null,
+      status: statusMap[bulkRecord.result],
+      score: bulkRecord.score ? parseFloat(bulkRecord.score) : null,
+      provider: bulkRecord.provider || null,
+      location: bulkRecord.location || null,
+      has_cert: bulkRecord.hasCert,
+      has_cr: bulkRecord.hasCr,
+      has_ss: bulkRecord.hasSs,
+      has_cb: bulkRecord.hasCb,
+      planned_date: bulkRecord.plannedDate || null,
+      cost: costVal,
+      total_cost: totalCostVal,
+    }));
+    // Insert in batches of 200
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += 200) {
+      const batch = rows.slice(i, i + 200);
+      const { error } = await supabase.from('training_records').insert(batch as any);
+      if (!error) inserted += batch.length;
+    }
+    toast({ title: ar ? 'تمت الإضافة' : 'Added', description: ar ? `تم إضافة ${inserted} سجل تدريب` : `${inserted} training records added` });
+    setIsBulkAddOpen(false);
+    setBulkSelectedEmployeeIds([]);
+    setBulkRecord({ courseId: '', startDate: '', endDate: '', result: 'pending', score: '', provider: '', location: '', hasCert: false, hasCr: false, hasSs: false, hasCb: false, plannedDate: '', cost: '' });
+    setBulkSaving(false);
+  };
+
+  const bulkFilteredEmployees = trainingEmployees.filter(emp => {
+    if (!bulkSearchName) return true;
+    return emp.nameEn.toLowerCase().includes(bulkSearchName.toLowerCase()) || emp.nameAr.includes(bulkSearchName);
+  });
+
   const getResultBadge = (result: string) => {
     switch(result) {
       case 'passed': return <Badge className="bg-stat-green">{t('training.result.passed')}</Badge>;
