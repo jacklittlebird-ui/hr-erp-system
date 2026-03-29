@@ -94,7 +94,7 @@ const TrainingPortal = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="records" className="mt-6" forceMount className="mt-6 data-[state=inactive]:hidden"><TrainingRecords key={refreshKey} /></TabsContent>
+          <TabsContent value="records" forceMount className="mt-6 data-[state=inactive]:hidden"><TrainingRecords key={refreshKey} /></TabsContent>
           <TabsContent value="trainers" forceMount className="mt-6 data-[state=inactive]:hidden"><Trainers key={refreshKey} /></TabsContent>
           <TabsContent value="syllabus" forceMount className="mt-6 data-[state=inactive]:hidden"><CoursesSyllabus key={refreshKey} /></TabsContent>
           <TabsContent value="courses" forceMount className="mt-6 data-[state=inactive]:hidden"><CoursesList key={refreshKey} /></TabsContent>
