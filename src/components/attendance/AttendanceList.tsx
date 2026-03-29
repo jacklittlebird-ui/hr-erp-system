@@ -92,14 +92,6 @@ export const AttendanceList = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const years = Array.from({ length: 3 }, (_, i) => String(now.getFullYear() - i));
-
-  const daysInMonth = useMemo(() => {
-    const y = parseInt(selectedYear);
-    const m = parseInt(selectedMonth);
-    const count = new Date(y, m, 0).getDate();
-    return Array.from({ length: count }, (_, i) => String(i + 1).padStart(2, '0'));
-  }, [selectedMonth, selectedYear]);
 
   useEffect(() => {
     const fetchMeta = async () => {
