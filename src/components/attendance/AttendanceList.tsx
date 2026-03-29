@@ -72,9 +72,10 @@ export const AttendanceList = () => {
   const { reportRef, handlePrint, exportBilingualPDF, exportBilingualCSV } = useReportExport();
 
   const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1).padStart(2, '0'));
-  const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
-  const [selectedDay, setSelectedDay] = useState('all');
+  const todayStr = now.toISOString().split('T')[0];
+  const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const [dateFrom, setDateFrom] = useState(firstOfMonth);
+  const [dateTo, setDateTo] = useState(todayStr);
   const [selectedStation, setSelectedStation] = useState('all');
   const [selectedDept, setSelectedDept] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
