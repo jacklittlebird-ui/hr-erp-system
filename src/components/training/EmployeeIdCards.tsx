@@ -173,15 +173,17 @@ export const EmployeeIdCards = ({ filterEmployeeId }: { filterEmployeeId?: strin
     if (filterEmployeeId) {
       empQuery = empQuery.eq('id', filterEmployeeId);
     }
-    const [empRes, deptRes] = await Promise.all([
+    const [empRes, deptRes, stationRes] = await Promise.all([
       empQuery,
       supabase.from('departments').select('id, name_en, name_ar').eq('is_active', true),
+      supabase.from('stations').select('id, name_en, name_ar').eq('is_active', true),
     ]);
     if (empRes.data) {
       setEmployees(empRes.data as any);
       setFiltered(empRes.data as any);
     }
     if (deptRes.data) setDepartments(deptRes.data);
+    if (stationRes.data) setStations(stationRes.data);
     setLoading(false);
   }, [filterEmployeeId]);
 
