@@ -194,20 +194,17 @@ const StationManagerPortal = () => {
   const fetchAttendance = useCallback(async () => {
     if (stationEmployees.length === 0) { setAttRecords([]); return; }
     setAttLoading(true);
-    const startDate = `${attYear}-${String(attMonth + 1).padStart(2, '0')}-01`;
-    const endDay = new Date(attYear, attMonth + 1, 0).getDate();
-    const endDate = `${attYear}-${String(attMonth + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
     const empIds = stationEmployees.map(e => e.id);
     const { data } = await supabase
       .from('attendance_records')
       .select('*')
       .in('employee_id', empIds)
-      .gte('date', startDate)
-      .lte('date', endDate)
+      .gte('date', attDateFrom)
+      .lte('date', attDateTo)
       .order('date', { ascending: false });
     setAttRecords(data || []);
     setAttLoading(false);
-  }, [stationEmployees, attMonth, attYear]);
+  }, [stationEmployees, attDateFrom, attDateTo]);
 
   useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
 
