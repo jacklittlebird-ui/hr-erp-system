@@ -40,6 +40,18 @@ const TrainingPortal = () => {
             <Button variant="ghost" size="icon" onClick={() => setRefreshKey(k => k + 1)}>
               <RefreshCw className="w-4 h-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const { setLanguage } = useLanguageRef.current;
+                setLanguage(langRef.current === 'ar' ? 'en' : 'ar');
+              }}
+              className="gap-1.5"
+            >
+              <Globe className="w-4 h-4" />
+              <span className="text-xs">{ar ? 'EN' : 'عربي'}</span>
+            </Button>
             <NotificationDropdown variant="portal" portalFilter="training" />
             <Button variant="ghost" size="sm" onClick={logout} className="gap-2 text-destructive hover:text-destructive">
               <LogOut className="w-4 h-4" />
