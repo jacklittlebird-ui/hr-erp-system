@@ -16,6 +16,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const mainRef = useRef<HTMLElement>(null);
+  useScrollRestoration(mainRef);
 
   return (
     <div dir={isRTL ? "rtl" : "ltr"} className={cn(
