@@ -39,7 +39,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
       )}
-      <main className={cn(
+      <main ref={mainRef} className={cn(
         "flex-1 min-h-0 min-w-0 max-w-full pt-16 overflow-y-auto overflow-x-hidden transition-all duration-300",
         !isMobile && sidebarVisible && (sidebarCollapsed ? "ms-16" : "ms-64")
       )}

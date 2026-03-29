@@ -376,21 +376,7 @@ const AttendanceKiosk = () => {
           )}
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Location selector */}
-          {locations.length > 1 && (
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger>
-                <SelectValue placeholder={ar ? "اختر الموقع" : "Select Location"} />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((loc) => (
-                  <SelectItem key={loc.id} value={loc.id}>
-                    {ar ? loc.name_ar : loc.name_en}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          {/* Location is hardcoded to HQ - no selector needed */}
 
           {/* Geo status banner */}
           {renderStatusBanner()}
