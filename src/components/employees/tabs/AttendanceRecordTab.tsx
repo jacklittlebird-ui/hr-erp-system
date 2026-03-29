@@ -21,21 +21,6 @@ interface AttendanceLog {
   workMinutes: number;
 }
 
-const months = [
-  { value: '01', ar: 'يناير', en: 'January' },
-  { value: '02', ar: 'فبراير', en: 'February' },
-  { value: '03', ar: 'مارس', en: 'March' },
-  { value: '04', ar: 'أبريل', en: 'April' },
-  { value: '05', ar: 'مايو', en: 'May' },
-  { value: '06', ar: 'يونيو', en: 'June' },
-  { value: '07', ar: 'يوليو', en: 'July' },
-  { value: '08', ar: 'أغسطس', en: 'August' },
-  { value: '09', ar: 'سبتمبر', en: 'September' },
-  { value: '10', ar: 'أكتوبر', en: 'October' },
-  { value: '11', ar: 'نوفمبر', en: 'November' },
-  { value: '12', ar: 'ديسمبر', en: 'December' },
-];
-
 const formatTime = (ts: string | null): string | null => {
   if (!ts) return null;
   try {
