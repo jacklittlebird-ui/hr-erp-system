@@ -158,10 +158,19 @@ export const PayrollProcessing = () => {
     return getSalaryRecord(selectedEmployee, selectedYear);
   }, [selectedEmployee, selectedYear, getSalaryRecord]);
 
+  const existingPayrollEntry = useMemo(
+    () => (selectedEmployee ? getPayrollEntry(selectedEmployee, selectedMonth, selectedYear) : undefined),
+    [selectedEmployee, selectedMonth, selectedYear, getPayrollEntry],
+  );
+
+  // When an existing payroll entry exists, use its stored base values to protect against salary record changes
   const baseGross = useMemo(() => {
+    if (existingPayrollEntry) {
+      return existingPayrollEntry.basicSalary + existingPayrollEntry.transportAllowance + existingPayrollEntry.incentives + existingPayrollEntry.stationAllowance + existingPayrollEntry.mobileAllowance;
+    }
     if (!salaryRecord) return 0;
     return calcGross(salaryRecord);
-  }, [salaryRecord]);
+  }, [existingPayrollEntry, salaryRecord]);
 
   // Gross includes base + livingAllowance (manual) + overtimePay
   const gross = baseGross + livingAllowance + overtimePay;
@@ -172,12 +181,8 @@ export const PayrollProcessing = () => {
     return Math.round((bonusValue / 100) * baseGross);
   }, [bonusType, bonusValue, baseGross]);
 
-  const existingPayrollEntry = useMemo(
-    () => (selectedEmployee ? getPayrollEntry(selectedEmployee, selectedMonth, selectedYear) : undefined),
-    [selectedEmployee, selectedMonth, selectedYear, getPayrollEntry],
-  );
-
-  const employeeInsurance = salaryRecord?.employeeInsurance || 0;
+  // Use stored insurance/deduction values from existing entry, fallback to current salary record
+  const employeeInsurance = existingPayrollEntry?.employeeInsurance ?? salaryRecord?.employeeInsurance ?? 0;
   const loanPayment = useMemo(
     () => existingPayrollEntry?.loanPayment ?? getEmployeeMonthlyLoanPayment(selectedEmployee),
     [existingPayrollEntry, selectedEmployee, getEmployeeMonthlyLoanPayment],
@@ -194,7 +199,7 @@ export const PayrollProcessing = () => {
   // Daily rate based on baseGross (excluding livingAllowance and overtimePay)
   const baseDailyRate = baseGross / 30;
   const leaveDeduction = roundToNearestQuarter(baseDailyRate * leaveDays);
-  const basicSalary = salaryRecord?.basicSalary || 0;
+  const basicSalary = existingPayrollEntry?.basicSalary ?? salaryRecord?.basicSalary ?? 0;
   const penaltyAmount = useMemo(() => {
     if (penaltyType === 'amount') return roundToNearestQuarter(penaltyValue);
     if (penaltyType === 'days') return roundToNearestQuarter((basicSalary / 30) * penaltyValue);
@@ -205,9 +210,9 @@ export const PayrollProcessing = () => {
   const grossWithBonus = gross + bonusAmount;
   const netSalary = grossWithBonus - totalDeductions;
 
-  const employerSocialIns = salaryRecord?.employerSocialInsurance || 0;
-  const healthIns = salaryRecord?.healthInsurance || 0;
-  const incomeTax = salaryRecord?.incomeTax || 0;
+  const employerSocialIns = existingPayrollEntry?.employerSocialInsurance ?? salaryRecord?.employerSocialInsurance ?? 0;
+  const healthIns = existingPayrollEntry?.healthInsurance ?? salaryRecord?.healthInsurance ?? 0;
+  const incomeTax = existingPayrollEntry?.incomeTax ?? salaryRecord?.incomeTax ?? 0;
 
   const { employees: allEmployees } = useEmployeeData();
   const activeEmployees = allEmployees.filter(e => e.status === 'active');
