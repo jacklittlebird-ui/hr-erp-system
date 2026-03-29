@@ -160,7 +160,9 @@ export const EmployeeIdCards = ({ filterEmployeeId }: { filterEmployeeId?: strin
   const [filtered, setFiltered] = useState<EmployeeForId[]>([]);
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('all');
+  const [stationFilter, setStationFilter] = useState('all');
   const [departments, setDepartments] = useState<{ id: string; name_en: string; name_ar: string }[]>([]);
+  const [stations, setStations] = useState<{ id: string; name_en: string; name_ar: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmp, setSelectedEmp] = useState<EmployeeForId | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
@@ -171,15 +173,17 @@ export const EmployeeIdCards = ({ filterEmployeeId }: { filterEmployeeId?: strin
     if (filterEmployeeId) {
       empQuery = empQuery.eq('id', filterEmployeeId);
     }
-    const [empRes, deptRes] = await Promise.all([
+    const [empRes, deptRes, stationRes] = await Promise.all([
       empQuery,
       supabase.from('departments').select('id, name_en, name_ar').eq('is_active', true),
+      supabase.from('stations').select('id, name_en, name_ar').eq('is_active', true),
     ]);
     if (empRes.data) {
       setEmployees(empRes.data as any);
       setFiltered(empRes.data as any);
     }
     if (deptRes.data) setDepartments(deptRes.data);
+    if (stationRes.data) setStations(stationRes.data);
     setLoading(false);
   }, [filterEmployeeId]);
 
@@ -194,8 +198,11 @@ export const EmployeeIdCards = ({ filterEmployeeId }: { filterEmployeeId?: strin
     if (deptFilter !== 'all') {
       list = list.filter(e => e.department_id === deptFilter);
     }
+    if (stationFilter !== 'all') {
+      list = list.filter(e => e.station_id === stationFilter);
+    }
     setFiltered(list);
-  }, [search, deptFilter, employees]);
+  }, [search, deptFilter, stationFilter, employees]);
 
   const exportPdf = (emp: EmployeeForId) => {
     const printWindow = window.open('', '_blank');
@@ -316,6 +323,17 @@ export const EmployeeIdCards = ({ filterEmployeeId }: { filterEmployeeId?: strin
               <SelectItem value="all">{ar ? 'الكل' : 'All Departments'}</SelectItem>
               {departments.map(d => (
                 <SelectItem key={d.id} value={d.id}>{ar ? d.name_ar : d.name_en}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={stationFilter} onValueChange={setStationFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder={ar ? 'المحطة' : 'Station'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{ar ? 'الكل' : 'All Stations'}</SelectItem>
+              {stations.map(s => (
+                <SelectItem key={s.id} value={s.id}>{ar ? s.name_ar : s.name_en}</SelectItem>
               ))}
             </SelectContent>
           </Select>

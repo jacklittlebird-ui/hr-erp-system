@@ -13,11 +13,11 @@ import { TrainingRecordsReport } from '@/components/training/TrainingRecordsRepo
 import { TrainingStatsCards } from '@/components/training/TrainingStatsCards';
 import { EmployeeIdCards } from '@/components/training/EmployeeIdCards';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
-import { GraduationCap, LogOut, BookOpen, Users, FileText, Calendar, BarChart3, Library, RefreshCw, CreditCard } from 'lucide-react';
+import { GraduationCap, LogOut, BookOpen, Users, FileText, Calendar, BarChart3, Library, RefreshCw, CreditCard, Globe } from 'lucide-react';
 import { PortalWelcomeBanner } from '@/components/portal/PortalWelcomeBanner';
 
 const TrainingPortal = () => {
-  const { language } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { logout, user } = useAuth();
   const ar = language === 'ar';
   const [refreshKey, setRefreshKey] = useState(0);
@@ -39,6 +39,15 @@ const TrainingPortal = () => {
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setRefreshKey(k => k + 1)}>
               <RefreshCw className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
+              className="gap-1.5"
+            >
+              <Globe className="w-4 h-4" />
+              <span className="text-xs">{ar ? 'EN' : 'عربي'}</span>
             </Button>
             <NotificationDropdown variant="portal" portalFilter="training" />
             <Button variant="ghost" size="sm" onClick={logout} className="gap-2 text-destructive hover:text-destructive">

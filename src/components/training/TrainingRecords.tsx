@@ -30,6 +30,7 @@ interface Employee {
   jobTitleAr: string;
   jobTitleEn: string;
   avatar?: string;
+  nationalId?: string;
 }
 
 interface TrainingRecord {
@@ -129,6 +130,7 @@ export const TrainingRecords = () => {
     jobTitleAr: (emp as any).jobTitleAr || '',
     jobTitleEn: (emp as any).jobTitleEn || '',
     avatar: emp.avatar || undefined,
+    nationalId: (emp as any).nationalId || '',
   })), [contextEmployees]);
 
   // Fetch training records from DB when employee is selected
@@ -360,6 +362,7 @@ export const TrainingRecords = () => {
                       <div><span className="text-muted-foreground">{t('training.hireDate')}: </span><span className="font-medium">{selectedEmployee.hireDate}</span></div>
                       <div><span className="text-muted-foreground">{t('training.mobile')}: </span><span className="font-medium">{selectedEmployee.mobile}</span></div>
                       <div><span className="text-muted-foreground">{ar ? 'الوظيفة' : 'Job Title'}: </span><span className="font-medium">{ar ? selectedEmployee.jobTitleAr : selectedEmployee.jobTitleEn || '-'}</span></div>
+                      <div><span className="text-muted-foreground">{ar ? 'الرقم القومي' : 'National ID'}: </span><span className="font-medium">{selectedEmployee.nationalId || '-'}</span></div>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">{t('training.jobFunction')}</p>
