@@ -4,7 +4,7 @@ import { Employee } from '@/types/employee';
 import { cn, formatDate } from '@/lib/utils';
 import { Clock, LogIn, LogOut, Loader2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AttendanceRecordTabProps {
