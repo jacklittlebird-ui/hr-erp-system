@@ -263,7 +263,7 @@ const Employees = () => {
         emp.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         emp.department.includes(searchQuery) ||
         emp.jobTitle.includes(searchQuery);
-      const matchesFilter = activeFilter === 'all' || emp.status === activeFilter;
+      const matchesFilter = activeFilter === 'all' || (activeFilter === 'inactive' ? inactiveStatuses.includes(emp.status) : emp.status === activeFilter);
       const matchesStation = selectedStations.length === 0 || (emp.stationLocation && selectedStations.includes(emp.stationLocation));
       const matchesDept = selectedDepartments.length === 0 || (emp.departmentId && selectedDepartments.includes(emp.departmentId));
       return matchesSearch && matchesFilter && matchesStation && matchesDept;
