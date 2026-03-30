@@ -14,9 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Search, FileText, Download, Trash2, Edit, FolderOpen, File, Eye, Upload, Filter, ShieldAlert, CreditCard } from 'lucide-react';
+import { Plus, Search, FileText, Download, Trash2, Edit, FolderOpen, File, Eye, Upload, Filter, ShieldAlert, CreditCard, Landmark } from 'lucide-react';
 import { InsuranceRenewals } from '@/components/documents/InsuranceRenewals';
 import { NationalIdRenewals } from '@/components/documents/NationalIdRenewals';
+import { MissingBankData } from '@/components/documents/MissingBankData';
 
 interface Document {
   id: string;
@@ -140,6 +141,14 @@ const Documents = () => {
             {isAr ? 'تجديد الرقم القومي' : 'National ID Renewal'}
           </Button>
           <Button
+            variant={activeMainTab === 'bankData' ? 'default' : 'outline'}
+            className="gap-2"
+            onClick={() => setActiveMainTab('bankData')}
+          >
+            <Landmark className="w-4 h-4" />
+            {isAr ? 'البيانات البنكية' : 'Bank Data'}
+          </Button>
+          <Button
             variant={activeMainTab === 'documents' ? 'default' : 'outline'}
             className="gap-2"
             onClick={() => setActiveMainTab('documents')}
@@ -153,6 +162,8 @@ const Documents = () => {
           <InsuranceRenewals />
         ) : activeMainTab === 'nationalId' ? (
           <NationalIdRenewals />
+        ) : activeMainTab === 'bankData' ? (
+          <MissingBankData />
         ) : (
         <>
 
