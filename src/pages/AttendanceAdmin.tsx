@@ -8,9 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Shield, AlertTriangle, MapPin, Plus, RefreshCw, Smartphone, Trash2, Edit2, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,6 +23,7 @@ const AttendanceAdmin = () => {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [stations, setStations] = useState<any[]>([]);
+  const [locationStationsMap, setLocationStationsMap] = useState<Record<string, string[]>>({});
   const [devices, setDevices] = useState<any[]>([]);
   const [employeeMap, setEmployeeMap] = useState<Record<string, { name_ar: string; name_en: string; employee_code: string }>>({});
   const [loading, setLoading] = useState(true);
@@ -29,19 +31,36 @@ const AttendanceAdmin = () => {
   const [editLocationOpen, setEditLocationOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<any>(null);
   const [newLocation, setNewLocation] = useState({
-    name_ar: "", name_en: "", station_id: "", latitude: "", longitude: "", radius_m: "150",
+    name_ar: "", name_en: "", station_ids: [] as string[], latitude: "", longitude: "", radius_m: "150",
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [alertsPage, setAlertsPage] = useState(0);
   const [eventsPage, setEventsPage] = useState(0);
   const [devicesPage, setDevicesPage] = useState(0);
+  const stationLabelMap = useMemo(
+    () => new Map(stations.map((station) => [station.id, ar ? station.name_ar : station.name_en])),
+    [stations, ar],
+  );
+
+  const getLocationStationIds = (locationId: string, fallbackStationId?: string | null) => {
+    const mappedStationIds = locationStationsMap[locationId] ?? [];
+    if (mappedStationIds.length > 0) return mappedStationIds;
+    return fallbackStationId ? [fallbackStationId] : [];
+  };
+
+  const toggleStationId = (selectedIds: string[], stationId: string) =>
+    selectedIds.includes(stationId)
+      ? selectedIds.filter((id) => id !== stationId)
+      : [...selectedIds, stationId];
+
   const ALERTS_PER_PAGE = 20;
   const fetchAll = async () => {
     setLoading(true);
-    const [eventsRes, alertsRes, locationsRes, stationsRes, empMapRes, devicesRes] = await Promise.all([
+    const [eventsRes, alertsRes, locationsRes, locationStationsRes, stationsRes, empMapRes, devicesRes] = await Promise.all([
       supabase.from("attendance_events").select("*, employees(name_ar, name_en, employee_code)").order("scan_time", { ascending: false }).limit(200),
       supabase.from("device_alerts").select("*").gte("triggered_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("triggered_at", { ascending: false }),
-      supabase.from("qr_locations").select("*, stations(name_ar, name_en)"),
+      supabase.from("qr_locations").select("*"),
+      supabase.from("qr_location_stations").select("location_id, station_id"),
       supabase.from("stations").select("id, name_ar, name_en").eq("is_active", true),
       supabase.from("user_roles").select("user_id, employee_id, employees(name_ar, name_en, employee_code)").eq("role", "employee"),
       supabase.from("user_devices").select("*"),
@@ -49,6 +68,16 @@ const AttendanceAdmin = () => {
     if (eventsRes.data) setEvents(eventsRes.data);
     if (alertsRes.data) setAlerts(alertsRes.data);
     if (locationsRes.data) setLocations(locationsRes.data);
+    if (locationStationsRes.data) {
+      const mappedStations = locationStationsRes.data.reduce<Record<string, string[]>>((acc, row) => {
+        if (!acc[row.location_id]) acc[row.location_id] = [];
+        acc[row.location_id].push(row.station_id);
+        return acc;
+      }, {});
+      setLocationStationsMap(mappedStations);
+    } else {
+      setLocationStationsMap({});
+    }
     if (stationsRes.data) setStations(stationsRes.data);
     if (devicesRes.data) setDevices(devicesRes.data);
     if (empMapRes.data) {
@@ -66,30 +95,83 @@ const AttendanceAdmin = () => {
   useEffect(() => { fetchAll(); }, []);
 
   const handleAddLocation = async () => {
-    const { error } = await supabase.from("qr_locations").insert({
+    const selectedStationIds = newLocation.station_ids;
+    const { data: createdLocation, error } = await supabase.from("qr_locations").insert({
       name_ar: newLocation.name_ar,
       name_en: newLocation.name_en,
-      station_id: newLocation.station_id || null,
+      station_id: selectedStationIds[0] || null,
       latitude: newLocation.latitude ? parseFloat(newLocation.latitude) : null,
       longitude: newLocation.longitude ? parseFloat(newLocation.longitude) : null,
       radius_m: parseInt(newLocation.radius_m) || 150,
-    });
+    }).select("id").single();
     if (error) {
       toast.error(error.message);
-    } else {
-      toast.success(ar ? "تمت إضافة الموقع" : "Location added");
-      setAddLocationOpen(false);
-      setNewLocation({ name_ar: "", name_en: "", station_id: "", latitude: "", longitude: "", radius_m: "150" });
-      fetchAll();
+      return;
     }
+
+    if (createdLocation && selectedStationIds.length > 0) {
+      const { error: stationLinksError } = await supabase.from("qr_location_stations").insert(
+        selectedStationIds.map((stationId) => ({
+          location_id: createdLocation.id,
+          station_id: stationId,
+        })),
+      );
+
+      if (stationLinksError) {
+        await supabase.from("qr_locations").delete().eq("id", createdLocation.id);
+        toast.error(stationLinksError.message);
+        return;
+      }
+    }
+
+    toast.success(ar ? "تمت إضافة الموقع" : "Location added");
+    setAddLocationOpen(false);
+    setNewLocation({ name_ar: "", name_en: "", station_ids: [], latitude: "", longitude: "", radius_m: "150" });
+    fetchAll();
   };
+
+  const renderStationSelector = (selectedStationIds: string[], onToggle: (stationId: string) => void) => (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <Label>{ar ? "المحطات" : "Stations"}</Label>
+        <span className="text-xs text-muted-foreground">
+          {selectedStationIds.length
+            ? ar ? `${selectedStationIds.length} محطة محددة` : `${selectedStationIds.length} selected`
+            : ar ? "بدون تحديد" : "No selection"}
+        </span>
+      </div>
+      <ScrollArea className="h-44 rounded-md border">
+        <div className="space-y-1 p-3">
+          {stations.map((station) => {
+            const checked = selectedStationIds.includes(station.id);
+
+            return (
+              <label
+                key={station.id}
+                className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-muted/50"
+              >
+                <Checkbox checked={checked} onCheckedChange={() => onToggle(station.id)} />
+                <span className="text-sm">{ar ? station.name_ar : station.name_en}</span>
+              </label>
+            );
+          })}
+
+          {stations.length === 0 && (
+            <p className="px-2 py-4 text-sm text-muted-foreground">
+              {ar ? "لا توجد محطات متاحة" : "No stations available"}
+            </p>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
 
   const openEditLocation = (loc: any) => {
     setEditingLocation({
       id: loc.id,
       name_ar: loc.name_ar,
       name_en: loc.name_en,
-      station_id: loc.station_id || "",
+      station_ids: getLocationStationIds(loc.id, loc.station_id),
       latitude: loc.latitude?.toString() || "",
       longitude: loc.longitude?.toString() || "",
       radius_m: loc.radius_m?.toString() || "150",
@@ -100,30 +182,64 @@ const AttendanceAdmin = () => {
 
   const handleEditLocation = async () => {
     if (!editingLocation) return;
-    const { error } = await supabase.from("qr_locations").update({
+
+    const selectedStationIds = editingLocation.station_ids ?? [];
+    const { error: locationError } = await supabase.from("qr_locations").update({
       name_ar: editingLocation.name_ar,
       name_en: editingLocation.name_en,
-      station_id: editingLocation.station_id || null,
+      station_id: selectedStationIds[0] || null,
       latitude: editingLocation.latitude ? parseFloat(editingLocation.latitude) : null,
       longitude: editingLocation.longitude ? parseFloat(editingLocation.longitude) : null,
       radius_m: parseInt(editingLocation.radius_m) || 150,
       is_active: editingLocation.is_active,
     }).eq("id", editingLocation.id);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success(ar ? "تم تعديل الموقع" : "Location updated");
-      setEditLocationOpen(false);
-      setEditingLocation(null);
-      fetchAll();
+
+    if (locationError) {
+      toast.error(locationError.message);
+      return;
     }
+
+    const { error: deleteLinksError } = await supabase.from("qr_location_stations").delete().eq("location_id", editingLocation.id);
+
+    if (deleteLinksError) {
+      toast.error(deleteLinksError.message);
+      return;
+    }
+
+    if (selectedStationIds.length > 0) {
+      const { error: insertLinksError } = await supabase.from("qr_location_stations").insert(
+        selectedStationIds.map((stationId: string) => ({
+          location_id: editingLocation.id,
+          station_id: stationId,
+        })),
+      );
+
+      if (insertLinksError) {
+        toast.error(insertLinksError.message);
+        return;
+      }
+    }
+
+    toast.success(ar ? "تم تعديل الموقع" : "Location updated");
+    setEditLocationOpen(false);
+    setEditingLocation(null);
+    fetchAll();
   };
 
   const handleDeleteLocation = async (loc: any) => {
     if (!window.confirm(ar ? `حذف الموقع "${loc.name_ar}"؟` : `Delete location "${loc.name_en}"?`)) return;
-    const { error } = await supabase.from("qr_locations").delete().eq("id", loc.id);
-    if (error) {
-      toast.error(error.message);
+
+    const { error: deleteLinksError } = await supabase.from("qr_location_stations").delete().eq("location_id", loc.id);
+
+    if (deleteLinksError) {
+      toast.error(deleteLinksError.message);
+      return;
+    }
+
+    const { error: deleteLocationError } = await supabase.from("qr_locations").delete().eq("id", loc.id);
+
+    if (deleteLocationError) {
+      toast.error(deleteLocationError.message);
     } else {
       toast.success(ar ? "تم حذف الموقع" : "Location deleted");
       fetchAll();
@@ -417,17 +533,12 @@ const AttendanceAdmin = () => {
                         <Label>{ar ? "الاسم بالإنجليزي" : "Name (EN)"}</Label>
                         <Input value={newLocation.name_en} onChange={(e) => setNewLocation({ ...newLocation, name_en: e.target.value })} />
                       </div>
-                      <div>
-                        <Label>{ar ? "المحطة" : "Station"}</Label>
-                        <Select value={newLocation.station_id} onValueChange={(v) => setNewLocation({ ...newLocation, station_id: v })}>
-                          <SelectTrigger><SelectValue placeholder={ar ? "اختر محطة" : "Select station"} /></SelectTrigger>
-                          <SelectContent>
-                            {stations.map((s) => (
-                              <SelectItem key={s.id} value={s.id}>{ar ? s.name_ar : s.name_en}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {renderStationSelector(newLocation.station_ids, (stationId) =>
+                        setNewLocation((current) => ({
+                          ...current,
+                          station_ids: toggleStationId(current.station_ids, stationId),
+                        }))
+                      )}
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <Label>{ar ? "خط العرض (Latitude)" : "Latitude"}</Label>
@@ -467,19 +578,31 @@ const AttendanceAdmin = () => {
                     {locations.filter((loc) => {
                         if (!searchQuery) return true;
                         const q = searchQuery.toLowerCase();
+                        const stationNames = getLocationStationIds(loc.id, loc.station_id)
+                          .map((stationId) => stationLabelMap.get(stationId)?.toLowerCase())
+                          .filter(Boolean);
+
                         return (
                           loc.name_ar?.toLowerCase().includes(q) ||
                           loc.name_en?.toLowerCase().includes(q) ||
-                          (loc.stations as any)?.name_ar?.toLowerCase().includes(q) ||
-                          (loc.stations as any)?.name_en?.toLowerCase().includes(q)
+                          stationNames.some((stationName) => stationName?.includes(q))
                         );
                       }).map((loc) => (
                       <TableRow key={loc.id}>
                         <TableCell>{ar ? loc.name_ar : loc.name_en}</TableCell>
                         <TableCell>
-                          {ar
-                            ? (loc.stations as any)?.name_ar || "-"
-                            : (loc.stations as any)?.name_en || "-"}
+                          <div className="flex flex-wrap gap-1">
+                            {getLocationStationIds(loc.id, loc.station_id).length > 0 ? (
+                              getLocationStationIds(loc.id, loc.station_id).map((stationId) => (
+                                <Badge key={stationId} variant="secondary" className="gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {stationLabelMap.get(stationId) || (ar ? "محطة غير معروفة" : "Unknown station")}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs font-mono">
                           {loc.latitude && loc.longitude
@@ -532,17 +655,12 @@ const AttendanceAdmin = () => {
                       <Label>{ar ? "الاسم بالإنجليزي" : "Name (EN)"}</Label>
                       <Input value={editingLocation.name_en} onChange={(e) => setEditingLocation({ ...editingLocation, name_en: e.target.value })} />
                     </div>
-                    <div>
-                      <Label>{ar ? "المحطة" : "Station"}</Label>
-                      <Select value={editingLocation.station_id} onValueChange={(v) => setEditingLocation({ ...editingLocation, station_id: v })}>
-                        <SelectTrigger><SelectValue placeholder={ar ? "اختر محطة" : "Select station"} /></SelectTrigger>
-                        <SelectContent>
-                          {stations.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>{ar ? s.name_ar : s.name_en}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {renderStationSelector(editingLocation.station_ids ?? [], (stationId) =>
+                      setEditingLocation((current: any) => ({
+                        ...current,
+                        station_ids: toggleStationId(current.station_ids ?? [], stationId),
+                      }))
+                    )}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <Label>{ar ? "خط العرض (Latitude)" : "Latitude"}</Label>
@@ -559,10 +677,13 @@ const AttendanceAdmin = () => {
                       <Label>{ar ? "نطاق الجيوفنس (متر)" : "Geofence Radius (m)"}</Label>
                       <Input type="number" value={editingLocation.radius_m} onChange={(e) => setEditingLocation({ ...editingLocation, radius_m: e.target.value })} />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Label>{ar ? "نشط" : "Active"}</Label>
-                      <input type="checkbox" checked={editingLocation.is_active} onChange={(e) => setEditingLocation({ ...editingLocation, is_active: e.target.checked })} />
-                    </div>
+                    <label className="flex items-center gap-3 rounded-md border px-3 py-2">
+                      <Checkbox
+                        checked={editingLocation.is_active}
+                        onCheckedChange={(checked) => setEditingLocation({ ...editingLocation, is_active: checked === true })}
+                      />
+                      <span className="text-sm font-medium">{ar ? "نشط" : "Active"}</span>
+                    </label>
                     <Button onClick={handleEditLocation} className="w-full">
                       {ar ? "حفظ التعديلات" : "Save Changes"}
                     </Button>
