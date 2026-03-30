@@ -267,9 +267,10 @@ const Employees = () => {
       const matchesFilter = activeFilter === 'all' || (activeFilter === 'inactive' ? inactiveStatuses.includes(emp.status) : emp.status === activeFilter);
       const matchesStation = selectedStations.length === 0 || (emp.stationLocation && selectedStations.includes(emp.stationLocation));
       const matchesDept = selectedDepartments.length === 0 || (emp.departmentId && selectedDepartments.includes(emp.departmentId));
-      return matchesSearch && matchesFilter && matchesStation && matchesDept;
+      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(emp.status);
+      return matchesSearch && matchesFilter && matchesStation && matchesDept && matchesStatus;
     });
-  }, [employees, searchQuery, activeFilter, selectedStations, selectedDepartments]);
+  }, [employees, searchQuery, activeFilter, selectedStations, selectedDepartments, selectedStatuses]);
 
   // Reset to page 1 when filters change
   useEffect(() => { setCurrentPage(1); }, [searchQuery, activeFilter, selectedStations, selectedDepartments]);
