@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Search, FileText, Download, Trash2, Edit, FolderOpen, File, Eye, Upload, Filter, ShieldAlert } from 'lucide-react';
 import { InsuranceRenewals } from '@/components/documents/InsuranceRenewals';
+import { NationalIdRenewals } from '@/components/documents/NationalIdRenewals';
 
 interface Document {
   id: string;
