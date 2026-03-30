@@ -56,27 +56,19 @@ export const EmployeeTable = ({ employees, onDelete, currentPage = 1, pageSize =
       .toUpperCase();
   };
 
-  const getStatusBadge = (status: Employee['status']) => {
-    switch (status) {
-      case 'active':
-        return (
-          <Badge className="bg-success text-success-foreground hover:bg-success/90">
-            {t('employees.status.active')}
-          </Badge>
-        );
-      case 'inactive':
-        return (
-          <Badge variant="outline" className="text-warning border-warning">
-            {t('employees.status.inactive')}
-          </Badge>
-        );
-      case 'suspended':
-        return (
-          <Badge variant="outline" className="text-destructive border-destructive">
-            {t('employees.status.suspended')}
-          </Badge>
-        );
-    }
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { label: string; className: string }> = {
+      active: { label: t('employees.status.active'), className: 'bg-success text-success-foreground hover:bg-success/90' },
+      inactive: { label: t('employees.status.inactive'), className: 'text-warning border-warning' },
+      suspended: { label: t('employees.status.suspended'), className: 'text-destructive border-destructive' },
+      external_stations: { label: isRTL ? 'محطات خارجية' : 'External Stations', className: 'text-warning border-warning' },
+      stopped: { label: isRTL ? 'موقوف' : 'Stopped', className: 'text-destructive border-destructive' },
+      absent: { label: isRTL ? 'منقطع' : 'Absent', className: 'text-destructive border-destructive' },
+      pending_hire: { label: isRTL ? 'تحت التعيين' : 'Pending Hire', className: 'text-warning border-warning' },
+    };
+    const s = statusMap[status] || { label: status, className: 'text-muted-foreground' };
+    if (status === 'active') return <Badge className={s.className}>{s.label}</Badge>;
+    return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
   };
 
   return (
