@@ -237,7 +237,7 @@ export const ViolationsManagement = ({ searchQuery, selectedDepartment, selected
                         <TableCell>{v.station}</TableCell>
                         <TableCell>{v.date}</TableCell>
                         <TableCell>{typeLabel ? (ar ? typeLabel.ar : typeLabel.en) : v.type}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{v.description}</TableCell>
+                        <TableCell className="max-w-[300px] whitespace-normal break-words">{v.description}</TableCell>
                         <TableCell>{v.penalty}</TableCell>
                         <TableCell>{getStatusBadge(v.status)}</TableCell>
                         <TableCell>

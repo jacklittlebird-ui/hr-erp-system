@@ -93,7 +93,7 @@ export const EmployeeRequestsList = ({ requests, onRefresh }: Props) => {
                   <TableCell className="font-medium">{ar ? r.employeeNameAr : r.employeeName}</TableCell>
                   <TableCell>{r.employeeCode}</TableCell>
                   <TableCell>{ar ? r.typeAr : r.typeEn}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{r.reason || '-'}</TableCell>
+                  <TableCell className="max-w-[300px] whitespace-normal break-words">{r.reason || '-'}</TableCell>
                   <TableCell>{r.date}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={statusCls[r.status]}>
