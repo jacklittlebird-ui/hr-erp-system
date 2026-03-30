@@ -1057,6 +1057,8 @@ const Employees = () => {
           onSelectedStationsChange={setSelectedStations}
           selectedDepartments={selectedDepartments}
           onSelectedDepartmentsChange={setSelectedDepartments}
+          selectedStatuses={selectedStatuses}
+          onSelectedStatusesChange={setSelectedStatuses}
         />
         <div ref={reportRef}>
           <EmployeeTable
