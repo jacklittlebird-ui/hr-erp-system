@@ -413,6 +413,14 @@ export const LocationManagement = () => {
                     </span>
                   </div>
                 )}
+                {location.stationIds && location.stationIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    <MapPin className="w-3.5 h-3.5 text-muted-foreground mt-0.5" />
+                    {getStationNames(location.stationIds).map(s => (
+                      <Badge key={s.id} variant="outline" className="text-[10px] px-1.5 py-0">{language === 'ar' ? s.name_ar : s.name_en}</Badge>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
