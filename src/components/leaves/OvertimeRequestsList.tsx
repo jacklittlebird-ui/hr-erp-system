@@ -80,7 +80,7 @@ export const OvertimeRequestsList = ({ requests, onDelete }: OvertimeRequestsLis
                       <TableCell>{getOvertimeTypeBadge(request.overtimeType)}</TableCell>
                       <TableCell>{request.date}</TableCell>
                       <TableCell>{request.hours} {t('leaveBalance.hours')}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{request.reason}</TableCell>
+                      <TableCell className="max-w-[300px] whitespace-normal break-words">{request.reason}</TableCell>
                       <TableCell>{getStatusBadge(request.status)}</TableCell>
                       {onDelete && (
                         <TableCell>
