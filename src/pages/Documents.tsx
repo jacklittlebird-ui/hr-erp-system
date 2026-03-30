@@ -150,6 +150,14 @@ const Documents = () => {
             {isAr ? 'البيانات البنكية' : 'Bank Data'}
           </Button>
           <Button
+            variant={activeMainTab === 'missingJob' ? 'default' : 'outline'}
+            className="gap-2"
+            onClick={() => setActiveMainTab('missingJob')}
+          >
+            <Briefcase className="w-4 h-4" />
+            {isAr ? 'بيانات التعيين' : 'Job Data'}
+          </Button>
+          <Button
             variant={activeMainTab === 'documents' ? 'default' : 'outline'}
             className="gap-2"
             onClick={() => setActiveMainTab('documents')}
@@ -165,6 +173,8 @@ const Documents = () => {
           <NationalIdRenewals />
         ) : activeMainTab === 'bankData' ? (
           <MissingBankData />
+        ) : activeMainTab === 'missingJob' ? (
+          <MissingJobData />
         ) : (
         <>
 
