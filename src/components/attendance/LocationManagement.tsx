@@ -59,6 +59,15 @@ export const LocationManagement = () => {
       timezone: newLocation.timezone || 'Africa/Cairo',
       isActive: true,
       address: newLocation.address,
+      stationIds: newLocation.stationIds || [],
+    };
+      name: newLocation.name,
+      nameAr: newLocation.nameAr || newLocation.name,
+      code: newLocation.code.toUpperCase(),
+      type: newLocation.type || 'headquarters',
+      timezone: newLocation.timezone || 'Africa/Cairo',
+      isActive: true,
+      address: newLocation.address,
     };
     
     setLocations(prev => [...prev, location]);
