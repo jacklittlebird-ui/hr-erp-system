@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,14 +6,17 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Building2, Plane, MapPin, Plus, Edit2, Trash2, 
   Globe, Users, Clock, CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Location, LocationType, sampleLocations } from '@/types/attendance';
+import { supabase } from '@/integrations/supabase/client';
 
 export const LocationManagement = () => {
   const { t, isRTL, language } = useLanguage();
@@ -21,6 +24,7 @@ export const LocationManagement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [dbStations, setDbStations] = useState<{ id: string; name_ar: string; name_en: string }[]>([]);
   const [newLocation, setNewLocation] = useState<Partial<Location>>({
     name: '',
     nameAr: '',
@@ -28,7 +32,16 @@ export const LocationManagement = () => {
     type: 'headquarters',
     timezone: 'Africa/Cairo',
     isActive: true,
+    stationIds: [],
   });
+
+  useEffect(() => {
+    const fetchStations = async () => {
+      const { data } = await supabase.from('stations').select('id, name_ar, name_en').eq('is_active', true).order('name_ar');
+      if (data) setDbStations(data);
+    };
+    fetchStations();
+  }, []);
 
   const getLocationIcon = (type: LocationType) => {
     return type === 'airport' ? <Plane className="w-5 h-5" /> : <Building2 className="w-5 h-5" />;
@@ -46,6 +59,7 @@ export const LocationManagement = () => {
       timezone: newLocation.timezone || 'Africa/Cairo',
       isActive: true,
       address: newLocation.address,
+      stationIds: newLocation.stationIds || [],
     };
     
     setLocations(prev => [...prev, location]);
@@ -56,6 +70,7 @@ export const LocationManagement = () => {
       type: 'headquarters',
       timezone: 'Africa/Cairo',
       isActive: true,
+      stationIds: [],
     });
     setIsAddDialogOpen(false);
   };
@@ -82,6 +97,23 @@ export const LocationManagement = () => {
     ));
     setIsEditDialogOpen(false);
     setEditingLocation(null);
+  };
+
+  const toggleStationId = (stationId: string, target: 'new' | 'edit') => {
+    if (target === 'new') {
+      const current = newLocation.stationIds || [];
+      const updated = current.includes(stationId) ? current.filter(id => id !== stationId) : [...current, stationId];
+      setNewLocation({ ...newLocation, stationIds: updated });
+    } else if (editingLocation) {
+      const current = editingLocation.stationIds || [];
+      const updated = current.includes(stationId) ? current.filter(id => id !== stationId) : [...current, stationId];
+      setEditingLocation({ ...editingLocation, stationIds: updated });
+    }
+  };
+
+  const getStationNames = (ids?: string[]) => {
+    if (!ids?.length) return [];
+    return ids.map(id => dbStations.find(s => s.id === id)).filter(Boolean) as typeof dbStations;
   };
 
   const hqLocations = locations.filter(l => l.type === 'headquarters');
@@ -161,6 +193,31 @@ export const LocationManagement = () => {
                   onChange={(e) => setNewLocation({ ...newLocation, address: e.target.value })}
                   placeholder="Full address"
                 />
+              </div>
+
+              {/* Station Multi-Select */}
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'المحطات المرتبطة' : 'Linked Stations'}</Label>
+                <ScrollArea className="h-[140px] border rounded-md p-2">
+                  <div className="space-y-1">
+                    {dbStations.map(s => (
+                      <label key={s.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer">
+                        <Checkbox
+                          checked={(newLocation.stationIds || []).includes(s.id)}
+                          onCheckedChange={() => toggleStationId(s.id, 'new')}
+                        />
+                        <span className="text-sm">{language === 'ar' ? s.name_ar : s.name_en}</span>
+                      </label>
+                    ))}
+                  </div>
+                </ScrollArea>
+                {(newLocation.stationIds?.length || 0) > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {getStationNames(newLocation.stationIds).map(s => (
+                      <Badge key={s.id} variant="secondary" className="text-xs">{language === 'ar' ? s.name_ar : s.name_en}</Badge>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <div className="space-y-2">
@@ -283,6 +340,14 @@ export const LocationManagement = () => {
                   <Users className="w-4 h-4 text-muted-foreground" />
                   <span>{Math.floor(Math.random() * 50) + 20} {t('attendance.locations.employees')}</span>
                 </div>
+                {location.stationIds && location.stationIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    <MapPin className="w-3.5 h-3.5 text-muted-foreground mt-0.5" />
+                    {getStationNames(location.stationIds).map(s => (
+                      <Badge key={s.id} variant="outline" className="text-[10px] px-1.5 py-0">{language === 'ar' ? s.name_ar : s.name_en}</Badge>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -346,6 +411,14 @@ export const LocationManagement = () => {
                     <span>
                       {t('attendance.locations.geofence')}: {location.coordinates.radius}m
                     </span>
+                  </div>
+                )}
+                {location.stationIds && location.stationIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    <MapPin className="w-3.5 h-3.5 text-muted-foreground mt-0.5" />
+                    {getStationNames(location.stationIds).map(s => (
+                      <Badge key={s.id} variant="outline" className="text-[10px] px-1.5 py-0">{language === 'ar' ? s.name_ar : s.name_en}</Badge>
+                    ))}
                   </div>
                 )}
               </CardContent>
@@ -419,6 +492,31 @@ export const LocationManagement = () => {
                   onChange={(e) => setEditingLocation({ ...editingLocation, address: e.target.value })}
                   placeholder="Full address"
                 />
+              </div>
+
+              {/* Station Multi-Select */}
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'المحطات المرتبطة' : 'Linked Stations'}</Label>
+                <ScrollArea className="h-[140px] border rounded-md p-2">
+                  <div className="space-y-1">
+                    {dbStations.map(s => (
+                      <label key={s.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer">
+                        <Checkbox
+                          checked={(editingLocation?.stationIds || []).includes(s.id)}
+                          onCheckedChange={() => toggleStationId(s.id, 'edit')}
+                        />
+                        <span className="text-sm">{language === 'ar' ? s.name_ar : s.name_en}</span>
+                      </label>
+                    ))}
+                  </div>
+                </ScrollArea>
+                {(editingLocation?.stationIds?.length || 0) > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {getStationNames(editingLocation?.stationIds).map(s => (
+                      <Badge key={s.id} variant="secondary" className="text-xs">{language === 'ar' ? s.name_ar : s.name_en}</Badge>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <div className="space-y-2">
