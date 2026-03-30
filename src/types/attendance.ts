@@ -23,6 +23,7 @@ export interface Location {
   timezone: string;
   isActive: boolean;
   address?: string;
+  stationIds?: string[]; // linked station IDs from stations table
   coordinates?: {
     latitude: number;
     longitude: number;

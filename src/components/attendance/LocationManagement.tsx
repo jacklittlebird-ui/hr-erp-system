@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,14 +6,17 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Building2, Plane, MapPin, Plus, Edit2, Trash2, 
   Globe, Users, Clock, CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Location, LocationType, sampleLocations } from '@/types/attendance';
+import { supabase } from '@/integrations/supabase/client';
 
 export const LocationManagement = () => {
   const { t, isRTL, language } = useLanguage();
