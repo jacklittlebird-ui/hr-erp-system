@@ -501,6 +501,8 @@ export const LocationManagement = () => {
                     ))}
                   </div>
                 )}
+              </div>
+              
               <div className="space-y-2">
                 <Label>{t('attendance.locations.timezone')}</Label>
                 <Select 
