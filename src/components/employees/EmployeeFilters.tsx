@@ -50,6 +50,15 @@ export const EmployeeFilters = ({
   const { t, isRTL, language } = useLanguage();
   const ar = language === 'ar';
 
+  const statusOptions: FilterOption[] = [
+    { value: 'active', labelAr: 'نشط', labelEn: 'Active' },
+    { value: 'inactive', labelAr: 'غير نشط', labelEn: 'Inactive' },
+    { value: 'suspended', labelAr: 'موقوف', labelEn: 'Suspended' },
+    { value: 'external_stations', labelAr: 'محطات خارجية', labelEn: 'External Stations' },
+    { value: 'absent', labelAr: 'منقطع', labelEn: 'Absent' },
+    { value: 'pending_hire', labelAr: 'تحت التعيين', labelEn: 'Pending Hire' },
+  ];
+
   const filters: { key: FilterStatus; label: string; icon: typeof Users; count: number }[] = [
     { key: 'all', label: t('employees.filter.all'), icon: Users, count: counts.all },
     { key: 'active', label: t('employees.filter.active'), icon: UserCheck, count: counts.active },
