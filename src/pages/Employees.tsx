@@ -273,7 +273,7 @@ const Employees = () => {
   }, [employees, searchQuery, activeFilter, selectedStations, selectedDepartments, selectedStatuses]);
 
   // Reset to page 1 when filters change
-  useEffect(() => { setCurrentPage(1); }, [searchQuery, activeFilter, selectedStations, selectedDepartments]);
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, activeFilter, selectedStations, selectedDepartments, selectedStatuses]);
 
   const boolLabel = (v?: boolean) => v ? (ar ? 'نعم' : 'Yes') : (ar ? 'لا' : 'No');
 
