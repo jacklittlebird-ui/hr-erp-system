@@ -110,13 +110,40 @@ const Documents = () => {
       <div className={cn("space-y-6", isRTL && "text-right")}>
         <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{isAr ? 'إدارة المستندات' : 'Document Management'}</h1>
-            <p className="text-muted-foreground">{isAr ? 'رفع وإدارة مستندات الشركة' : 'Upload and manage company documents'}</p>
+            <h1 className="text-2xl font-bold text-foreground">{isAr ? 'التنبيهات والمستندات' : 'Alerts & Documents'}</h1>
+            <p className="text-muted-foreground">{isAr ? 'إدارة المستندات والتنبيهات والتجديدات' : 'Manage documents, alerts and renewals'}</p>
           </div>
-          <Button onClick={openAdd} className={cn("gap-2", isRTL && "flex-row-reverse")}>
-            <Upload className="w-4 h-4" /> {isAr ? 'رفع مستند' : 'Upload Document'}
+          {activeMainTab === 'documents' && (
+            <Button onClick={openAdd} className={cn("gap-2", isRTL && "flex-row-reverse")}>
+              <Upload className="w-4 h-4" /> {isAr ? 'رفع مستند' : 'Upload Document'}
+            </Button>
+          )}
+        </div>
+
+        {/* Main Tabs */}
+        <div className="flex gap-3">
+          <Button
+            variant={activeMainTab === 'documents' ? 'default' : 'outline'}
+            className="gap-2"
+            onClick={() => setActiveMainTab('documents')}
+          >
+            <FileText className="w-4 h-4" />
+            {isAr ? 'المستندات' : 'Documents'}
+          </Button>
+          <Button
+            variant={activeMainTab === 'renewals' ? 'default' : 'outline'}
+            className="gap-2"
+            onClick={() => setActiveMainTab('renewals')}
+          >
+            <ShieldAlert className="w-4 h-4" />
+            {isAr ? 'تجديدات العقود' : 'Contract Renewals'}
           </Button>
         </div>
+
+        {activeMainTab === 'renewals' ? (
+          <InsuranceRenewals />
+        ) : (
+        <>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
