@@ -118,12 +118,20 @@ export const NationalIdRenewals = () => {
   };
 
   const handleNotify = async (emp: ExpiringIdEmployee) => {
+    // Get employee's user_id so notification is visible to them
+    const { data: empData } = await supabase
+      .from('employees')
+      .select('user_id')
+      .eq('id', emp.id)
+      .single();
+
     const { error } = await supabase.from('notifications').insert({
       title_ar: `تنبيه: بطاقة الرقم القومي تقترب من الانتهاء (${emp.id_expiry_date})`,
       title_en: `Alert: Your National ID is expiring soon (${emp.id_expiry_date})`,
       type: 'warning',
       module: 'employee',
       employee_id: emp.id,
+      user_id: empData?.user_id || null,
     });
 
     if (error) {

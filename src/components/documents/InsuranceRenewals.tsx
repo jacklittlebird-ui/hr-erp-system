@@ -119,12 +119,19 @@ export const InsuranceRenewals = () => {
   };
 
   const handleNotify = async (emp: ExpiringEmployee) => {
+    const { data: empData } = await supabase
+      .from('employees')
+      .select('user_id')
+      .eq('id', emp.id)
+      .single();
+
     const { error } = await supabase.from('notifications').insert({
       title_ar: `تنبيه: تأمينك الاجتماعي يقترب من الانتهاء (${emp.social_insurance_end_date})`,
       title_en: `Alert: Your social insurance is expiring soon (${emp.social_insurance_end_date})`,
       type: 'warning',
       module: 'employee',
       employee_id: emp.id,
+      user_id: empData?.user_id || null,
     });
 
     if (error) {
