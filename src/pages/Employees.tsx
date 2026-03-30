@@ -223,10 +223,11 @@ const Employees = () => {
   // Single-language columns for PDF fallback
   const exportColumns = bilingualExportColumns.map(c => ({ header: ar ? c.headerAr : c.headerEn, key: c.key }));
 
+  const inactiveStatuses = ['inactive', 'external_stations', 'stopped', 'absent', 'pending_hire'];
   const counts = useMemo(() => ({
     all: employees.length,
     active: employees.filter(e => e.status === 'active').length,
-    inactive: employees.filter(e => e.status === 'inactive').length,
+    inactive: employees.filter(e => inactiveStatuses.includes(e.status)).length,
     suspended: employees.filter(e => e.status === 'suspended').length,
   }), [employees]);
 
@@ -262,7 +263,7 @@ const Employees = () => {
         emp.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         emp.department.includes(searchQuery) ||
         emp.jobTitle.includes(searchQuery);
-      const matchesFilter = activeFilter === 'all' || emp.status === activeFilter;
+      const matchesFilter = activeFilter === 'all' || (activeFilter === 'inactive' ? inactiveStatuses.includes(emp.status) : emp.status === activeFilter);
       const matchesStation = selectedStations.length === 0 || (emp.stationLocation && selectedStations.includes(emp.stationLocation));
       const matchesDept = selectedDepartments.length === 0 || (emp.departmentId && selectedDepartments.includes(emp.departmentId));
       return matchesSearch && matchesFilter && matchesStation && matchesDept;
@@ -340,7 +341,7 @@ const Employees = () => {
     contractType: contractLabel(e.contractType),
     employmentStatus: (() => {
       const val = e.employmentStatus && e.employmentStatus !== 'active' && e.employmentStatus !== 'inactive' && e.employmentStatus !== 'suspended' ? e.employmentStatus : e.status;
-      const map: Record<string, string> = { active: ar ? 'نشط' : 'Active', inactive: ar ? 'غير نشط' : 'Inactive', suspended: ar ? 'موقوف' : 'Suspended' };
+      const map: Record<string, string> = { active: ar ? 'نشط' : 'Active', inactive: ar ? 'غير نشط' : 'Inactive', suspended: ar ? 'موقوف' : 'Suspended', external_stations: ar ? 'محطات خارجية' : 'External Stations', stopped: ar ? 'موقوف' : 'Stopped', absent: ar ? 'منقطع' : 'Absent', pending_hire: ar ? 'تحت التعيين' : 'Pending Hire' };
       return map[val] || val || '-';
     })(),
     hireDate: e.hireDate || '-',
@@ -385,7 +386,7 @@ const Employees = () => {
     hasPledge: boolLabel(e.hasPledge),
     hasContract: boolLabel(e.hasContract),
     hasReceipt: boolLabel(e.hasReceipt),
-    status: e.status === 'active' ? (ar ? 'نشط' : 'Active') : e.status === 'inactive' ? (ar ? 'غير نشط' : 'Inactive') : (ar ? 'موقوف' : 'Suspended'),
+    status: (() => { const m: Record<string, string> = { active: ar ? 'نشط' : 'Active', inactive: ar ? 'غير نشط' : 'Inactive', suspended: ar ? 'موقوف' : 'Suspended', external_stations: ar ? 'محطات خارجية' : 'External Stations', stopped: ar ? 'موقوف' : 'Stopped', absent: ar ? 'منقطع' : 'Absent', pending_hire: ar ? 'تحت التعيين' : 'Pending Hire' }; return m[e.status] || e.status; })(),
     notes: e.notes || '-',
     attachments: e.attachments || '-',
   }));
