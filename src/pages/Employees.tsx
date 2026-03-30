@@ -223,10 +223,11 @@ const Employees = () => {
   // Single-language columns for PDF fallback
   const exportColumns = bilingualExportColumns.map(c => ({ header: ar ? c.headerAr : c.headerEn, key: c.key }));
 
+  const inactiveStatuses = ['inactive', 'external_stations', 'stopped', 'absent', 'pending_hire'];
   const counts = useMemo(() => ({
     all: employees.length,
     active: employees.filter(e => e.status === 'active').length,
-    inactive: employees.filter(e => e.status === 'inactive').length,
+    inactive: employees.filter(e => inactiveStatuses.includes(e.status)).length,
     suspended: employees.filter(e => e.status === 'suspended').length,
   }), [employees]);
 
