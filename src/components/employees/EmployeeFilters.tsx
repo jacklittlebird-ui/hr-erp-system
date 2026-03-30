@@ -28,6 +28,8 @@ interface EmployeeFiltersProps {
   onSelectedStationsChange: (values: string[]) => void;
   selectedDepartments: string[];
   onSelectedDepartmentsChange: (values: string[]) => void;
+  selectedStatuses: string[];
+  onSelectedStatusesChange: (values: string[]) => void;
 }
 
 export const EmployeeFilters = ({
