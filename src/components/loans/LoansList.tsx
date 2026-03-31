@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Search, Plus, Edit, Trash2, Banknote, Users, Clock, CheckCircle, Printer, FileText, FileSpreadsheet, CreditCard, List, RefreshCw } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Banknote, Users, Clock, CheckCircle, Printer, FileText, FileSpreadsheet, CreditCard, List, RefreshCw, Undo2 } from 'lucide-react';
 import { InstallmentScheduleDialog } from './InstallmentScheduleDialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +33,7 @@ const getMonthName = (dateStr: string, lang: string) => {
 export const LoansList = () => {
   const { t, isRTL, language } = useLanguage();
   const { handlePrint, exportToPDF, exportToCSV } = useReportExport();
-  const { loans, addLoan, updateLoan, deleteLoan, recordLoanPayment, refreshData } = useLoanData();
+  const { loans, addLoan, updateLoan, deleteLoan, recordLoanPayment, reverseLoanPayment, refreshData } = useLoanData();
   const { employees } = useEmployeeData();
   const activeEmployees = employees.filter(e => e.status === 'active');
 
@@ -213,6 +213,15 @@ export const LoansList = () => {
     try {
       await recordLoanPayment(loanId);
       toast({ title: isRTL ? 'تم' : 'Done', description: isRTL ? 'تم تسجيل الدفعة' : 'Payment recorded' });
+    } catch {
+      toast({ title: isRTL ? 'خطأ' : 'Error', variant: 'destructive' });
+    }
+  };
+
+  const handleReversePayment = async (loanId: string) => {
+    try {
+      await reverseLoanPayment(loanId);
+      toast({ title: isRTL ? 'تم' : 'Done', description: isRTL ? 'تم التراجع عن الدفعة' : 'Payment reversed' });
     } catch {
       toast({ title: isRTL ? 'خطأ' : 'Error', variant: 'destructive' });
     }
@@ -463,6 +472,11 @@ export const LoansList = () => {
                       {loan.status === 'active' && (
                         <Button size="sm" variant="outline" className="text-xs gap-1 text-green-600" onClick={() => handleRecordPayment(loan.id)}>
                           <CreditCard className="h-3 w-3" />{isRTL ? 'تسجيل دفعة' : 'Pay'}
+                        </Button>
+                      )}
+                      {loan.paidInstallments > 0 && loan.status !== 'completed' && (
+                        <Button size="sm" variant="ghost" className="text-xs gap-1 text-destructive hover:text-destructive" onClick={() => handleReversePayment(loan.id)}>
+                          <Undo2 className="h-3 w-3" />{isRTL ? 'تراجع' : 'Undo'}
                         </Button>
                       )}
                       {loan.status === 'active' && loan.remainingAmount > 0 && (
