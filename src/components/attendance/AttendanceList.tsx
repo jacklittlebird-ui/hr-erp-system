@@ -121,10 +121,11 @@ export const AttendanceList = () => {
     setLoading(true);
     const startDate = dateFrom;
     const endDate = dateTo;
+    const isSearching = searchTerm.trim().length > 0;
 
     let query = supabase
       .from('attendance_records')
-      .select('*, employees(name_en, name_ar, department_id, station_id, departments(name_ar))', { count: 'exact' })
+      .select('*, employees!inner(name_en, name_ar, department_id, station_id, departments(name_ar))', { count: 'exact' })
       .gte('date', startDate)
       .lte('date', endDate)
       .order('check_in', { ascending: false, nullsFirst: false });
@@ -150,9 +151,17 @@ export const AttendanceList = () => {
       }
     }
 
-    const from = pageNum * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-    query = query.range(from, to);
+    // Server-side name search
+    if (isSearching) {
+      query = query.or(`name_en.ilike.%${searchTerm}%,name_ar.ilike.%${searchTerm}%`, { referencedTable: 'employees' });
+    }
+
+    // When searching, fetch all results; otherwise paginate
+    if (!isSearching) {
+      const from = pageNum * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+    }
 
     const { data, count } = await query;
 
@@ -193,7 +202,7 @@ export const AttendanceList = () => {
       setTotalCount(count ?? 0);
     }
     setLoading(false);
-  }, [dateFrom, dateTo, statusFilter, selectedStation, selectedDept, employeeStationMap, employeeDeptMap]);
+  }, [dateFrom, dateTo, statusFilter, selectedStation, selectedDept, employeeStationMap, employeeDeptMap, searchTerm]);
 
   // Re-fetch when filters or page change
   useEffect(() => {
@@ -203,16 +212,10 @@ export const AttendanceList = () => {
   // Reset page when filters change
   useEffect(() => {
     setPage(0);
-  }, [dateFrom, dateTo, selectedStation, selectedDept, statusFilter]);
+  }, [dateFrom, dateTo, selectedStation, selectedDept, statusFilter, searchTerm]);
 
-  // Client-side search filter (name search)
-  const filteredRecords = useMemo(() => {
-    if (!searchTerm) return records;
-    const s = searchTerm.toLowerCase();
-    return records.filter(r =>
-      r.employeeName.toLowerCase().includes(s) || r.employeeNameAr.includes(searchTerm)
-    );
-  }, [records, searchTerm]);
+  const isSearching = searchTerm.trim().length > 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
