@@ -45,6 +45,7 @@ interface LoanDataContextType {
   updateLoan: (id: string, updates: Partial<Loan>) => Promise<void>;
   deleteLoan: (id: string) => Promise<void>;
   recordLoanPayment: (loanId: string) => Promise<void>;
+  reverseLoanPayment: (loanId: string) => Promise<void>;
   addAdvance: (advance: Omit<Advance, 'id'>) => Promise<void>;
   updateAdvance: (id: string, updates: Partial<Advance>) => Promise<void>;
   deleteAdvance: (id: string) => Promise<void>;
