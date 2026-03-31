@@ -1,9 +1,15 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Employee } from '@/types/employee';
 import { cn, formatDate } from '@/lib/utils';
-import { CalendarDays, Clock, PlusCircle, Loader2 } from 'lucide-react';
+import { CalendarDays, Clock, PlusCircle, Loader2, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 interface LeaveRecordTabProps {
   employee: Employee;
@@ -36,7 +42,6 @@ interface PermissionRecord {
 interface OvertimeRecord {
   id: string;
   date: string;
-  hours: number;
   reason: string;
   status: RecordStatus;
 }
@@ -96,10 +101,58 @@ const permissionTypeLabels: Record<string, { en: string; ar: string }> = {
   medical: { en: 'Medical', ar: 'طبي' },
 };
 
-const overtimeTypeLabels: Record<string, { en: string; ar: string }> = {
-  regular: { en: 'Regular', ar: 'عادي' },
-  holiday: { en: 'Holiday', ar: 'إجازة رسمية' },
-  weekend: { en: 'Weekend', ar: 'نهاية أسبوع' },
+// Helper to recalculate leave balances after any edit
+const recalcLeaveBalances = async (employeeId: string) => {
+  const currentYear = new Date().getFullYear();
+  
+  // Fetch all approved leaves for this year
+  const { data: leaves } = await supabase
+    .from('leave_requests')
+    .select('leave_type, days')
+    .eq('employee_id', employeeId)
+    .eq('status', 'approved')
+    .gte('start_date', `${currentYear}-01-01`)
+    .lte('start_date', `${currentYear}-12-31`);
+
+  // Fetch approved permissions for this year
+  const { data: perms } = await supabase
+    .from('permission_requests')
+    .select('hours')
+    .eq('employee_id', employeeId)
+    .eq('status', 'approved')
+    .gte('date', `${currentYear}-01-01`)
+    .lte('date', `${currentYear}-12-31`);
+
+  const annualUsed = (leaves || []).filter(l => l.leave_type === 'annual').reduce((s, l) => s + Number(l.days), 0);
+  const sickUsed = (leaves || []).filter(l => l.leave_type === 'sick').reduce((s, l) => s + Number(l.days), 0);
+  const casualUsed = (leaves || []).filter(l => l.leave_type === 'casual').reduce((s, l) => s + Number(l.days), 0);
+  const permissionsUsed = (perms || []).reduce((s, p) => s + Number(p.hours || 0), 0);
+
+  // Check if balance row exists
+  const { data: existing } = await supabase
+    .from('leave_balances')
+    .select('id')
+    .eq('employee_id', employeeId)
+    .eq('year', currentYear)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase.from('leave_balances').update({
+      annual_used: annualUsed,
+      sick_used: sickUsed,
+      casual_used: casualUsed,
+      permissions_used: permissionsUsed,
+    }).eq('id', existing.id);
+  } else {
+    await supabase.from('leave_balances').insert({
+      employee_id: employeeId,
+      year: currentYear,
+      annual_used: annualUsed,
+      sick_used: sickUsed,
+      casual_used: casualUsed,
+      permissions_used: permissionsUsed,
+    });
+  }
 };
 
 export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
@@ -110,7 +163,6 @@ export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
   const [employeePermissions, setEmployeePermissions] = useState<PermissionRecord[]>([]);
   const [employeeOvertime, setEmployeeOvertime] = useState<OvertimeRecord[]>([]);
 
-  // DB balances for current year
   const [dbBalance, setDbBalance] = useState<{
     annualTotal: number; annualUsed: number;
     sickTotal: number; sickUsed: number;
@@ -118,75 +170,58 @@ export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
     permissionsTotal: number; permissionsUsed: number;
   } | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      const employeeUuid = employee.id;
-      const currentYear = new Date().getFullYear();
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    const employeeUuid = employee.id;
+    const currentYear = new Date().getFullYear();
 
-      const [leavesRes, permsRes, overtimeRes, balanceRes] = await Promise.all([
-        supabase.from('leave_requests').select('*').eq('employee_id', employeeUuid).order('created_at', { ascending: false }),
-        supabase.from('permission_requests').select('*').eq('employee_id', employeeUuid).order('created_at', { ascending: false }),
-        supabase.from('overtime_requests').select('*').eq('employee_id', employeeUuid).order('created_at', { ascending: false }),
-        supabase.from('leave_balances').select('*').eq('employee_id', employeeUuid).eq('year', currentYear).maybeSingle(),
-      ]);
+    const [leavesRes, permsRes, overtimeRes, balanceRes] = await Promise.all([
+      supabase.from('leave_requests').select('*').eq('employee_id', employeeUuid).order('created_at', { ascending: false }),
+      supabase.from('permission_requests').select('*').eq('employee_id', employeeUuid).order('created_at', { ascending: false }),
+      supabase.from('overtime_requests').select('*').eq('employee_id', employeeUuid).order('created_at', { ascending: false }),
+      supabase.from('leave_balances').select('*').eq('employee_id', employeeUuid).eq('year', currentYear).maybeSingle(),
+    ]);
 
-      if (leavesRes.data) {
-        setEmployeeLeaves(leavesRes.data.map(r => ({
-          id: r.id,
-          leaveType: r.leave_type,
-          startDate: r.start_date,
-          endDate: r.end_date,
-          days: r.days,
-          reason: r.reason || '',
-          status: r.status as RecordStatus,
-        })));
-      }
+    if (leavesRes.data) {
+      setEmployeeLeaves(leavesRes.data.map(r => ({
+        id: r.id, leaveType: r.leave_type, startDate: r.start_date, endDate: r.end_date,
+        days: r.days, reason: r.reason || '', status: r.status as RecordStatus,
+      })));
+    }
 
-      if (permsRes.data) {
-        setEmployeePermissions(permsRes.data.map(r => ({
-          id: r.id,
-          permissionType: r.permission_type,
-          date: r.date,
-          fromTime: r.start_time,
-          toTime: r.end_time,
-          durationHours: r.hours || 0,
-          reason: r.reason || '',
-          status: r.status as RecordStatus,
-        })));
-      }
+    if (permsRes.data) {
+      setEmployeePermissions(permsRes.data.map(r => ({
+        id: r.id, permissionType: r.permission_type, date: r.date,
+        fromTime: r.start_time, toTime: r.end_time, durationHours: r.hours || 0,
+        reason: r.reason || '', status: r.status as RecordStatus,
+      })));
+    }
 
-      if (overtimeRes.data) {
-        setEmployeeOvertime(overtimeRes.data.map(r => ({
-          id: r.id,
-          date: r.date,
-          hours: r.hours,
-          reason: r.reason || '',
-          status: r.status as RecordStatus,
-        })));
-      }
+    if (overtimeRes.data) {
+      setEmployeeOvertime(overtimeRes.data.map(r => ({
+        id: r.id, date: r.date, reason: r.reason || '', status: r.status as RecordStatus,
+      })));
+    }
 
-      if (balanceRes.data) {
-        setDbBalance({
-          annualTotal: Number(balanceRes.data.annual_total ?? 21),
-          annualUsed: Number(balanceRes.data.annual_used ?? 0),
-          sickTotal: Number(balanceRes.data.sick_total ?? 5),
-          sickUsed: Number(balanceRes.data.sick_used ?? 0),
-          casualTotal: Number(balanceRes.data.casual_total ?? 2),
-          casualUsed: Number(balanceRes.data.casual_used ?? 0),
-          permissionsTotal: Number(balanceRes.data.permissions_total ?? 12),
-          permissionsUsed: Number(balanceRes.data.permissions_used ?? 0),
-        });
-      }
+    if (balanceRes.data) {
+      setDbBalance({
+        annualTotal: Number(balanceRes.data.annual_total ?? 21),
+        annualUsed: Number(balanceRes.data.annual_used ?? 0),
+        sickTotal: Number(balanceRes.data.sick_total ?? 5),
+        sickUsed: Number(balanceRes.data.sick_used ?? 0),
+        casualTotal: Number(balanceRes.data.casual_total ?? 2),
+        casualUsed: Number(balanceRes.data.casual_used ?? 0),
+        permissionsTotal: Number(balanceRes.data.permissions_total ?? 12),
+        permissionsUsed: Number(balanceRes.data.permissions_used ?? 0),
+      });
+    }
 
-      setLoading(false);
-    };
-
-    fetchData();
+    setLoading(false);
   }, [employee.id]);
 
+  useEffect(() => { fetchData(); }, [fetchData]);
+
   const leaveSummary = useMemo(() => {
-    // Combined balance: annual + casual
     const annualTotal = dbBalance?.annualTotal ?? (employee.annualLeaveBalance || 21);
     const annualUsed = dbBalance?.annualUsed ?? 0;
     const casualTotal = dbBalance?.casualTotal ?? 2;
@@ -194,9 +229,7 @@ export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
     const combinedTotal = annualTotal + casualTotal;
     const combinedUsed = annualUsed + casualUsed;
     return {
-      total: combinedTotal,
-      used: combinedUsed,
-      remaining: combinedTotal - combinedUsed,
+      total: combinedTotal, used: combinedUsed, remaining: combinedTotal - combinedUsed,
       approvedCount: employeeLeaves.filter(r => r.status === 'approved').length,
       pendingCount: employeeLeaves.filter(r => r.status === 'pending').length,
       rejectedCount: employeeLeaves.filter(r => r.status === 'rejected').length,
@@ -207,18 +240,17 @@ export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
     const permTotal = dbBalance?.permissionsTotal ?? 12;
     const permUsed = dbBalance?.permissionsUsed ?? 0;
     return {
-      total: permTotal,
-      used: permUsed,
-      remaining: permTotal - permUsed,
+      total: permTotal, used: permUsed, remaining: permTotal - permUsed,
       approvedCount: employeePermissions.filter(r => r.status === 'approved').length,
       pendingCount: employeePermissions.filter(r => r.status === 'pending').length,
       rejectedCount: employeePermissions.filter(r => r.status === 'rejected').length,
     };
   }, [employeePermissions, dbBalance]);
+
   const overtimeSummary = useMemo(() => {
     const approved = employeeOvertime.filter(r => r.status === 'approved');
     return {
-      totalHours: approved.reduce((sum, r) => sum + r.hours, 0),
+      totalDays: approved.length,
       approvedCount: approved.length,
       pendingCount: employeeOvertime.filter(r => r.status === 'pending').length,
       rejectedCount: employeeOvertime.filter(r => r.status === 'rejected').length,
@@ -241,7 +273,6 @@ export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Top Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="relative rounded-2xl overflow-hidden h-28"
           style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 50%, #c4b5fd 100%)' }}>
@@ -270,73 +301,87 @@ export const LeaveRecordTab = ({ employee }: LeaveRecordTabProps) => {
           <div className={cn("absolute inset-0 p-5 flex flex-col justify-between", isRTL ? "text-right" : "text-left")}>
             <p className="text-white/90 text-sm font-medium">{t('leaveRecord.extraDaysLabel')}</p>
             <div>
-              <span className="text-4xl font-bold text-white">{overtimeSummary.totalHours}</span>
-              <span className="text-white/80 text-sm mr-2 ml-2">{language === 'ar' ? 'ساعة' : 'hours'}</span>
+              <span className="text-4xl font-bold text-white">{overtimeSummary.totalDays}</span>
+              <span className="text-white/80 text-sm mr-2 ml-2">{language === 'ar' ? 'يوم' : 'days'}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Sub-Tabs */}
       <div className={cn("flex items-center gap-2 justify-end", !isRTL && "justify-start")}>
         {subTabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
           return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveSubTab(tab.id)}
+            <button key={tab.id} onClick={() => setActiveSubTab(tab.id)}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all",
-                isActive
-                  ? "bg-primary text-primary-foreground border-primary shadow-md"
+                isActive ? "bg-primary text-primary-foreground border-primary shadow-md"
                   : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:bg-muted/50",
                 isRTL && "flex-row-reverse"
-              )}
-            >
+              )}>
               <Icon className="w-4 h-4" />
               <span>{tab.label}</span>
-              <span className={cn(
-                "min-w-[22px] h-[22px] flex items-center justify-center rounded-full text-xs font-bold",
+              <span className={cn("min-w-[22px] h-[22px] flex items-center justify-center rounded-full text-xs font-bold",
                 isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                {tab.count}
-              </span>
+              )}>{tab.count}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Tab Content */}
       {activeSubTab === 'leaves' && (
-        <LeavesContent leaves={employeeLeaves} summary={leaveSummary} />
+        <LeavesContent leaves={employeeLeaves} summary={leaveSummary} employeeId={employee.id} onRefresh={fetchData} />
       )}
       {activeSubTab === 'permissions' && (
-        <PermissionsContent permissions={employeePermissions} summary={permissionSummary} />
+        <PermissionsContent permissions={employeePermissions} summary={permissionSummary} employeeId={employee.id} onRefresh={fetchData} />
       )}
       {activeSubTab === 'extraDays' && (
-        <OvertimeContent overtime={employeeOvertime} summary={overtimeSummary} />
+        <OvertimeContent overtime={employeeOvertime} summary={overtimeSummary} employeeId={employee.id} onRefresh={fetchData} />
       )}
     </div>
   );
 };
 
 // ========== Leaves Sub-Tab ==========
-const LeavesContent = ({ leaves, summary }: { 
+const LeavesContent = ({ leaves, summary, employeeId, onRefresh }: { 
   leaves: LeaveRecord[];
-  summary: { approvedCount: number; pendingCount: number; rejectedCount: number } 
+  summary: { approvedCount: number; pendingCount: number; rejectedCount: number };
+  employeeId: string;
+  onRefresh: () => void;
 }) => {
   const { t, isRTL, language } = useLanguage();
+  const [editData, setEditData] = useState<LeaveRecord | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!editData) return;
+    setSaving(true);
+    const { error } = await supabase.from('leave_requests').update({
+      leave_type: editData.leaveType,
+      start_date: editData.startDate,
+      end_date: editData.endDate,
+      days: editData.days,
+      reason: editData.reason,
+      status: editData.status,
+    }).eq('id', editData.id);
+
+    if (error) {
+      toast.error(language === 'ar' ? 'فشل التعديل' : 'Update failed');
+    } else {
+      await recalcLeaveBalances(employeeId);
+      toast.success(language === 'ar' ? 'تم التعديل بنجاح' : 'Updated successfully');
+      setEditData(null);
+      onRefresh();
+    }
+    setSaving(false);
+  };
 
   return (
     <div className="space-y-5">
       <StatusSummaryCards
-        approved={summary.approvedCount}
-        pending={summary.pendingCount}
-        rejected={summary.rejectedCount}
-        approvedLabel={t('leaveRecord.approvedLeaves')}
-        pendingLabel={t('leaveRecord.pendingLeaves')}
-        rejectedLabel={t('leaveRecord.rejectedLeaves')}
+        approved={summary.approvedCount} pending={summary.pendingCount} rejected={summary.rejectedCount}
+        approvedLabel={t('leaveRecord.approvedLeaves')} pendingLabel={t('leaveRecord.pendingLeaves')} rejectedLabel={t('leaveRecord.rejectedLeaves')}
       />
       <div className="rounded-xl overflow-hidden border border-border/30">
         <table className="w-full">
@@ -348,15 +393,12 @@ const LeavesContent = ({ leaves, summary }: {
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.days')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.status')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.reason')}</th>
+              <th className="px-4 py-3 w-12"></th>
             </tr>
           </thead>
           <tbody>
             {leaves.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  {language === 'ar' ? 'لا توجد إجازات مسجلة' : 'No leaves recorded'}
-                </td>
-              </tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{language === 'ar' ? 'لا توجد إجازات مسجلة' : 'No leaves recorded'}</td></tr>
             ) : (
               leaves.map((record, idx) => {
                 const typeLabel = leaveTypeLabels[record.leaveType];
@@ -368,6 +410,11 @@ const LeavesContent = ({ leaves, summary }: {
                     <td className="px-4 py-3 text-sm text-foreground font-medium">{record.days}</td>
                     <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
                     <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
+                    <td className="px-4 py-3">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => setEditData({ ...record })}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
                   </tr>
                 );
               })
@@ -375,16 +422,99 @@ const LeavesContent = ({ leaves, summary }: {
           </tbody>
         </table>
       </div>
+
+      <Dialog open={!!editData} onOpenChange={(o) => !o && setEditData(null)}>
+        <DialogContent className="sm:max-w-[480px]" dir={isRTL ? 'rtl' : 'ltr'}>
+          <DialogHeader><DialogTitle>{language === 'ar' ? 'تعديل الإجازة' : 'Edit Leave'}</DialogTitle></DialogHeader>
+          {editData && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'النوع' : 'Type'}</Label>
+                <Select value={editData.leaveType} onValueChange={(v) => setEditData({ ...editData, leaveType: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="annual">{language === 'ar' ? 'سنوية' : 'Annual'}</SelectItem>
+                    <SelectItem value="sick">{language === 'ar' ? 'مرضية' : 'Sick'}</SelectItem>
+                    <SelectItem value="casual">{language === 'ar' ? 'عارضة' : 'Casual'}</SelectItem>
+                    <SelectItem value="unpaid">{language === 'ar' ? 'بدون راتب' : 'Unpaid'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{language === 'ar' ? 'من تاريخ' : 'Start Date'}</Label>
+                  <Input type="date" value={editData.startDate} onChange={(e) => setEditData({ ...editData, startDate: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>{language === 'ar' ? 'إلى تاريخ' : 'End Date'}</Label>
+                  <Input type="date" value={editData.endDate} onChange={(e) => setEditData({ ...editData, endDate: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'عدد الأيام' : 'Days'}</Label>
+                <Input type="number" step="0.5" min="0.5" value={editData.days} onChange={(e) => setEditData({ ...editData, days: parseFloat(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'الحالة' : 'Status'}</Label>
+                <Select value={editData.status} onValueChange={(v) => setEditData({ ...editData, status: v as RecordStatus })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">{language === 'ar' ? 'معلق' : 'Pending'}</SelectItem>
+                    <SelectItem value="approved">{language === 'ar' ? 'معتمد' : 'Approved'}</SelectItem>
+                    <SelectItem value="rejected">{language === 'ar' ? 'مرفوض' : 'Rejected'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'السبب' : 'Reason'}</Label>
+                <Input value={editData.reason} onChange={(e) => setEditData({ ...editData, reason: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditData(null)}>{language === 'ar' ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'ar' ? 'حفظ' : 'Save')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 // ========== Permissions Sub-Tab ==========
-const PermissionsContent = ({ permissions, summary }: { 
+const PermissionsContent = ({ permissions, summary, employeeId, onRefresh }: { 
   permissions: PermissionRecord[];
-  summary: { approvedCount: number; pendingCount: number; rejectedCount: number } 
+  summary: { approvedCount: number; pendingCount: number; rejectedCount: number };
+  employeeId: string;
+  onRefresh: () => void;
 }) => {
   const { t, isRTL, language } = useLanguage();
+  const [editData, setEditData] = useState<PermissionRecord | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!editData) return;
+    setSaving(true);
+    const { error } = await supabase.from('permission_requests').update({
+      permission_type: editData.permissionType,
+      date: editData.date,
+      start_time: editData.fromTime,
+      end_time: editData.toTime,
+      hours: editData.durationHours,
+      reason: editData.reason,
+      status: editData.status,
+    }).eq('id', editData.id);
+
+    if (error) {
+      toast.error(language === 'ar' ? 'فشل التعديل' : 'Update failed');
+    } else {
+      await recalcLeaveBalances(employeeId);
+      toast.success(language === 'ar' ? 'تم التعديل بنجاح' : 'Updated successfully');
+      setEditData(null);
+      onRefresh();
+    }
+    setSaving(false);
+  };
 
   return (
     <div className="space-y-5">
@@ -413,15 +543,12 @@ const PermissionsContent = ({ permissions, summary }: {
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.duration')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.status')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.reason')}</th>
+              <th className="px-4 py-3 w-12"></th>
             </tr>
           </thead>
           <tbody>
             {permissions.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  {language === 'ar' ? 'لا توجد أذونات مسجلة' : 'No permissions recorded'}
-                </td>
-              </tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{language === 'ar' ? 'لا توجد أذونات مسجلة' : 'No permissions recorded'}</td></tr>
             ) : (
               permissions.map((record, idx) => {
                 const typeLabel = permissionTypeLabels[record.permissionType];
@@ -433,6 +560,11 @@ const PermissionsContent = ({ permissions, summary }: {
                     <td className="px-4 py-3 text-sm text-foreground">{record.durationHours} {language === 'ar' ? 'ساعة' : 'hrs'}</td>
                     <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
                     <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
+                    <td className="px-4 py-3">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => setEditData({ ...record })}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
                   </tr>
                 );
               })
@@ -440,16 +572,99 @@ const PermissionsContent = ({ permissions, summary }: {
           </tbody>
         </table>
       </div>
+
+      <Dialog open={!!editData} onOpenChange={(o) => !o && setEditData(null)}>
+        <DialogContent className="sm:max-w-[480px]" dir={isRTL ? 'rtl' : 'ltr'}>
+          <DialogHeader><DialogTitle>{language === 'ar' ? 'تعديل الإذن' : 'Edit Permission'}</DialogTitle></DialogHeader>
+          {editData && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'النوع' : 'Type'}</Label>
+                <Select value={editData.permissionType} onValueChange={(v) => setEditData({ ...editData, permissionType: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="early_leave">{language === 'ar' ? 'خروج مبكر' : 'Early Leave'}</SelectItem>
+                    <SelectItem value="late_arrival">{language === 'ar' ? 'حضور متأخر' : 'Late Arrival'}</SelectItem>
+                    <SelectItem value="personal">{language === 'ar' ? 'شخصي' : 'Personal'}</SelectItem>
+                    <SelectItem value="medical">{language === 'ar' ? 'طبي' : 'Medical'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'التاريخ' : 'Date'}</Label>
+                <Input type="date" value={editData.date} onChange={(e) => setEditData({ ...editData, date: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{language === 'ar' ? 'من' : 'From'}</Label>
+                  <Input type="time" value={editData.fromTime} onChange={(e) => setEditData({ ...editData, fromTime: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>{language === 'ar' ? 'إلى' : 'To'}</Label>
+                  <Input type="time" value={editData.toTime} onChange={(e) => setEditData({ ...editData, toTime: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'عدد الساعات' : 'Hours'}</Label>
+                <Input type="number" step="0.5" min="0" value={editData.durationHours} onChange={(e) => setEditData({ ...editData, durationHours: parseFloat(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'الحالة' : 'Status'}</Label>
+                <Select value={editData.status} onValueChange={(v) => setEditData({ ...editData, status: v as RecordStatus })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">{language === 'ar' ? 'معلق' : 'Pending'}</SelectItem>
+                    <SelectItem value="approved">{language === 'ar' ? 'معتمد' : 'Approved'}</SelectItem>
+                    <SelectItem value="rejected">{language === 'ar' ? 'مرفوض' : 'Rejected'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'السبب' : 'Reason'}</Label>
+                <Input value={editData.reason} onChange={(e) => setEditData({ ...editData, reason: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditData(null)}>{language === 'ar' ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'ar' ? 'حفظ' : 'Save')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 // ========== Overtime/Additions Sub-Tab ==========
-const OvertimeContent = ({ overtime, summary }: { 
+const OvertimeContent = ({ overtime, summary, employeeId, onRefresh }: { 
   overtime: OvertimeRecord[];
-  summary: { totalHours: number; approvedCount: number; pendingCount: number; rejectedCount: number } 
+  summary: { totalDays: number; approvedCount: number; pendingCount: number; rejectedCount: number };
+  employeeId: string;
+  onRefresh: () => void;
 }) => {
   const { t, isRTL, language } = useLanguage();
+  const [editData, setEditData] = useState<OvertimeRecord | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!editData) return;
+    setSaving(true);
+    const { error } = await supabase.from('overtime_requests').update({
+      date: editData.date,
+      reason: editData.reason,
+      status: editData.status,
+      hours: 1, // each extra day = 1 day, stored as 1
+    }).eq('id', editData.id);
+
+    if (error) {
+      toast.error(language === 'ar' ? 'فشل التعديل' : 'Update failed');
+    } else {
+      toast.success(language === 'ar' ? 'تم التعديل بنجاح' : 'Updated successfully');
+      setEditData(null);
+      onRefresh();
+    }
+    setSaving(false);
+  };
 
   return (
     <div className="space-y-5">
@@ -470,7 +685,7 @@ const OvertimeContent = ({ overtime, summary }: {
         </div>
         <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-4 text-center">
           <p className="text-sm font-medium text-blue-700 mb-1">{t('leaveRecord.totalAddedDays')}</p>
-          <p className="text-3xl font-bold text-blue-600">{summary.totalHours}</p>
+          <p className="text-3xl font-bold text-blue-600">{summary.totalDays}</p>
         </div>
       </div>
 
@@ -481,27 +696,62 @@ const OvertimeContent = ({ overtime, summary }: {
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.date')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.reason')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.status')}</th>
+              <th className="px-4 py-3 w-12"></th>
             </tr>
           </thead>
           <tbody>
             {overtime.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
-                  {language === 'ar' ? 'لا توجد إضافات مسجلة' : 'No overtime recorded'}
-                </td>
-              </tr>
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">{language === 'ar' ? 'لا توجد إضافات مسجلة' : 'No overtime recorded'}</td></tr>
             ) : (
               overtime.map((record, idx) => (
                 <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
                   <td className="px-4 py-3 text-sm text-foreground">{formatDate(record.date)}</td>
                   <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
                   <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
+                  <td className="px-4 py-3">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => setEditData({ ...record })}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      <Dialog open={!!editData} onOpenChange={(o) => !o && setEditData(null)}>
+        <DialogContent className="sm:max-w-[400px]" dir={isRTL ? 'rtl' : 'ltr'}>
+          <DialogHeader><DialogTitle>{language === 'ar' ? 'تعديل يوم إضافي' : 'Edit Extra Day'}</DialogTitle></DialogHeader>
+          {editData && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'التاريخ' : 'Date'}</Label>
+                <Input type="date" value={editData.date} onChange={(e) => setEditData({ ...editData, date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'الحالة' : 'Status'}</Label>
+                <Select value={editData.status} onValueChange={(v) => setEditData({ ...editData, status: v as RecordStatus })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">{language === 'ar' ? 'معلق' : 'Pending'}</SelectItem>
+                    <SelectItem value="approved">{language === 'ar' ? 'معتمد' : 'Approved'}</SelectItem>
+                    <SelectItem value="rejected">{language === 'ar' ? 'مرفوض' : 'Rejected'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'السبب' : 'Reason'}</Label>
+                <Input value={editData.reason} onChange={(e) => setEditData({ ...editData, reason: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditData(null)}>{language === 'ar' ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'ar' ? 'حفظ' : 'Save')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
