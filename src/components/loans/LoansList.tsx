@@ -610,6 +610,78 @@ export const LoansList = () => {
           }}
         />
       )}
+
+      {/* Reschedule Dialog */}
+      <Dialog open={showRescheduleDialog} onOpenChange={o => { if (!o) setReschedulingLoan(null); setShowRescheduleDialog(o); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader className="bg-gradient-to-r from-blue-500 to-cyan-500 -m-6 mb-4 p-6 rounded-t-lg">
+            <DialogTitle className="text-white text-center text-xl">
+              {isRTL ? 'إعادة جدولة القرض' : 'Reschedule Loan'}
+            </DialogTitle>
+          </DialogHeader>
+          {reschedulingLoan && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">{isRTL ? 'الموظف' : 'Employee'}</p>
+                  <p className="font-bold text-sm">{reschedulingLoan.employeeName}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">{isRTL ? 'إجمالي القرض' : 'Total Loan'}</p>
+                  <p className="font-bold text-sm">{reschedulingLoan.amount.toLocaleString()} {isRTL ? 'ج.م' : 'EGP'}</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3 text-center border border-green-200">
+                  <p className="text-xs text-muted-foreground">{isRTL ? 'المدفوع' : 'Paid'}</p>
+                  <p className="font-bold text-sm text-green-700">{reschedulingLoan.paidAmount.toLocaleString()} {isRTL ? 'ج.م' : 'EGP'} ({reschedulingLoan.paidInstallments} {isRTL ? 'قسط' : 'inst.'})</p>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-3 text-center border border-orange-200">
+                  <p className="text-xs text-muted-foreground">{isRTL ? 'المتبقي (سيتم إعادة جدولته)' : 'Remaining (to reschedule)'}</p>
+                  <p className="font-bold text-sm text-orange-700">{reschedulingLoan.remainingAmount.toLocaleString()} {isRTL ? 'ج.م' : 'EGP'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{isRTL ? 'طريقة الاحتساب' : 'Calculation Method'}</Label>
+                <RadioGroup value={rescheduleData.calculationMethod} onValueChange={(v: 'auto' | 'manual') => setRescheduleData({ ...rescheduleData, calculationMethod: v })} className="flex gap-4">
+                  <div className="flex items-center space-x-2"><RadioGroupItem value="auto" id="reschedule-auto" /><Label htmlFor="reschedule-auto">{isRTL ? 'تلقائي (المبلغ ÷ الأقساط)' : 'Auto (Amount ÷ Installments)'}</Label></div>
+                  <div className="flex items-center space-x-2"><RadioGroupItem value="manual" id="reschedule-manual" /><Label htmlFor="reschedule-manual">{isRTL ? 'يدوي (تحديد القسط الشهري)' : 'Manual (Set Monthly Payment)'}</Label></div>
+                </RadioGroup>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {rescheduleData.calculationMethod === 'auto' ? (
+                  <div className="space-y-2">
+                    <Label>{isRTL ? 'عدد الأقساط الجديدة *' : 'New Installments *'}</Label>
+                    <Input type="number" min="1" value={rescheduleData.newInstallments} onChange={e => setRescheduleData({ ...rescheduleData, newInstallments: e.target.value })} />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>{isRTL ? 'القسط الشهري الجديد * (ج.م)' : 'New Monthly * (EGP)'}</Label>
+                    <Input type="number" min="1" value={rescheduleData.newMonthlyPayment} onChange={e => setRescheduleData({ ...rescheduleData, newMonthlyPayment: e.target.value })} />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label>{isRTL ? 'تاريخ بدء الخصم *' : 'Start Date *'}</Label>
+                  <Input type="month" value={rescheduleData.newStartDate} onChange={e => setRescheduleData({ ...rescheduleData, newStartDate: e.target.value })} />
+                </div>
+              </div>
+
+              {rescheduleData.calculationMethod === 'auto' && rescheduleAutoMonthly && (
+                <p className="text-sm text-muted-foreground">{isRTL ? 'القسط الشهري المحسوب: ' : 'Calculated monthly: '}<strong>{parseFloat(rescheduleAutoMonthly).toLocaleString()} {isRTL ? 'ج.م' : 'EGP'}</strong></p>
+              )}
+              {rescheduleData.calculationMethod === 'manual' && rescheduleAutoInstallments && (
+                <p className="text-sm text-muted-foreground">{isRTL ? 'عدد الأقساط المحسوب: ' : 'Calculated installments: '}<strong>{rescheduleAutoInstallments}</strong></p>
+              )}
+            </div>
+          )}
+          <DialogFooter className="gap-2 mt-4">
+            <Button variant="outline" onClick={() => { setShowRescheduleDialog(false); setReschedulingLoan(null); }}>{isRTL ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleReschedule} className="bg-blue-600 hover:bg-blue-700">
+              <RefreshCw className="h-4 w-4 mr-1" />{isRTL ? 'إعادة جدولة' : 'Reschedule'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
