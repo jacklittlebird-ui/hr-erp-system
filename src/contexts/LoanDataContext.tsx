@@ -292,7 +292,7 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     <LoanDataContext.Provider value={{
       loans, advances, setLoans, setAdvances,
       getEmployeeActiveLoans, getEmployeeMonthlyLoanPayment, getEmployeeAdvanceForMonth,
-      addLoan, updateLoan, deleteLoan, recordLoanPayment,
+      addLoan, updateLoan, deleteLoan, recordLoanPayment, reverseLoanPayment,
       addAdvance, updateAdvance, deleteAdvance, refreshData,
     }}>
       {children}
