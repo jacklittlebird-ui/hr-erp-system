@@ -474,6 +474,11 @@ export const LoansList = () => {
                           <CreditCard className="h-3 w-3" />{isRTL ? 'تسجيل دفعة' : 'Pay'}
                         </Button>
                       )}
+                      {loan.paidInstallments > 0 && loan.status !== 'completed' && (
+                        <Button size="sm" variant="ghost" className="text-xs gap-1 text-destructive hover:text-destructive" onClick={() => handleReversePayment(loan.id)}>
+                          <Undo2 className="h-3 w-3" />{isRTL ? 'تراجع' : 'Undo'}
+                        </Button>
+                      )}
                       {loan.status === 'active' && loan.remainingAmount > 0 && (
                         <Button size="sm" variant="outline" className="text-xs gap-1 text-blue-600" onClick={() => openRescheduleDialog(loan)}>
                           <RefreshCw className="h-3 w-3" />{isRTL ? 'إعادة جدولة' : 'Reschedule'}
