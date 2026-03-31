@@ -218,6 +218,15 @@ export const LoansList = () => {
     }
   };
 
+  const handleReversePayment = async (loanId: string) => {
+    try {
+      await reverseLoanPayment(loanId);
+      toast({ title: isRTL ? 'تم' : 'Done', description: isRTL ? 'تم التراجع عن الدفعة' : 'Payment reversed' });
+    } catch {
+      toast({ title: isRTL ? 'خطأ' : 'Error', variant: 'destructive' });
+    }
+  };
+
   const confirmDelete = async () => {
     if (deletingLoanId) {
       try {
