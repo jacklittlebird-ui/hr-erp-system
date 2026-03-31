@@ -494,7 +494,6 @@ const OvertimeContent = ({ overtime, summary }: {
               overtime.map((record, idx) => (
                 <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
                   <td className="px-4 py-3 text-sm text-foreground">{formatDate(record.date)}</td>
-                  <td className="px-4 py-3 text-sm text-foreground font-medium">{record.hours}</td>
                   <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
                   <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
                 </tr>
