@@ -479,7 +479,6 @@ const OvertimeContent = ({ overtime, summary }: {
           <thead>
             <tr className="bg-muted/80">
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.date')}</th>
-              <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{language === 'ar' ? 'الساعات' : 'Hours'}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.reason')}</th>
               <th className={cn("px-4 py-3 text-sm font-semibold text-foreground", isRTL ? "text-right" : "text-left")}>{t('leaveRecord.status')}</th>
             </tr>
@@ -487,7 +486,7 @@ const OvertimeContent = ({ overtime, summary }: {
           <tbody>
             {overtime.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
                   {language === 'ar' ? 'لا توجد إضافات مسجلة' : 'No overtime recorded'}
                 </td>
               </tr>
@@ -495,7 +494,6 @@ const OvertimeContent = ({ overtime, summary }: {
               overtime.map((record, idx) => (
                 <tr key={record.id} className={cn("border-b border-border/20", idx % 2 === 0 ? "bg-card" : "bg-muted/30")}>
                   <td className="px-4 py-3 text-sm text-foreground">{formatDate(record.date)}</td>
-                  <td className="px-4 py-3 text-sm text-foreground font-medium">{record.hours}</td>
                   <td className="px-4 py-3 text-sm text-foreground">{record.reason}</td>
                   <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
                 </tr>
