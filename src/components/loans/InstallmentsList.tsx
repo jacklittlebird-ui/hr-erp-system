@@ -143,7 +143,7 @@ export const InstallmentsList = () => {
                   <TableCell>{inst.dueDate}</TableCell>
                   <TableCell>{inst.paidDate || '-'}</TableCell>
                   <TableCell><Badge variant={statusLabels[inst.status].variant}>{isRTL ? statusLabels[inst.status].ar : statusLabels[inst.status].en}</Badge></TableCell>
-                  <TableCell>{inst.status !== 'paid' && (<Button variant="outline" size="sm" onClick={() => handlePayInstallment(inst.id)}><CheckCircle className="h-4 w-4 mr-2" />{t('loans.installments.markPaid')}</Button>)}</TableCell>
+                  <TableCell className="flex gap-2">{inst.status !== 'paid' ? (<Button variant="outline" size="sm" onClick={() => handlePayInstallment(inst.id)}><CheckCircle className="h-4 w-4 mr-2" />{t('loans.installments.markPaid')}</Button>) : (<Button variant="ghost" size="sm" onClick={() => handleUnpayInstallment(inst.id)} className="text-destructive hover:text-destructive"><Undo2 className="h-4 w-4 mr-2" />{language === 'ar' ? 'تراجع' : 'Undo'}</Button>)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
