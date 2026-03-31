@@ -189,6 +189,7 @@ const Leaves = () => {
         station: s ? (language === 'ar' ? s.name_ar : s.name_en) : '',
         hireDate: e.hire_date || '',
         annualTotal, annualUsed, annualRemaining: annualTotal - annualUsed,
+        overtimeDays: overtimeDaysCount,
         sickTotal, sickUsed, sickRemaining: sickTotal - sickUsed,
         casualTotal, casualUsed, casualRemaining: casualTotal - casualUsed,
         permissionsTotal, permissionsUsed, permissionsRemaining: permissionsTotal - permissionsUsed,
