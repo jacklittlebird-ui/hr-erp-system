@@ -217,8 +217,6 @@ export const AttendanceList = () => {
   const isSearching = searchTerm.trim().length > 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       present: 'bg-success/10 text-success border-success',
