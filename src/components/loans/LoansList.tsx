@@ -49,6 +49,14 @@ export const LoansList = () => {
   const [deletingLoanId, setDeletingLoanId] = useState<string | null>(null);
   const [showInstallmentSchedule, setShowInstallmentSchedule] = useState(false);
   const [viewingLoan, setViewingLoan] = useState<Loan | null>(null);
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [reschedulingLoan, setReschedulingLoan] = useState<Loan | null>(null);
+  const [rescheduleData, setRescheduleData] = useState({
+    newInstallments: '',
+    calculationMethod: 'auto' as 'auto' | 'manual',
+    newMonthlyPayment: '',
+    newStartDate: '',
+  });
   const [formData, setFormData] = useState({
     employeeId: '', // UUID
     amount: '',
