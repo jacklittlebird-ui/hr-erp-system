@@ -196,6 +196,11 @@ export const LeaveBalanceOverview = ({ balances, onRefresh }: LeaveBalanceOvervi
                         <span className="text-sm font-medium text-stat-blue">
                           {balance.annualRemaining} / {balance.annualTotal}
                         </span>
+                        {balance.overtimeDays > 0 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            (+{balance.overtimeDays} {isAr ? 'إضافي' : 'OT'})
+                          </span>
+                        )}
                         <Progress 
                           value={balance.annualTotal > 0 ? (balance.annualUsed / balance.annualTotal) * 100 : 0} 
                           className="h-1.5 w-16 mt-1"
