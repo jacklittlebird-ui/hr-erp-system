@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, CheckCircle, Clock, AlertCircle, Calendar, Banknote } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { markInstallmentPaid, revertInstallmentPayment } from '@/lib/loanPayments';
 
 interface Installment {
   id: string;
@@ -71,13 +72,13 @@ export const InstallmentsList = () => {
   });
 
   const handlePayInstallment = async (installmentId: string) => {
-    await supabase.from('loan_installments').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', installmentId);
+    await markInstallmentPaid(installmentId);
     toast({ title: t('common.success'), description: t('loans.installments.paid') });
     fetchInstallments();
   };
 
   const handleUnpayInstallment = async (installmentId: string) => {
-    await supabase.from('loan_installments').update({ status: 'pending', paid_at: null }).eq('id', installmentId);
+    await revertInstallmentPayment(installmentId);
     toast({ title: t('common.success'), description: language === 'ar' ? 'تم التراجع عن تسجيل الدفع' : 'Payment reversed' });
     fetchInstallments();
   };

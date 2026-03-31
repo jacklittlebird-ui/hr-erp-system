@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackQuery } from '@/lib/queryOptimizer';
+import { markInstallmentPaid, recalculateLoanSummary, revertInstallmentPayment } from '@/lib/loanPayments';
 
 export interface Loan {
   id: string;
@@ -197,16 +198,7 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return;
     }
 
-    await supabase.from('loan_installments').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', installments[0].id);
-
-    const { data: loanRow, error: loanError } = await supabase.from('loans').select('paid_count, installments_count').eq('id', loanId).single();
-    if (loanError) throw loanError;
-
-    const newPaid = Math.min((loanRow.paid_count || 0) + 1, loanRow.installments_count || 1);
-    await supabase.from('loans').update({
-      paid_count: newPaid,
-      status: newPaid >= (loanRow.installments_count || 1) ? 'completed' : 'active',
-    }).eq('id', loanId);
+    await markInstallmentPaid(installments[0].id);
 
     
     await fetchLoans();
@@ -227,16 +219,8 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return;
     }
 
-    await supabase.from('loan_installments').update({ status: 'pending', paid_at: null }).eq('id', installments[0].id);
-
-    const { data: loanRow, error: loanError } = await supabase.from('loans').select('paid_count').eq('id', loanId).single();
-    if (loanError) throw loanError;
-
-    const newPaid = Math.max((loanRow.paid_count || 0) - 1, 0);
-    await supabase.from('loans').update({
-      paid_count: newPaid,
-      status: 'active',
-    }).eq('id', loanId);
+    await revertInstallmentPayment(installments[0].id);
+    await recalculateLoanSummary(loanId);
 
     await fetchLoans();
   }, [fetchLoans]);
