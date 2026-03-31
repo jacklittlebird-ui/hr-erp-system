@@ -3,6 +3,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { trackQuery } from '@/lib/queryOptimizer';
+import { revertLoanPaymentsForPeriod } from '@/lib/loanPayments';
 
 export interface ProcessedPayroll {
   employeeId: string;
@@ -407,6 +408,9 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.error('Error deleting payroll entry:', error);
       return;
     }
+
+    await revertLoanPaymentsForPeriod(employeeId, month, year);
+
     await fetchEntries();
     addNotification({ titleAr: 'تم حذف كشف الراتب', titleEn: 'Payroll entry deleted', type: 'warning', module: 'payroll' });
   }, [addNotification, fetchEntries]);

@@ -16,6 +16,7 @@ import { Wallet, Gift, TrendingDown, Building2, Save, X, FileText, Users, Clock,
 import { toast } from '@/hooks/use-toast';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
+import { markLoanInstallmentsPaidForPeriod } from '@/lib/loanPayments';
 
 // Mobile bills now fetched from DB
 
@@ -71,46 +72,18 @@ export const PayrollProcessing = () => {
   // Sync loan records after payroll: update paid_count, remaining, status, and mark installments
   const syncLoansAfterPayroll = useCallback(async (employeeIds: string[], month: string, year: string) => {
     const period = `${year}-${month}`;
+
+    await markLoanInstallmentsPaidForPeriod(employeeIds, month, year);
+
     for (const empId of employeeIds) {
-      const empLoans = dbLoans.filter(l => l.employee_id === empId);
-      for (const loan of empLoans) {
-        if (!loan.monthly_installment || loan.monthly_installment <= 0) continue;
-        const newPaid = Math.min((loan.paid_count || 0) + 1, loan.installments_count || 1);
-        const newRemaining = Math.max((loan.remaining ?? loan.monthly_installment * ((loan.installments_count || 1) - (loan.paid_count || 0))) - loan.monthly_installment, 0);
-        const newStatus = newPaid >= (loan.installments_count || 1) ? 'completed' : 'active';
-
-        await supabase.from('loans').update({
-          paid_count: newPaid,
-          remaining: newRemaining,
-          status: newStatus,
-        }).eq('id', loan.id);
-
-        // Mark the next pending installment as paid
-        const { data: pendingInst } = await supabase
-          .from('loan_installments')
-          .select('id')
-          .eq('loan_id', loan.id)
-          .eq('status', 'pending')
-          .order('installment_number', { ascending: true })
-          .limit(1);
-
-        if (pendingInst && pendingInst.length > 0) {
-          await supabase.from('loan_installments').update({
-            status: 'paid',
-            paid_at: new Date().toISOString(),
-          }).eq('id', pendingInst[0].id);
-        }
-      }
-
-      // Mark advances for this month as deducted
       const empAdvances = dbAdvances.filter(a => a.employee_id === empId && a.deduction_month === period && a.status === 'approved');
       for (const adv of empAdvances) {
         await supabase.from('advances').update({ status: 'deducted' }).eq('id', adv.id);
       }
     }
-    // Refresh data
+
     await fetchLoansAndAdvances();
-  }, [dbLoans, dbAdvances, fetchLoansAndAdvances]);
+  }, [dbAdvances, fetchLoansAndAdvances]);
 
   useEffect(() => {
     fetchLoansAndAdvances();
@@ -126,24 +99,10 @@ export const PayrollProcessing = () => {
   }, [selectedMonth, selectedYear]);
 
   const getEmployeeMonthlyLoanPayment = useCallback((empId: string) => {
-    // Use actual installment amounts from loan_installments for the selected period
-    // Find the next pending installment for each active loan of this employee
-    const empLoans = dbLoans.filter(l => l.employee_id === empId);
-    let total = 0;
-    for (const loan of empLoans) {
-      // Find the first pending installment for this loan (next to be paid)
-      const pendingInstallment = dbInstallments
-        .filter(i => i.loan_id === loan.id)
-        .sort((a, b) => a.due_date.localeCompare(b.due_date))[0];
-      if (pendingInstallment) {
-        total += pendingInstallment.amount;
-      } else {
-        // Fallback to monthly_installment if no pending installments found
-        total += loan.monthly_installment || 0;
-      }
-    }
-    return total;
-  }, [dbLoans, dbInstallments]);
+    return dbInstallments
+      .filter(i => i.employee_id === empId && i.due_date.startsWith(period))
+      .reduce((sum, installment) => sum + installment.amount, 0);
+  }, [dbInstallments, period]);
 
   const getEmployeeAdvanceForMonth = useCallback((empId: string, month: string) => {
     return dbAdvances.filter(a => a.employee_id === empId && a.deduction_month === month).reduce((s, a) => s + a.amount, 0);
