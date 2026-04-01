@@ -21,6 +21,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { stationLocations } from '@/data/stationLocations';
 import { useReportExport } from '@/hooks/useReportExport';
+import { markLoanInstallmentsPaidForPeriod } from '@/lib/loanPayments';
 
 const getMonthName = (dateStr: string, lang: string) => {
   if (!dateStr) return '';
