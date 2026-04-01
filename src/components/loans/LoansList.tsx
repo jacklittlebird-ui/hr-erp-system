@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -21,6 +21,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { stationLocations } from '@/data/stationLocations';
 import { useReportExport } from '@/hooks/useReportExport';
+import { markLoanInstallmentsPaidForPeriod } from '@/lib/loanPayments';
 
 const getMonthName = (dateStr: string, lang: string) => {
   if (!dateStr) return '';
@@ -57,6 +58,10 @@ export const LoansList = () => {
     newMonthlyPayment: '',
     newStartDate: '',
   });
+  const [showBulkPayDialog, setShowBulkPayDialog] = useState(false);
+  const [bulkPayMonth, setBulkPayMonth] = useState('');
+  const [bulkPayLoading, setBulkPayLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     employeeId: '', // UUID
     amount: '',
@@ -416,6 +421,9 @@ export const LoansList = () => {
               <Button variant="outline" size="icon" onClick={() => handlePrint(exportTitle)}><Printer className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" onClick={() => exportToPDF({ title: exportTitle, data: exportData, columns: exportColumns })}><FileText className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" onClick={() => exportToCSV({ title: exportTitle, data: exportData, columns: exportColumns, fileName: 'loans' })}><FileSpreadsheet className="h-4 w-4" /></Button>
+              <Button variant="secondary" onClick={() => { setBulkPayMonth(''); setShowBulkPayDialog(true); }}>
+                <CheckCircle className="h-4 w-4 mr-1" />{isRTL ? 'دفعة جماعية' : 'Bulk Payment'}
+              </Button>
               <Button onClick={openAddDialog}><Plus className="h-4 w-4 mr-1" />{isRTL ? 'إضافة قرض' : 'Add Loan'}</Button>
             </div>
           </div>
@@ -692,6 +700,60 @@ export const LoansList = () => {
             <Button variant="outline" onClick={() => { setShowRescheduleDialog(false); setReschedulingLoan(null); }}>{isRTL ? 'إلغاء' : 'Cancel'}</Button>
             <Button onClick={handleReschedule} className="bg-blue-600 hover:bg-blue-700">
               <RefreshCw className="h-4 w-4 mr-1" />{isRTL ? 'إعادة جدولة' : 'Reschedule'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Payment Dialog */}
+      <Dialog open={showBulkPayDialog} onOpenChange={setShowBulkPayDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isRTL ? 'تسجيل دفعة جماعية للقروض' : 'Bulk Loan Payment'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {isRTL
+                ? 'اختر الشهر لتسجيل دفعة لجميع أقساط القروض المستحقة في هذا الشهر لكل الموظفين'
+                : 'Select the month to record payment for all pending loan installments due in that month for all employees'}
+            </p>
+            <div>
+              <Label>{isRTL ? 'الشهر' : 'Month'}</Label>
+              <Input type="month" value={bulkPayMonth} onChange={e => setBulkPayMonth(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowBulkPayDialog(false)}>{isRTL ? 'إلغاء' : 'Cancel'}</Button>
+            <Button
+              disabled={!bulkPayMonth || bulkPayLoading}
+              onClick={async () => {
+                if (!bulkPayMonth) return;
+                setBulkPayLoading(true);
+                try {
+                  const [year, month] = bulkPayMonth.split('-');
+                  const activeLoans = loans.filter(l => l.status === 'active');
+                  const employeeIds = [...new Set(activeLoans.map(l => l.employeeId))];
+                  await markLoanInstallmentsPaidForPeriod(employeeIds, month, year);
+                  await refreshData();
+                  toast({
+                    title: isRTL ? 'تم' : 'Done',
+                    description: isRTL ? 'تم تسجيل الدفعات الجماعية بنجاح' : 'Bulk payments recorded successfully',
+                  });
+                  setShowBulkPayDialog(false);
+                } catch (err: any) {
+                  console.error('Bulk payment error:', err);
+                  toast({
+                    title: isRTL ? 'خطأ' : 'Error',
+                    description: err?.message || (isRTL ? 'حدث خطأ' : 'An error occurred'),
+                    variant: 'destructive',
+                  });
+                } finally {
+                  setBulkPayLoading(false);
+                }
+              }}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              {bulkPayLoading ? (isRTL ? 'جاري التسجيل...' : 'Processing...') : (isRTL ? 'تسجيل الدفعات' : 'Record Payments')}
             </Button>
           </DialogFooter>
         </DialogContent>
