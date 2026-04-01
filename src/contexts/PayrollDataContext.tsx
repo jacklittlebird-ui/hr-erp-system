@@ -259,7 +259,7 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         advanceAmount,
         mobileBill,
         totalDeductions,
-        netSalary: entry.gross + entry.bonusAmount - totalDeductions,
+        netSalary: entry.gross - totalDeductions,
       };
     });
   }, [isEmployee, scopedEmployeeId]);
