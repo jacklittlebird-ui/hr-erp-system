@@ -213,7 +213,7 @@ export const SalarySlips = () => {
                     ))}
                     <div className={cn("flex justify-between font-bold pt-1 border-t", isRTL && "flex-row-reverse")}>
                       <span>{ar ? 'إجمالي المستحقات' : 'Total Earnings'}</span>
-                      <span className="text-green-600">{(slip.gross + slip.bonusAmount).toLocaleString()}</span>
+                      <span className="text-green-600">{slip.gross.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
