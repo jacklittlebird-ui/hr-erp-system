@@ -704,6 +704,60 @@ export const LoansList = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Payment Dialog */}
+      <Dialog open={showBulkPayDialog} onOpenChange={setShowBulkPayDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isRTL ? 'تسجيل دفعة جماعية للقروض' : 'Bulk Loan Payment'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {isRTL
+                ? 'اختر الشهر لتسجيل دفعة لجميع أقساط القروض المستحقة في هذا الشهر لكل الموظفين'
+                : 'Select the month to record payment for all pending loan installments due in that month for all employees'}
+            </p>
+            <div>
+              <Label>{isRTL ? 'الشهر' : 'Month'}</Label>
+              <Input type="month" value={bulkPayMonth} onChange={e => setBulkPayMonth(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowBulkPayDialog(false)}>{isRTL ? 'إلغاء' : 'Cancel'}</Button>
+            <Button
+              disabled={!bulkPayMonth || bulkPayLoading}
+              onClick={async () => {
+                if (!bulkPayMonth) return;
+                setBulkPayLoading(true);
+                try {
+                  const [year, month] = bulkPayMonth.split('-');
+                  const activeLoans = loans.filter(l => l.status === 'active');
+                  const employeeIds = [...new Set(activeLoans.map(l => l.employeeId))];
+                  await markLoanInstallmentsPaidForPeriod(employeeIds, month, year);
+                  await refreshData();
+                  toast({
+                    title: isRTL ? 'تم' : 'Done',
+                    description: isRTL ? 'تم تسجيل الدفعات الجماعية بنجاح' : 'Bulk payments recorded successfully',
+                  });
+                  setShowBulkPayDialog(false);
+                } catch (err: any) {
+                  console.error('Bulk payment error:', err);
+                  toast({
+                    title: isRTL ? 'خطأ' : 'Error',
+                    description: err?.message || (isRTL ? 'حدث خطأ' : 'An error occurred'),
+                    variant: 'destructive',
+                  });
+                } finally {
+                  setBulkPayLoading(false);
+                }
+              }}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              {bulkPayLoading ? (isRTL ? 'جاري التسجيل...' : 'Processing...') : (isRTL ? 'تسجيل الدفعات' : 'Record Payments')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
