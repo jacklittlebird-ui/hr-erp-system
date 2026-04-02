@@ -321,7 +321,7 @@ Deno.serve(async (req) => {
 
     const now = new Date();
     // Use station timezone (default Africa/Cairo = UTC+2) for local hour/date calculations
-    const stationTz = empRow.stations?.timezone || "Africa/Cairo";
+    const stationTz = (emp.stations as any)?.timezone || "Africa/Cairo";
     const localTimeStr = now.toLocaleString("en-US", { timeZone: stationTz });
     const localDate = new Date(localTimeStr);
     const localHour = localDate.getHours();
