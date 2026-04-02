@@ -335,24 +335,25 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   }, [rawEntries, employeeMap]);
 
-  const hasMounted = useRef(false);
-  useEffect(() => {
-    if (hasMounted.current) return;
-    hasMounted.current = true;
-    fetchEmployeeMap();
-    fetchEntries();
-  }, [fetchEntries, fetchEmployeeMap]);
+  // Lazy loading: only fetch when first consumer calls refreshPayroll or accesses data
+  const hasFetched = useRef(false);
+  const ensureLoaded = useCallback(async () => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    await Promise.all([fetchEmployeeMap(), fetchEntries()]);
+  }, [fetchEmployeeMap, fetchEntries]);
 
+  // Don't fetch on mount — wait until a page actually needs payroll data
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        
-        fetchEmployeeMap();
-        fetchEntries();
+      if (event === 'SIGNED_OUT') {
+        hasFetched.current = false;
+        setRawEntries([]);
+        setEmployeeMap({});
       }
     });
     return () => subscription.unsubscribe();
-  }, [fetchEntries, fetchEmployeeMap]);
+  }, []);
 
   const upsertEntry = async (entry: ProcessedPayroll) => {
     const payload = entryToPayload(entry);
