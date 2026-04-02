@@ -73,7 +73,7 @@ const StationManagerPortal = () => {
   const { user, logout } = useAuth();
   const { language, setLanguage, isRTL } = useLanguage();
   const { employees, refreshEmployees } = useEmployeeData();
-  const { reviews, addReview, updateReview } = usePerformanceData();
+  const { reviews, addReview, updateReview, ensureLoaded: ensurePerformanceLoaded } = usePerformanceData();
   const { addNotification } = useNotifications();
   const navigate = useNavigate();
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
