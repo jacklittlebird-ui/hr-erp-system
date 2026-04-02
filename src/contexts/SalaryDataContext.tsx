@@ -73,7 +73,7 @@ export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (isEmployee && scopedEmployeeId) {
       query = supabase.from('salary_records').select(EMPLOYEE_SALARY_COLS).eq('employee_id', scopedEmployeeId).limit(5);
     } else {
-      query = supabase.from('salary_records').select(SALARY_COLS);
+      query = supabase.from('salary_records').select(SALARY_COLS).order('year', { ascending: false });
     }
 
     const { data, error } = await query;
@@ -81,21 +81,23 @@ export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setSalaryRecords(!error && data ? data.map(mapRow) : []);
   }, [isEmployee, scopedEmployeeId]);
 
-  const hasMounted = useRef(false);
-  useEffect(() => {
-    if (hasMounted.current) return;
-    hasMounted.current = true;
-    fetchRecords();
+  // Lazy loading: only fetch when first accessed
+  const hasFetched = useRef(false);
+  const ensureLoaded = useCallback(async () => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    await fetchRecords();
   }, [fetchRecords]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        fetchRecords();
+      if (event === 'SIGNED_OUT') {
+        hasFetched.current = false;
+        setSalaryRecords([]);
       }
     });
     return () => subscription.unsubscribe();
-  }, [fetchRecords]);
+  }, []);
 
   const getSalaryRecord = useCallback((employeeId: string, year: string) => {
     return salaryRecords.find(r => r.employeeId === employeeId && r.year === year);
