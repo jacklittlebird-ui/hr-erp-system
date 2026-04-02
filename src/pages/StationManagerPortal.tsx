@@ -87,9 +87,7 @@ const StationManagerPortal = () => {
   const violationsFetched = useRef(false);
 
   const fetchViolations = useCallback(async () => {
-    if (stationEmployees.length === 0) { setViolations([]); return; }
-    const empIds = stationEmployees.map(e => e.id);
-    const { data } = await supabase.from('violations').select('*').in('employee_id', empIds).order('created_at', { ascending: false });
+    const { data } = await supabase.from('violations').select('*').order('created_at', { ascending: false });
     if (data) {
       setViolations(data.map(v => ({
         id: v.id,
@@ -101,7 +99,7 @@ const StationManagerPortal = () => {
         status: v.status === 'approved' ? 'active' as const : v.status === 'resolved' ? 'resolved' as const : 'pending' as const,
       })));
     }
-  }, [stationEmployees]);
+  }, []);
 
 
   // Evaluation dialog state
