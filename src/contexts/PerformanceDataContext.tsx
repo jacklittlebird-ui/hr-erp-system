@@ -49,6 +49,7 @@ interface PerformanceDataContextType {
   addReview: (review: Omit<PerformanceReview, 'id'>) => void;
   updateReview: (id: string, updates: Partial<PerformanceReview>) => void;
   deleteReview: (id: string) => void;
+  ensureLoaded: () => Promise<void>;
 }
 
 const PerformanceDataContext = createContext<PerformanceDataContextType | undefined>(undefined);
