@@ -404,7 +404,7 @@ Deno.serve(async (req) => {
           throw new Error("لا يوجد سجل حضور مفتوح / No open check-in found");
         }
 
-        const isEarly = !isFlexible && now.getHours() < 17;
+        const isEarly = !isFlexible && localHour < 17;
         const updatePayload: Record<string, any> = { check_out: now.toISOString() };
         if (isEarly) updatePayload.status = "early-leave";
 
