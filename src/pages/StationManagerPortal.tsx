@@ -79,11 +79,17 @@ const StationManagerPortal = () => {
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
   const ar = language === 'ar';
 
-  // Violations from Supabase
+  // === Controlled Tab for lazy loading ===
+  const [activeTab, setActiveTab] = useState('employees');
+
+  // Violations from Supabase (lazy-loaded)
   const [violations, setViolations] = useState<Violation[]>([]);
+  const violationsFetched = useRef(false);
 
   const fetchViolations = useCallback(async () => {
-    const { data } = await supabase.from('violations').select('*').order('created_at', { ascending: false });
+    if (stationEmployees.length === 0) { setViolations([]); return; }
+    const empIds = stationEmployees.map(e => e.id);
+    const { data } = await supabase.from('violations').select('*').in('employee_id', empIds).order('created_at', { ascending: false });
     if (data) {
       setViolations(data.map(v => ({
         id: v.id,
@@ -95,9 +101,7 @@ const StationManagerPortal = () => {
         status: v.status === 'approved' ? 'active' as const : v.status === 'resolved' ? 'resolved' as const : 'pending' as const,
       })));
     }
-  }, []);
-
-  useEffect(() => { fetchViolations(); }, [fetchViolations]);
+  }, [stationEmployees]);
 
 
   // Evaluation dialog state
