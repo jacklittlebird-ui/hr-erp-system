@@ -583,6 +583,21 @@ const StationManagerPortal = () => {
     return list;
   }, [stationViolations, violFilterEmployee, violFilterType, violFilterStatus, violSearch, stationEmployees]);
 
+  // Lazy: fetch violations only when tab is active
+  useEffect(() => {
+    if (activeTab === 'violations' && !violationsFetched.current) {
+      violationsFetched.current = true;
+      fetchViolations();
+    }
+  }, [activeTab, fetchViolations]);
+
+  // Lazy: load evaluations only when tab is active
+  useEffect(() => {
+    if (activeTab === 'evaluations') {
+      ensurePerformanceLoaded();
+    }
+  }, [activeTab, ensurePerformanceLoaded]);
+
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const severityFromScore = (score: number) => {
