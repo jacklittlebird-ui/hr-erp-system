@@ -390,13 +390,6 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return payrollEntries.find(e => e.employeeId === employeeId && e.month === month && e.year === year);
   }, [payrollEntries]);
 
-  const getMonthlyPayroll = useCallback((month: string, year: string) => {
-    return payrollEntries.filter(e => e.month === month && e.year === year);
-  }, [payrollEntries]);
-
-  const getEmployeePayroll = useCallback((employeeId: string) => {
-    return payrollEntries.filter(e => e.employeeId === employeeId).sort((a, b) => `${b.year}-${b.month}`.localeCompare(`${a.year}-${a.month}`));
-  }, [payrollEntries]);
 
   const deletePayrollEntry = useCallback(async (employeeId: string, month: string, year: string) => {
     const { error } = await supabase
