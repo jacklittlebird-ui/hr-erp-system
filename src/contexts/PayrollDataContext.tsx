@@ -335,24 +335,25 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   }, [rawEntries, employeeMap]);
 
-  const hasMounted = useRef(false);
-  useEffect(() => {
-    if (hasMounted.current) return;
-    hasMounted.current = true;
-    fetchEmployeeMap();
-    fetchEntries();
-  }, [fetchEntries, fetchEmployeeMap]);
+  // Lazy loading: only fetch when first consumer calls refreshPayroll or accesses data
+  const hasFetched = useRef(false);
+  const ensureLoaded = useCallback(async () => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    await Promise.all([fetchEmployeeMap(), fetchEntries()]);
+  }, [fetchEmployeeMap, fetchEntries]);
 
+  // Don't fetch on mount — wait until a page actually needs payroll data
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        
-        fetchEmployeeMap();
-        fetchEntries();
+      if (event === 'SIGNED_OUT') {
+        hasFetched.current = false;
+        setRawEntries([]);
+        setEmployeeMap({});
       }
     });
     return () => subscription.unsubscribe();
-  }, [fetchEntries, fetchEmployeeMap]);
+  }, []);
 
   const upsertEntry = async (entry: ProcessedPayroll) => {
     const payload = entryToPayload(entry);
@@ -389,13 +390,6 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return payrollEntries.find(e => e.employeeId === employeeId && e.month === month && e.year === year);
   }, [payrollEntries]);
 
-  const getMonthlyPayroll = useCallback((month: string, year: string) => {
-    return payrollEntries.filter(e => e.month === month && e.year === year);
-  }, [payrollEntries]);
-
-  const getEmployeePayroll = useCallback((employeeId: string) => {
-    return payrollEntries.filter(e => e.employeeId === employeeId).sort((a, b) => `${b.year}-${b.month}`.localeCompare(`${a.year}-${a.month}`));
-  }, [payrollEntries]);
 
   const deletePayrollEntry = useCallback(async (employeeId: string, month: string, year: string) => {
     const { error } = await supabase
@@ -416,13 +410,23 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [addNotification, fetchEntries]);
 
   const refreshPayroll = useCallback(async () => {
-    
-    await fetchEmployeeMap();
-    await fetchEntries();
+    hasFetched.current = true;
+    await Promise.all([fetchEmployeeMap(), fetchEntries()]);
   }, [fetchEmployeeMap, fetchEntries]);
 
+  // Auto-load when payrollEntries is accessed (via getMonthlyPayroll etc.)
+  const getMonthlyPayrollLazy = useCallback((month: string, year: string) => {
+    if (!hasFetched.current) ensureLoaded();
+    return payrollEntries.filter(e => e.month === month && e.year === year);
+  }, [payrollEntries, ensureLoaded]);
+
+  const getEmployeePayrollLazy = useCallback((employeeId: string) => {
+    if (!hasFetched.current) ensureLoaded();
+    return payrollEntries.filter(e => e.employeeId === employeeId).sort((a, b) => `${b.year}-${b.month}`.localeCompare(`${a.year}-${a.month}`));
+  }, [payrollEntries, ensureLoaded]);
+
   return (
-    <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll, savePayrollEntry, savePayrollEntries, deletePayrollEntry, getPayrollEntry, getMonthlyPayroll, getEmployeePayroll }}>
+    <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll, savePayrollEntry, savePayrollEntries, deletePayrollEntry, getPayrollEntry, getMonthlyPayroll: getMonthlyPayrollLazy, getEmployeePayroll: getEmployeePayrollLazy }}>
       {children}
     </PayrollDataContext.Provider>
   );

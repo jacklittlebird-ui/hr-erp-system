@@ -51,6 +51,7 @@ interface LoanDataContextType {
   updateAdvance: (id: string, updates: Partial<Advance>) => Promise<void>;
   deleteAdvance: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
+  ensureLoaded: () => Promise<void>;
 }
 
 const LoanDataContext = createContext<LoanDataContextType | undefined>(undefined);
@@ -121,26 +122,28 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [isEmployee, scopedEmployeeId]);
 
   const refreshData = useCallback(async () => {
+    hasFetched.current = true;
     await Promise.all([fetchLoans(), fetchAdvances()]);
   }, [fetchLoans, fetchAdvances]);
 
-  const hasMounted = useRef(false);
-  useEffect(() => {
-    if (hasMounted.current) return;
-    hasMounted.current = true;
-    fetchLoans();
-    fetchAdvances();
+  // Lazy loading: don't fetch on mount
+  const hasFetched = useRef(false);
+  const ensureLoaded = useCallback(async () => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    await Promise.all([fetchLoans(), fetchAdvances()]);
   }, [fetchLoans, fetchAdvances]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        fetchLoans();
-        fetchAdvances();
+      if (event === 'SIGNED_OUT') {
+        hasFetched.current = false;
+        setLoans([]);
+        setAdvances([]);
       }
     });
     return () => subscription.unsubscribe();
-  }, [fetchLoans, fetchAdvances]);
+  }, []);
 
   const addLoan = useCallback(async (loan: Omit<Loan, 'id' | 'paidInstallments' | 'paidAmount' | 'remainingAmount' | 'monthlyPayment'> & { monthlyPayment?: number }) => {
     const { error } = await supabase.from('loans').insert({
@@ -261,23 +264,26 @@ export const LoanDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [fetchAdvances]);
 
   const getEmployeeActiveLoans = useCallback((employeeId: string) => {
+    if (!hasFetched.current) ensureLoaded();
     return loans.filter(l => l.employeeId === employeeId && l.status === 'active');
-  }, [loans]);
+  }, [loans, ensureLoaded]);
 
   const getEmployeeMonthlyLoanPayment = useCallback((employeeId: string) => {
+    if (!hasFetched.current) ensureLoaded();
     return loans.filter(l => l.employeeId === employeeId && l.status === 'active').reduce((sum, l) => sum + l.monthlyPayment, 0);
-  }, [loans]);
+  }, [loans, ensureLoaded]);
 
   const getEmployeeAdvanceForMonth = useCallback((employeeId: string, month: string) => {
+    if (!hasFetched.current) ensureLoaded();
     return advances.filter(a => a.employeeId === employeeId && a.deductionMonth === month && a.status === 'approved').reduce((sum, a) => sum + a.amount, 0);
-  }, [advances]);
+  }, [advances, ensureLoaded]);
 
   return (
     <LoanDataContext.Provider value={{
       loans, advances, setLoans, setAdvances,
       getEmployeeActiveLoans, getEmployeeMonthlyLoanPayment, getEmployeeAdvanceForMonth,
       addLoan, updateLoan, deleteLoan, recordLoanPayment, reverseLoanPayment,
-      addAdvance, updateAdvance, deleteAdvance, refreshData,
+      addAdvance, updateAdvance, deleteAdvance, refreshData, ensureLoaded,
     }}>
       {children}
     </LoanDataContext.Provider>

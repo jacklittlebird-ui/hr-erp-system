@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -31,9 +31,11 @@ const getMonthName = (dateStr: string, lang: string) => {
 export const AdvancesList = () => {
   const { isRTL, language } = useLanguage();
   const { handlePrint, exportToPDF, exportToCSV } = useReportExport();
-  const { advances, addAdvance, updateAdvance, deleteAdvance } = useLoanData();
+  const { advances, addAdvance, updateAdvance, deleteAdvance, ensureLoaded } = useLoanData();
   const { employees } = useEmployeeData();
   const activeEmployees = employees.filter(e => e.status === 'active');
+
+  useEffect(() => { ensureLoaded(); }, [ensureLoaded]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');

@@ -49,6 +49,7 @@ interface PerformanceDataContextType {
   addReview: (review: Omit<PerformanceReview, 'id'>) => void;
   updateReview: (id: string, updates: Partial<PerformanceReview>) => void;
   deleteReview: (id: string) => void;
+  ensureLoaded: () => Promise<void>;
 }
 
 const PerformanceDataContext = createContext<PerformanceDataContextType | undefined>(undefined);
@@ -100,22 +101,19 @@ export const PerformanceDataProvider: React.FC<{ children: React.ReactNode }> = 
     setReviews(result);
   }, [isEmployee, scopedEmployeeId]);
 
-  const hasMounted = useRef(false);
-  useEffect(() => {
-    if (hasMounted.current) return;
-    hasMounted.current = true;
-    fetchReviews();
-  }, [fetchReviews]);
+  // Lazy loading: only fetch when accessed
+  const hasFetched = useRef(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
+        hasFetched.current = false;
+        setReviews([]);
         invalidateCache('performance_');
-        fetchReviews();
       }
     });
     return () => subscription.unsubscribe();
-  }, [fetchReviews]);
+  }, []);
 
   const addReview = useCallback(async (review: Omit<PerformanceReview, 'id'>) => {
     const { error } = await supabase.from('performance_reviews').insert({
@@ -164,8 +162,14 @@ export const PerformanceDataProvider: React.FC<{ children: React.ReactNode }> = 
     await fetchReviews();
   }, [fetchReviews]);
 
+  const ensureLoaded = useCallback(async () => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    await fetchReviews();
+  }, [fetchReviews]);
+
   return (
-    <PerformanceDataContext.Provider value={{ reviews, addReview, updateReview, deleteReview }}>
+    <PerformanceDataContext.Provider value={{ reviews, addReview, updateReview, deleteReview, ensureLoaded }}>
       {children}
     </PerformanceDataContext.Provider>
   );

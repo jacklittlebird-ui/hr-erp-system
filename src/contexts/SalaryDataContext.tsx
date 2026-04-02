@@ -37,6 +37,7 @@ interface SalaryDataContextType {
   saveSalaryRecord: (record: SalaryRecord) => void;
   deleteSalaryRecord: (employeeId: string, year: string) => void;
   refreshSalaryRecords: () => void;
+  ensureLoaded: () => Promise<void>;
 }
 
 const SalaryDataContext = createContext<SalaryDataContextType | undefined>(undefined);
@@ -73,7 +74,7 @@ export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (isEmployee && scopedEmployeeId) {
       query = supabase.from('salary_records').select(EMPLOYEE_SALARY_COLS).eq('employee_id', scopedEmployeeId).limit(5);
     } else {
-      query = supabase.from('salary_records').select(SALARY_COLS);
+      query = supabase.from('salary_records').select(SALARY_COLS).order('year', { ascending: false });
     }
 
     const { data, error } = await query;
@@ -81,30 +82,39 @@ export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setSalaryRecords(!error && data ? data.map(mapRow) : []);
   }, [isEmployee, scopedEmployeeId]);
 
-  const hasMounted = useRef(false);
-  useEffect(() => {
-    if (hasMounted.current) return;
-    hasMounted.current = true;
-    fetchRecords();
+  // Lazy loading: only fetch when first accessed
+  const hasFetched = useRef(false);
+  const ensureLoaded = useCallback(async () => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    await fetchRecords();
   }, [fetchRecords]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        fetchRecords();
+      if (event === 'SIGNED_OUT') {
+        hasFetched.current = false;
+        setSalaryRecords([]);
       }
     });
     return () => subscription.unsubscribe();
-  }, [fetchRecords]);
+  }, []);
 
   const getSalaryRecord = useCallback((employeeId: string, year: string) => {
+    if (!hasFetched.current) ensureLoaded();
     return salaryRecords.find(r => r.employeeId === employeeId && r.year === year);
-  }, [salaryRecords]);
+  }, [salaryRecords, ensureLoaded]);
 
   const getLatestSalaryRecord = useCallback((employeeId: string) => {
+    if (!hasFetched.current) ensureLoaded();
     const records = salaryRecords.filter(r => r.employeeId === employeeId).sort((a, b) => b.year.localeCompare(a.year));
     return records[0];
-  }, [salaryRecords]);
+  }, [salaryRecords, ensureLoaded]);
+
+  const refreshSalaryRecords = useCallback(async () => {
+    hasFetched.current = true;
+    await fetchRecords();
+  }, [fetchRecords]);
 
   const saveSalaryRecord = useCallback(async (record: SalaryRecord) => {
     const payload = {
@@ -145,7 +155,7 @@ export const SalaryDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [addNotification, fetchRecords]);
 
   return (
-    <SalaryDataContext.Provider value={{ salaryRecords, getSalaryRecord, getLatestSalaryRecord, saveSalaryRecord, deleteSalaryRecord, refreshSalaryRecords: fetchRecords }}>
+    <SalaryDataContext.Provider value={{ salaryRecords, getSalaryRecord, getLatestSalaryRecord, saveSalaryRecord, deleteSalaryRecord, refreshSalaryRecords, ensureLoaded }}>
       {children}
     </SalaryDataContext.Provider>
   );
