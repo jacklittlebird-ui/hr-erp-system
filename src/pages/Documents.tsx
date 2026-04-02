@@ -14,11 +14,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Search, FileText, Download, Trash2, Edit, FolderOpen, File, Eye, Upload, Filter, ShieldAlert, CreditCard, Landmark, Briefcase } from 'lucide-react';
+import { Plus, Search, FileText, Download, Trash2, Edit, FolderOpen, File, Eye, Upload, Filter, ShieldAlert, CreditCard, Landmark, Briefcase, CalendarCheck } from 'lucide-react';
 import { InsuranceRenewals } from '@/components/documents/InsuranceRenewals';
 import { NationalIdRenewals } from '@/components/documents/NationalIdRenewals';
 import { MissingBankData } from '@/components/documents/MissingBankData';
 import { MissingJobData } from '@/components/documents/MissingJobData';
+import { LeaveBalancesAlert } from '@/components/documents/LeaveBalancesAlert';
 
 interface Document {
   id: string;
