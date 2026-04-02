@@ -421,8 +421,19 @@ export const PayrollDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     await Promise.all([fetchEmployeeMap(), fetchEntries()]);
   }, [fetchEmployeeMap, fetchEntries]);
 
+  // Auto-load when payrollEntries is accessed (via getMonthlyPayroll etc.)
+  const getMonthlyPayrollLazy = useCallback((month: string, year: string) => {
+    if (!hasFetched.current) ensureLoaded();
+    return payrollEntries.filter(e => e.month === month && e.year === year);
+  }, [payrollEntries, ensureLoaded]);
+
+  const getEmployeePayrollLazy = useCallback((employeeId: string) => {
+    if (!hasFetched.current) ensureLoaded();
+    return payrollEntries.filter(e => e.employeeId === employeeId).sort((a, b) => `${b.year}-${b.month}`.localeCompare(`${a.year}-${a.month}`));
+  }, [payrollEntries, ensureLoaded]);
+
   return (
-    <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll, savePayrollEntry, savePayrollEntries, deletePayrollEntry, getPayrollEntry, getMonthlyPayroll, getEmployeePayroll }}>
+    <PayrollDataContext.Provider value={{ payrollEntries, refreshPayroll, savePayrollEntry, savePayrollEntries, deletePayrollEntry, getPayrollEntry, getMonthlyPayroll: getMonthlyPayrollLazy, getEmployeePayroll: getEmployeePayrollLazy }}>
       {children}
     </PayrollDataContext.Provider>
   );
