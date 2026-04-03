@@ -45,6 +45,7 @@ const AttendanceKiosk = React.lazy(() => import("./pages/AttendanceKiosk"));
 const AttendanceAdmin = React.lazy(() => import("./pages/AttendanceAdmin"));
 const NotificationsPage = React.lazy(() => import("./pages/Notifications"));
 const AuditLogsPage = React.lazy(() => import("./pages/AuditLogs"));
+const Vehicles = React.lazy(() => import("./pages/Vehicles"));
 
 const queryClient = new QueryClient();
 
