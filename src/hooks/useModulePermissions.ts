@@ -32,6 +32,7 @@ export const MODULE_LABELS: Record<ModuleKey, { ar: string; en: string }> = {
   'notifications': { ar: 'الإشعارات', en: 'Notifications' },
   'users': { ar: 'المستخدمين', en: 'Users' },
   'settings': { ar: 'الإعدادات', en: 'Settings' },
+  'vehicles': { ar: 'السيارات', en: 'Vehicles' },
 };
 
 // Map route paths to module keys
