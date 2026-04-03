@@ -58,6 +58,7 @@ export const PATH_TO_MODULE: Record<string, ModuleKey> = {
   '/groups': 'users',
   '/roles': 'users',
   '/settings': 'settings',
+  '/vehicles': 'vehicles',
 };
 
 // Modules HR cannot access (salary-related)
