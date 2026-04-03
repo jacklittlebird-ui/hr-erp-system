@@ -9,7 +9,7 @@ import {
   FileBarChart, HandCoins, UserPlus, Star, Monitor, Shirt, FolderOpen, BarChart3,
   GraduationCap, Settings, Shield, Layers, UserCog, UserCheck, Bell,
   ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
-  ScanLine, ShieldCheck, Tv,
+  ScanLine, ShieldCheck, Tv, Car,
 } from 'lucide-react';
 
 interface NavItem {
