@@ -2560,6 +2560,142 @@ export type Database = {
           },
         ]
       }
+      vehicle_maintenance: {
+        Row: {
+          cost: number | null
+          created_at: string
+          description: string | null
+          id: string
+          maintenance_date: string
+          maintenance_type: string
+          next_maintenance_date: string | null
+          notes: string | null
+          odometer_reading: number | null
+          provider: string | null
+          status: string
+          vehicle_id: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          maintenance_date?: string
+          maintenance_type: string
+          next_maintenance_date?: string | null
+          notes?: string | null
+          odometer_reading?: number | null
+          provider?: string | null
+          status?: string
+          vehicle_id: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          maintenance_date?: string
+          maintenance_type?: string
+          next_maintenance_date?: string | null
+          notes?: string | null
+          odometer_reading?: number | null
+          provider?: string | null
+          status?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_maintenance_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          brand: string
+          chassis_number: string | null
+          color: string | null
+          created_at: string
+          curtains_license_end: string | null
+          curtains_license_start: string | null
+          engine_number: string | null
+          id: string
+          insurance_number: string | null
+          insured_driver_name: string | null
+          license_end_date: string | null
+          license_start_date: string | null
+          model: string
+          notes: string | null
+          plate_number: string
+          station_id: string | null
+          status: string
+          transport_license_end: string | null
+          transport_license_start: string | null
+          updated_at: string
+          vehicle_code: string
+          year: number
+        }
+        Insert: {
+          brand: string
+          chassis_number?: string | null
+          color?: string | null
+          created_at?: string
+          curtains_license_end?: string | null
+          curtains_license_start?: string | null
+          engine_number?: string | null
+          id?: string
+          insurance_number?: string | null
+          insured_driver_name?: string | null
+          license_end_date?: string | null
+          license_start_date?: string | null
+          model: string
+          notes?: string | null
+          plate_number: string
+          station_id?: string | null
+          status?: string
+          transport_license_end?: string | null
+          transport_license_start?: string | null
+          updated_at?: string
+          vehicle_code: string
+          year: number
+        }
+        Update: {
+          brand?: string
+          chassis_number?: string | null
+          color?: string | null
+          created_at?: string
+          curtains_license_end?: string | null
+          curtains_license_start?: string | null
+          engine_number?: string | null
+          id?: string
+          insurance_number?: string | null
+          insured_driver_name?: string | null
+          license_end_date?: string | null
+          license_start_date?: string | null
+          model?: string
+          notes?: string | null
+          plate_number?: string
+          station_id?: string | null
+          status?: string
+          transport_license_end?: string | null
+          transport_license_start?: string | null
+          updated_at?: string
+          vehicle_code?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       violations: {
         Row: {
           approved_at: string | null
