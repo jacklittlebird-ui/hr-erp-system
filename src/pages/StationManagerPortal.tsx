@@ -21,7 +21,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Users, Star, AlertTriangle, LogOut, Globe, MapPin, Target, TrendingUp, Lightbulb, MessageSquare, Save, Send, Plus, Trash2, Search, Filter, Pencil, Clock, UserCheck, UserX, FileText, ShieldCheck, Building2, BarChart3, CheckCircle, Circle, ChevronLeft, ChevronRight, RefreshCw, CalendarDays, LogIn, LogOut as LogOutIcon, ClipboardCheck } from 'lucide-react';
+import { Users, Star, AlertTriangle, LogOut, Globe, MapPin, Target, TrendingUp, Lightbulb, MessageSquare, Save, Send, Plus, Trash2, Search, Filter, Pencil, Clock, UserCheck, UserX, FileText, ShieldCheck, Building2, BarChart3, CheckCircle, Circle, ChevronLeft, ChevronRight, RefreshCw, CalendarDays, LogIn, LogOut as LogOutIcon, ClipboardCheck, Calendar as CalendarIcon } from 'lucide-react';
+import { LeaveCalendar } from '@/components/leaves/LeaveCalendar';
+import type { LeaveRequest } from '@/types/leaves';
 import { ManagerApprovals } from '@/components/portal/sections/ManagerApprovals';
 import { StationWorkHours } from '@/components/portal/sections/StationWorkHours';
 import { format } from 'date-fns';
@@ -68,6 +70,39 @@ const initialCriteria: CriteriaScore[] = [
 
 const years = Array.from({ length: 11 }, (_, i) => String(2025 + i));
 const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+
+// Lazy-loaded leave calendar for station employees
+const StationLeaveCalendar = ({ stationEmployees, language }: { stationEmployees: any[]; language: string }) => {
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLeaves = async () => {
+      if (stationEmployees.length === 0) { setLeaveRequests([]); setLoading(false); return; }
+      const empIds = stationEmployees.map(e => e.id);
+      const { data } = await supabase.from('leave_requests').select('*').in('employee_id', empIds).order('created_at', { ascending: false });
+      const mapped: LeaveRequest[] = (data || []).map(l => {
+        const emp = stationEmployees.find(e => e.id === l.employee_id);
+        return {
+          id: l.id, employeeId: l.employee_id,
+          employeeName: emp?.nameEn || '', employeeNameAr: emp?.nameAr || '',
+          department: emp?.department || '', station: emp?.stationLocation || '',
+          leaveType: l.leave_type as LeaveRequest['leaveType'],
+          startDate: l.start_date, endDate: l.end_date, days: l.days,
+          reason: l.reason || '', status: l.status as LeaveRequest['status'],
+          submittedDate: l.created_at.split('T')[0],
+          rejectionReason: l.rejection_reason || undefined,
+        };
+      });
+      setLeaveRequests(mapped);
+      setLoading(false);
+    };
+    fetchLeaves();
+  }, [stationEmployees, language]);
+
+  if (loading) return <div className="flex justify-center p-8"><RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  return <LeaveCalendar requests={leaveRequests} />;
+};
 
 const StationManagerPortal = () => {
   const { user, logout } = useAuth();
@@ -891,9 +926,10 @@ const StationManagerPortal = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
-          <TabsList className="inline-grid grid-cols-6" dir="rtl">
+          <TabsList className="inline-grid grid-cols-7" dir="rtl">
             <TabsTrigger value="employees" className="gap-1 md:gap-1.5 text-xs md:text-sm"><Users className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('الموظفين', 'Employees')}</span></TabsTrigger>
             <TabsTrigger value="attendance" className="gap-1 md:gap-1.5 text-xs md:text-sm"><CalendarDays className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('الحضور', 'Attendance')}</span></TabsTrigger>
+            <TabsTrigger value="leaveCalendar" className="gap-1 md:gap-1.5 text-xs md:text-sm"><CalendarIcon className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('تقويم الإجازات', 'Leave Calendar')}</span></TabsTrigger>
             <TabsTrigger value="workHours" className="gap-1 md:gap-1.5 text-xs md:text-sm"><Clock className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('ساعات العمل', 'Work Hours')}</span></TabsTrigger>
             <TabsTrigger value="approvals" className="gap-1 md:gap-1.5 text-xs md:text-sm"><ClipboardCheck className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('الموافقات', 'Approvals')}</span></TabsTrigger>
             <TabsTrigger value="evaluations" className="gap-1 md:gap-1.5 text-xs md:text-sm"><Star className="h-3.5 w-3.5 md:h-4 md:w-4" /><span className="hidden sm:inline">{t('التقييمات', 'Evaluations')}</span></TabsTrigger>
@@ -1575,6 +1611,13 @@ const StationManagerPortal = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Leave Calendar Tab */}
+          {activeTab === 'leaveCalendar' && (
+            <TabsContent value="leaveCalendar">
+              <StationLeaveCalendar stationEmployees={stationEmployees} language={language} />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 
