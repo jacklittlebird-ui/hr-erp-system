@@ -9,7 +9,7 @@ import {
   FileBarChart, HandCoins, UserPlus, Star, Monitor, Shirt, FolderOpen, BarChart3,
   GraduationCap, Settings, Shield, Layers, UserCog, UserCheck, Bell,
   ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
-  ScanLine, ShieldCheck, Tv,
+  ScanLine, ShieldCheck, Tv, Car,
 } from 'lucide-react';
 
 interface NavItem {
@@ -32,6 +32,7 @@ const mainNavItems: NavItem[] = [
   { key: 'nav.performance', icon: Star, path: '/performance', moduleKey: 'performance' },
   { key: 'nav.assets', icon: Monitor, path: '/assets', moduleKey: 'assets' },
   { key: 'nav.uniforms', icon: Shirt, path: '/uniforms', moduleKey: 'uniforms' },
+  { key: 'nav.vehicles', icon: Car, path: '/vehicles', moduleKey: 'vehicles' },
   { key: 'nav.documents', icon: FolderOpen, path: '/documents', moduleKey: 'documents' },
   { key: 'nav.reports', icon: BarChart3, path: '/reports', moduleKey: 'reports' },
   { key: 'nav.training', icon: GraduationCap, path: '/training', moduleKey: 'training' },

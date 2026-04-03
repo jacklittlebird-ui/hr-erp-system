@@ -7,7 +7,7 @@ export const ALL_MODULES = [
   'dashboard', 'employee-portal', 'employees', 'departments', 'attendance',
   'leaves', 'salaries', 'salary-reports', 'loans', 'recruitment',
   'performance', 'assets', 'uniforms', 'documents', 'reports',
-  'training', 'notifications', 'users', 'settings',
+  'training', 'notifications', 'users', 'settings', 'vehicles',
 ] as const;
 
 export type ModuleKey = typeof ALL_MODULES[number];
@@ -32,6 +32,7 @@ export const MODULE_LABELS: Record<ModuleKey, { ar: string; en: string }> = {
   'notifications': { ar: 'الإشعارات', en: 'Notifications' },
   'users': { ar: 'المستخدمين', en: 'Users' },
   'settings': { ar: 'الإعدادات', en: 'Settings' },
+  'vehicles': { ar: 'السيارات', en: 'Vehicles' },
 };
 
 // Map route paths to module keys
@@ -57,6 +58,7 @@ export const PATH_TO_MODULE: Record<string, ModuleKey> = {
   '/groups': 'users',
   '/roles': 'users',
   '/settings': 'settings',
+  '/vehicles': 'vehicles',
 };
 
 // Modules HR cannot access (salary-related)
