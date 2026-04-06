@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const TOKEN_TTL = 1800;
+    const TOKEN_TTL = 2700; // 45 minutes — must match generate-qr-token
     const nowSec = Math.floor(Date.now() / 1000);
     if (Math.abs(nowSec - tsSec) > TOKEN_TTL + 30) {
       return new Response(JSON.stringify({ error: "Token expired" }), {
