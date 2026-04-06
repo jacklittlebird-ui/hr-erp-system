@@ -603,8 +603,13 @@ const StationManagerPortal = () => {
   const [violFilterEmployee, setViolFilterEmployee] = useState('all');
   const [violFilterType, setViolFilterType] = useState('all');
   const [violFilterStatus, setViolFilterStatus] = useState('all');
+  const [violFilterDept, setViolFilterDept] = useState('all');
   const filteredViolations = useMemo(() => {
     let list = stationViolations;
+    if (violFilterDept !== 'all') {
+      const deptEmpIds = new Set(stationEmployees.filter(e => e.department === violFilterDept).map(e => e.id));
+      list = list.filter(v => deptEmpIds.has(v.employeeId));
+    }
     if (violFilterEmployee !== 'all') list = list.filter(v => v.employeeId === violFilterEmployee);
     if (violFilterType !== 'all') list = list.filter(v => v.type === violFilterType);
     if (violFilterStatus !== 'all') list = list.filter(v => v.status === violFilterStatus);
@@ -616,7 +621,7 @@ const StationManagerPortal = () => {
       });
     }
     return list;
-  }, [stationViolations, violFilterEmployee, violFilterType, violFilterStatus, violSearch, stationEmployees]);
+  }, [stationViolations, violFilterEmployee, violFilterType, violFilterStatus, violFilterDept, violSearch, stationEmployees]);
 
   // Lazy: fetch violations only when tab is active
   useEffect(() => {
