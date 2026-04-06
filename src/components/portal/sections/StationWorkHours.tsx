@@ -28,24 +28,48 @@ interface EmployeeHours {
   employeeNameAr: string;
   employeeNameEn: string;
   employeeCode: string;
+  department: string;
   totalMinutes: number;
   recordCount: number;
 }
 
-interface StationWorkHoursProps {
-  employeeIds: string[];
+interface StationEmployee {
+  id: string;
+  department?: string;
 }
 
-export const StationWorkHours = ({ employeeIds }: StationWorkHoursProps) => {
+interface StationWorkHoursProps {
+  employeeIds?: string[];
+  stationEmployees?: StationEmployee[];
+}
+
+export const StationWorkHours = ({ employeeIds: legacyIds, stationEmployees }: StationWorkHoursProps) => {
   const { isRTL, language } = useLanguage();
   const ar = language === 'ar';
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1).padStart(2, '0'));
   const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
   const [searchTerm, setSearchTerm] = useState('');
+  const [deptFilter, setDeptFilter] = useState('all');
   const [employeeData, setEmployeeData] = useState<EmployeeHours[]>([]);
   const [loading, setLoading] = useState(true);
   const years = Array.from({ length: 3 }, (_, i) => String(now.getFullYear() - i));
+
+  const employeeIds = useMemo(() => {
+    if (stationEmployees) return stationEmployees.map(e => e.id);
+    return legacyIds || [];
+  }, [stationEmployees, legacyIds]);
+
+  const empDeptMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (stationEmployees) stationEmployees.forEach(e => map.set(e.id, e.department || ''));
+    return map;
+  }, [stationEmployees]);
+
+  const departments = useMemo(() => {
+    const depts = [...new Set(Array.from(empDeptMap.values()).filter(Boolean))];
+    return depts.sort();
+  }, [empDeptMap]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,6 +112,7 @@ export const StationWorkHours = ({ employeeIds }: StationWorkHoursProps) => {
             employeeNameAr: emp?.name_ar || '',
             employeeNameEn: emp?.name_en || '',
             employeeCode: emp?.employee_code || '',
+            department: empDeptMap.get(empId) || '',
             totalMinutes: 0,
             recordCount: 0,
           };
@@ -102,17 +127,21 @@ export const StationWorkHours = ({ employeeIds }: StationWorkHoursProps) => {
       setLoading(false);
     };
     fetchData();
-  }, [selectedMonth, selectedYear, employeeIds]);
+  }, [selectedMonth, selectedYear, employeeIds, empDeptMap]);
 
   const filteredData = useMemo(() => {
-    if (!searchTerm) return employeeData;
-    const s = searchTerm.toLowerCase();
-    return employeeData.filter(e =>
-      e.employeeNameAr.includes(searchTerm) ||
-      e.employeeNameEn.toLowerCase().includes(s) ||
-      e.employeeCode.toLowerCase().includes(s)
-    );
-  }, [employeeData, searchTerm]);
+    let list = employeeData;
+    if (deptFilter !== 'all') list = list.filter(e => e.department === deptFilter);
+    if (searchTerm) {
+      const s = searchTerm.toLowerCase();
+      list = list.filter(e =>
+        e.employeeNameAr.includes(searchTerm) ||
+        e.employeeNameEn.toLowerCase().includes(s) ||
+        e.employeeCode.toLowerCase().includes(s)
+      );
+    }
+    return list;
+  }, [employeeData, searchTerm, deptFilter]);
 
   const grandTotal = useMemo(() => filteredData.reduce((sum, e) => sum + e.totalMinutes, 0), [filteredData]);
 
@@ -141,6 +170,15 @@ export const StationWorkHours = ({ employeeIds }: StationWorkHoursProps) => {
               className={cn(isRTL ? "pr-10" : "pl-10")}
             />
           </div>
+          {departments.length > 0 && (
+            <Select value={deptFilter} onValueChange={setDeptFilter}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder={ar ? 'جميع الأقسام' : 'All Departments'} /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{ar ? 'جميع الأقسام' : 'All Departments'}</SelectItem>
+                {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
             <SelectContent>

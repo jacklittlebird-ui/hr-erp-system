@@ -63,6 +63,7 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [search, setSearch] = useState('');
+  const [deptFilter, setDeptFilter] = useState('all');
 
   // Rejection dialog
   const [rejectDialog, setRejectDialog] = useState(false);
@@ -127,8 +128,17 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
     }
   };
 
+  const departments = useMemo(() => {
+    const depts = [...new Set(stationEmployees.map(e => e.department).filter(Boolean))];
+    return depts.sort();
+  }, [stationEmployees]);
+
   const filterByStatus = (list: any[]) => {
     let filtered = statusFilter === 'all' ? list : list.filter(r => r.status === statusFilter);
+    if (deptFilter !== 'all') {
+      const deptEmpIds = new Set(stationEmployees.filter(e => e.department === deptFilter).map(e => e.id));
+      filtered = filtered.filter(r => deptEmpIds.has(r.employee_id));
+    }
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       filtered = filtered.filter(r => {
@@ -200,6 +210,17 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
           <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder={t('بحث بالاسم...', 'Search by name...')} value={search} onChange={e => setSearch(e.target.value)} className="ps-9" />
         </div>
+        {departments.length > 0 && (
+          <Select value={deptFilter} onValueChange={setDeptFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder={t('جميع الأقسام', 'All Departments')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('جميع الأقسام', 'All Departments')}</SelectItem>
+              {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[150px]">
             <SelectValue />
