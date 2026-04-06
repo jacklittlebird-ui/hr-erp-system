@@ -210,6 +210,17 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
           <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder={t('بحث بالاسم...', 'Search by name...')} value={search} onChange={e => setSearch(e.target.value)} className="ps-9" />
         </div>
+        {departments.length > 0 && (
+          <Select value={deptFilter} onValueChange={setDeptFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder={t('جميع الأقسام', 'All Departments')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('جميع الأقسام', 'All Departments')}</SelectItem>
+              {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[150px]">
             <SelectValue />
