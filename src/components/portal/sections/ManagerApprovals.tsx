@@ -63,6 +63,7 @@ export const ManagerApprovals = ({ stationEmployees }: ManagerApprovalsProps) =>
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [search, setSearch] = useState('');
+  const [deptFilter, setDeptFilter] = useState('all');
 
   // Rejection dialog
   const [rejectDialog, setRejectDialog] = useState(false);
