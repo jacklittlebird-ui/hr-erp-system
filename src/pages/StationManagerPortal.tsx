@@ -1118,7 +1118,7 @@ const StationManagerPortal = () => {
 
           {/* Work Hours Tab */}
           <TabsContent value="workHours">
-            <StationWorkHours employeeIds={stationEmployees.map(e => e.id)} />
+            <StationWorkHours stationEmployees={stationEmployees.map(e => ({ id: e.id, department: e.department }))} />
           </TabsContent>
 
           {/* Approvals Tab */}
