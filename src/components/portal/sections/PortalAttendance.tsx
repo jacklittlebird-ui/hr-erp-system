@@ -40,11 +40,43 @@ export const PortalAttendance = () => {
   const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const [dateFrom, setDateFrom] = useState(firstOfMonth);
   const [dateTo, setDateTo] = useState(todayStr);
+  const [filteredRecords, setFilteredRecords] = useState<PortalAttendanceRecord[]>([]);
 
-  // Get all records between dateFrom and dateTo
-  const filteredRecords = useMemo(() => {
-    return records.filter(r => r.employeeId === PORTAL_EMPLOYEE_ID && r.date >= dateFrom && r.date <= dateTo);
-  }, [records, PORTAL_EMPLOYEE_ID, dateFrom, dateTo]);
+  useEffect(() => {
+    if (!PORTAL_EMPLOYEE_ID) return;
+    const fetchRecords = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .select('id, date, check_in, check_out, status, work_hours, work_minutes, is_late')
+        .eq('employee_id', PORTAL_EMPLOYEE_ID)
+        .gte('date', dateFrom)
+        .lte('date', dateTo)
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error('Portal attendance fetch error:', error);
+        setFilteredRecords([]);
+      } else {
+        setFilteredRecords((data || []).map(r => {
+          const ci = formatTime(r.check_in);
+          const co = formatTime(r.check_out);
+          const totalMins = r.work_minutes || (r.work_hours ? Math.round(r.work_hours * 60) : 0);
+          return {
+            id: r.id,
+            date: r.date,
+            checkIn: ci,
+            checkOut: co,
+            status: r.is_late ? 'late' : (r.status || 'present'),
+            workHours: Math.floor(totalMins / 60),
+            workMinutes: totalMins % 60,
+          };
+        }));
+      }
+      setLoading(false);
+    };
+    fetchRecords();
+  }, [PORTAL_EMPLOYEE_ID, dateFrom, dateTo]);
 
   const stats = useMemo(() => {
     let present = 0, late = 0, absent = 0, totalMinutes = 0;
