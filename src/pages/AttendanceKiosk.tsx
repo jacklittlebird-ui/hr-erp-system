@@ -360,7 +360,7 @@ const AttendanceKiosk = () => {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [qrExpiresAt, generateQRCodes]);
-
+  const currentLocation = locations.find((l) => l.id === selectedLocation);
 
   const renderStatusBanner = () => {
     if (geoStatus === "checking") {
