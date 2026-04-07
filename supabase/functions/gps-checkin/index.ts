@@ -30,7 +30,7 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
 const recentCheckins = new Map<string, number>();
 const MIN_INTERVAL_MS = 5 * 60_000;
 const DEDUP_WINDOW_MS = 10_000;
-const MAX_DEVICES_PER_DAY = 3;
+
 const MAX_DEVICES_PER_USER = 3;
 const DEVICE_EXPIRY_DAYS = 90;
 const SOFT_MATCH_THRESHOLD = 2; // need 2/3 of (browser, os, deviceType) to match
