@@ -713,15 +713,37 @@ export const TrainingRecords = ({ activeTab }: { activeTab?: string }) => {
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <Label>{t('training.courseName')}</Label>
-              <Select value={bulkRecord.courseId} onValueChange={(v) => {
-                const sc = courseOptions.find(c => c.id === v);
-                let pd = bulkRecord.plannedDate;
-                if (bulkRecord.endDate && sc) { const d = new Date(bulkRecord.endDate); d.setFullYear(d.getFullYear() + sc.validityYears); d.setMonth(d.getMonth() - 1); pd = d.toISOString().split('T')[0]; }
-                setBulkRecord({ ...bulkRecord, courseId: v, plannedDate: pd });
-              }}>
-                <SelectTrigger><SelectValue placeholder={ar ? '-- اختر الدورة --' : '-- Select Course --'} /></SelectTrigger>
-                <SelectContent>{courseOptions.map(c => (<SelectItem key={c.id} value={c.id}>{ar ? c.nameAr : c.nameEn}</SelectItem>))}</SelectContent>
-              </Select>
+              <Popover open={bulkCoursePopoverOpen} onOpenChange={setBulkCoursePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    {bulkRecord.courseId
+                      ? (ar ? courseOptions.find(c => c.id === bulkRecord.courseId)?.nameAr : courseOptions.find(c => c.id === bulkRecord.courseId)?.nameEn) || (ar ? '-- اختر الدورة --' : '-- Select Course --')
+                      : (ar ? '-- اختر الدورة --' : '-- Select Course --')}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder={ar ? 'ابحث عن دورة...' : 'Search course...'} />
+                    <CommandList>
+                      <CommandEmpty>{ar ? 'لا توجد نتائج' : 'No results'}</CommandEmpty>
+                      <CommandGroup>
+                        {courseOptions.map(c => (
+                          <CommandItem key={c.id} value={`${c.nameAr} ${c.nameEn}`} onSelect={() => {
+                            let pd = bulkRecord.plannedDate;
+                            if (bulkRecord.endDate && c) { const d = new Date(bulkRecord.endDate); d.setFullYear(d.getFullYear() + c.validityYears); d.setMonth(d.getMonth() - 1); pd = d.toISOString().split('T')[0]; }
+                            setBulkRecord({ ...bulkRecord, courseId: c.id, plannedDate: pd });
+                            setBulkCoursePopoverOpen(false);
+                          }}>
+                            <Check className={cn("mr-2 h-4 w-4", bulkRecord.courseId === c.id ? "opacity-100" : "opacity-0")} />
+                            {ar ? c.nameAr : c.nameEn}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label>{ar ? 'الجهة المقدمة' : 'Provider'}</Label>
