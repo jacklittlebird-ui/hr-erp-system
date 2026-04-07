@@ -117,13 +117,6 @@ const LoginPage = () => {
         </div>
 
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16 w-full">
-          <div className="mb-10">
-            <picture>
-              <source srcSet="/images/company-logo-vertical.webp" type="image/webp" />
-              <img src="/images/company-logo-vertical.png" alt="Link Aero" width="120" height="120" fetchPriority="high" className="h-28 w-28 rounded-2xl object-contain bg-white/10 backdrop-blur-sm p-2" />
-            </picture>
-          </div>
-
           <h2 className="text-3xl xl:text-4xl font-bold text-white mb-3 leading-tight">
             {t('نظام إدارة الموارد البشرية', 'HR Management System')}
           </h2>
@@ -151,13 +144,13 @@ const LoginPage = () => {
       {/* Right form panel */}
       <div className="flex-1 flex items-center justify-center bg-background p-6 sm:p-8">
         <div className="w-full max-w-[420px]">
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8">
+          {/* Logo */}
+          <div className="text-center mb-8">
             <picture>
               <source srcSet="/images/company-logo-vertical.webp" type="image/webp" />
               <img src="/images/company-logo-vertical.png" alt="Link Aero" width="112" height="112" fetchPriority="high" className="h-28 w-28 rounded-2xl object-contain mx-auto mb-4" />
             </picture>
-            <h1 className="text-xl font-bold text-foreground">{t('نظام إدارة الموارد البشرية', 'HR Management System')}</h1>
+            <h1 className="lg:hidden text-xl font-bold text-foreground">{t('نظام إدارة الموارد البشرية', 'HR Management System')}</h1>
           </div>
 
           {/* Tab switcher */}
