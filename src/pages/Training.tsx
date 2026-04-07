@@ -53,7 +53,7 @@ const Training = () => {
           </TabsList>
 
           <TabsContent value="records" className="mt-6">
-            <TrainingRecords />
+            <TrainingRecords activeTab={activeTab} />
           </TabsContent>
 
           {activeTab === 'trainers' && (
