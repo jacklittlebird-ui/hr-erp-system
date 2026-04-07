@@ -10,7 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, X, Calendar, Edit2, Star, Users } from 'lucide-react';
+import { Search, Plus, X, Calendar, Edit2, Star, Users, ChevronsUpDown, Check } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { stationLocations } from '@/data/stationLocations';
@@ -103,6 +105,8 @@ export const TrainingRecords = ({ activeTab }: { activeTab?: string }) => {
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [newLocation, setNewLocation] = useState('');
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [coursePopoverOpen, setCoursePopoverOpen] = useState(false);
+  const [bulkCoursePopoverOpen, setBulkCoursePopoverOpen] = useState(false);
 
   // Fetch available courses and providers from DB
   useEffect(() => {
@@ -546,24 +550,43 @@ export const TrainingRecords = ({ activeTab }: { activeTab?: string }) => {
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <Label>{t('training.courseName')}</Label>
-              <Select value={newRecord.courseId} onValueChange={(v) => {
-                const selectedCourse = courseOptions.find(c => c.id === v);
-                let plannedDate = newRecord.plannedDate;
-                if (newRecord.endDate && selectedCourse) {
-                  const d = new Date(newRecord.endDate);
-                  d.setFullYear(d.getFullYear() + selectedCourse.validityYears);
-                  d.setMonth(d.getMonth() - 1);
-                  plannedDate = d.toISOString().split('T')[0];
-                }
-                setNewRecord({ ...newRecord, courseId: v, plannedDate });
-              }}>
-                <SelectTrigger><SelectValue placeholder={ar ? '-- اختر الدورة --' : '-- Select Course --'} /></SelectTrigger>
-                <SelectContent>
-                  {courseOptions.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{ar ? c.nameAr : c.nameEn}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={coursePopoverOpen} onOpenChange={setCoursePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    {newRecord.courseId
+                      ? (ar ? courseOptions.find(c => c.id === newRecord.courseId)?.nameAr : courseOptions.find(c => c.id === newRecord.courseId)?.nameEn) || (ar ? '-- اختر الدورة --' : '-- Select Course --')
+                      : (ar ? '-- اختر الدورة --' : '-- Select Course --')}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder={ar ? 'ابحث عن دورة...' : 'Search course...'} />
+                    <CommandList>
+                      <CommandEmpty>{ar ? 'لا توجد نتائج' : 'No results'}</CommandEmpty>
+                      <CommandGroup>
+                        {courseOptions.map(c => (
+                          <CommandItem key={c.id} value={`${c.nameAr} ${c.nameEn}`} onSelect={() => {
+                            const selectedCourse = c;
+                            let plannedDate = newRecord.plannedDate;
+                            if (newRecord.endDate && selectedCourse) {
+                              const d = new Date(newRecord.endDate);
+                              d.setFullYear(d.getFullYear() + selectedCourse.validityYears);
+                              d.setMonth(d.getMonth() - 1);
+                              plannedDate = d.toISOString().split('T')[0];
+                            }
+                            setNewRecord({ ...newRecord, courseId: c.id, plannedDate });
+                            setCoursePopoverOpen(false);
+                          }}>
+                            <Check className={cn("mr-2 h-4 w-4", newRecord.courseId === c.id ? "opacity-100" : "opacity-0")} />
+                            {ar ? c.nameAr : c.nameEn}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label>{ar ? 'الجهة المقدمة' : 'Provider'}</Label>
@@ -690,15 +713,37 @@ export const TrainingRecords = ({ activeTab }: { activeTab?: string }) => {
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <Label>{t('training.courseName')}</Label>
-              <Select value={bulkRecord.courseId} onValueChange={(v) => {
-                const sc = courseOptions.find(c => c.id === v);
-                let pd = bulkRecord.plannedDate;
-                if (bulkRecord.endDate && sc) { const d = new Date(bulkRecord.endDate); d.setFullYear(d.getFullYear() + sc.validityYears); d.setMonth(d.getMonth() - 1); pd = d.toISOString().split('T')[0]; }
-                setBulkRecord({ ...bulkRecord, courseId: v, plannedDate: pd });
-              }}>
-                <SelectTrigger><SelectValue placeholder={ar ? '-- اختر الدورة --' : '-- Select Course --'} /></SelectTrigger>
-                <SelectContent>{courseOptions.map(c => (<SelectItem key={c.id} value={c.id}>{ar ? c.nameAr : c.nameEn}</SelectItem>))}</SelectContent>
-              </Select>
+              <Popover open={bulkCoursePopoverOpen} onOpenChange={setBulkCoursePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    {bulkRecord.courseId
+                      ? (ar ? courseOptions.find(c => c.id === bulkRecord.courseId)?.nameAr : courseOptions.find(c => c.id === bulkRecord.courseId)?.nameEn) || (ar ? '-- اختر الدورة --' : '-- Select Course --')
+                      : (ar ? '-- اختر الدورة --' : '-- Select Course --')}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder={ar ? 'ابحث عن دورة...' : 'Search course...'} />
+                    <CommandList>
+                      <CommandEmpty>{ar ? 'لا توجد نتائج' : 'No results'}</CommandEmpty>
+                      <CommandGroup>
+                        {courseOptions.map(c => (
+                          <CommandItem key={c.id} value={`${c.nameAr} ${c.nameEn}`} onSelect={() => {
+                            let pd = bulkRecord.plannedDate;
+                            if (bulkRecord.endDate && c) { const d = new Date(bulkRecord.endDate); d.setFullYear(d.getFullYear() + c.validityYears); d.setMonth(d.getMonth() - 1); pd = d.toISOString().split('T')[0]; }
+                            setBulkRecord({ ...bulkRecord, courseId: c.id, plannedDate: pd });
+                            setBulkCoursePopoverOpen(false);
+                          }}>
+                            <Check className={cn("mr-2 h-4 w-4", bulkRecord.courseId === c.id ? "opacity-100" : "opacity-0")} />
+                            {ar ? c.nameAr : c.nameEn}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label>{ar ? 'الجهة المقدمة' : 'Provider'}</Label>
