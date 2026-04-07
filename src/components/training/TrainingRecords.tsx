@@ -105,6 +105,8 @@ export const TrainingRecords = ({ activeTab }: { activeTab?: string }) => {
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [newLocation, setNewLocation] = useState('');
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [coursePopoverOpen, setCoursePopoverOpen] = useState(false);
+  const [bulkCoursePopoverOpen, setBulkCoursePopoverOpen] = useState(false);
 
   // Fetch available courses and providers from DB
   useEffect(() => {
