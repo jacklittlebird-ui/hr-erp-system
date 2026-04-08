@@ -86,7 +86,7 @@ export const CoursesList = () => {
       } as any).eq('id', selectedCourse.id);
       toast({ title: t('common.success'), description: t('training.courses.updated') });
     } else {
-      await supabase.from('training_courses').insert({
+      await (supabase.from('training_courses') as any).upsert({
         name_en: formData.nameEn || '',
         name_ar: formData.nameAr || '',
         description: formData.description,
@@ -94,7 +94,7 @@ export const CoursesList = () => {
         course_code: formData.code || '',
         duration_hours: formData.durationHours || 0,
         validity_years: formData.validityYears || 1,
-      } as any);
+      }, { onConflict: 'name_en,course_code', ignoreDuplicates: true });
       toast({ title: t('common.success'), description: t('training.courses.added') });
     }
     setIsDialogOpen(false);
