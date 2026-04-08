@@ -30,7 +30,7 @@ export const Header = ({ onToggleSidebar }: HeaderProps) => {
             <Menu className="w-5 h-5" />
           </Button>
         )}
-        <Grid3X3 className="w-6 h-6 text-primary-foreground hidden sm:block" />
+        <img src="/images/one-hr-logo.png" alt="One HR" className="h-9 w-9 object-contain hidden sm:block" />
         <h1 className={cn(
           "text-lg md:text-xl font-bold text-primary-foreground truncate",
           isRTL ? "font-arabic" : "font-sans"
