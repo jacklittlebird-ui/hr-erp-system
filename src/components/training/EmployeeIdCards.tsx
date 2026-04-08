@@ -61,7 +61,7 @@ const IdCardPreview = ({ emp }: { emp: EmployeeForId }) => {
         padding: '12px 16px 8px', position: 'relative', zIndex: 1,
       }}>
         <img
-          src="/images/company-logo.png"
+          src="/images/one-hr-logo.png"
           alt="Company Logo"
           style={{ height: '32px', objectFit: 'contain' }}
         />
@@ -259,7 +259,7 @@ export const EmployeeIdCards = ({ filterEmployeeId }: { filterEmployeeId?: strin
             <div class="deco1"></div>
             <div class="deco2"></div>
             <div class="top-bar">
-              <img src="${window.location.origin}/images/company-logo.png" alt="Logo" />
+              <img src="${window.location.origin}/images/one-hr-logo.png" alt="Logo" />
               <div class="label">EMPLOYEE ID</div>
             </div>
             <div class="divider"></div>
