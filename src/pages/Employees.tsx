@@ -403,7 +403,7 @@ const Employees = () => {
       return;
     }
 
-    const logoUrl = `${window.location.origin}/images/company-logo.png`;
+    const logoUrl = `${window.location.origin}/images/one-hr-logo.png`;
     const dateStr = `${new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })} — ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
 
     // Flatten all columns from all sections into one row
