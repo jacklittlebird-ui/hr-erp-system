@@ -311,23 +311,7 @@ export const TrainingRecordsReport = () => {
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{ar ? 'الدورة' : 'Course'}</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full justify-between text-xs font-normal h-10">
-                    {filterCourses.length === 0 ? (ar ? 'الكل' : 'All') : `${filterCourses.length} ${ar ? 'محدد' : 'selected'}`}
-                    <ChevronDown className="h-3 w-3 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-2 max-h-60 overflow-y-auto" align="start">
-                  {courseOptions.map(c => (
-                    <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted rounded cursor-pointer">
-                      <Checkbox checked={filterCourses.includes(c.id)} onCheckedChange={() => toggleMulti(filterCourses, c.id, setFilterCourses)} />
-                      {ar ? c.nameAr : c.nameEn}
-                    </label>
-                  ))}
-                  {filterCourses.length > 0 && <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={() => setFilterCourses([])}>{ar ? 'مسح' : 'Clear'}</Button>}
-                </PopoverContent>
-              </Popover>
+              <CourseSearchFilter courseOptions={courseOptions} filterCourses={filterCourses} setFilterCourses={setFilterCourses} toggleMulti={toggleMulti} ar={ar} />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{ar ? 'الموظف' : 'Employee'}</label>
