@@ -366,20 +366,18 @@ Deno.serve(async (req) => {
 
     if (event_type === "check_in") {
       recordPromise = (async () => {
-        // Check if there's already an open record for TODAY — if so, just return (no duplicate)
-        const { data: todayOpen } = await supabaseAdmin
+        // Check if there's ANY record for TODAY (open or closed) — prevent duplicates
+        const { data: todayRecord } = await supabaseAdmin
           .from("attendance_records")
-          .select("id")
+          .select("id, check_out")
           .eq("employee_id", employeeId)
           .eq("date", dateStr)
-          .is("check_out", null)
-          .not("check_in", "is", null)
           .limit(1)
           .maybeSingle();
 
-        if (todayOpen) {
-          console.log("[gps-checkin] Already has open record for today, skipping duplicate:", todayOpen.id);
-          return; // Don't create duplicate — existing open record is fine
+        if (todayRecord) {
+          console.log("[gps-checkin] Already has record for today, skipping duplicate:", todayRecord.id);
+          return; // Don't create duplicate — unique constraint also enforces this
         }
 
         // Close any open records from PREVIOUS days only
@@ -414,7 +412,7 @@ Deno.serve(async (req) => {
           notes: `GPS - ${matchedLocation.name_ar}`,
         };
 
-        // Try insert with one retry on failure
+        // Try insert with one retry on failure (unique constraint will also catch duplicates)
         let insertErr: any = null;
         for (let attempt = 0; attempt < 2; attempt++) {
           const { error } = await supabaseAdmin.from("attendance_records").insert(insertPayload);
@@ -423,9 +421,15 @@ Deno.serve(async (req) => {
             console.log("[gps-checkin] CHECK_IN record created for", employeeId, "date:", dateStr, "attempt:", attempt);
             break;
           }
+          // If unique constraint violation, it's a race condition duplicate — treat as success
+          if (error.code === "23505") {
+            console.log("[gps-checkin] Duplicate blocked by unique constraint for", employeeId, "date:", dateStr);
+            insertErr = null;
+            break;
+          }
           insertErr = error;
           console.error("[gps-checkin] CHECK_IN INSERT attempt", attempt, "FAILED:", JSON.stringify(error));
-          if (attempt === 0) await new Promise(r => setTimeout(r, 500)); // wait 500ms before retry
+          if (attempt === 0) await new Promise(r => setTimeout(r, 500));
         }
         if (insertErr) {
           throw new Error("Failed to create attendance record after 2 attempts: " + insertErr.message);
