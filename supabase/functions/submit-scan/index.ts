@@ -361,18 +361,16 @@ Deno.serve(async (req) => {
       const localHour = parseInt(now.toLocaleString("en-US", { timeZone: tz, hour: "numeric", hour12: false }));
 
       if (event_type === "check_in") {
-        // Check if there's already an open record for TODAY — skip duplicate
-        const { data: todayOpen } = await admin
+        // Check if there's ANY record for TODAY (open or closed) — prevent duplicates
+        const { data: todayRecord } = await admin
           .from("attendance_records")
-          .select("id")
+          .select("id, check_out")
           .eq("employee_id", empId)
           .eq("date", localDateStr)
-          .is("check_out", null)
-          .not("check_in", "is", null)
           .limit(1)
           .maybeSingle();
 
-        if (!todayOpen) {
+        if (!todayRecord) {
           // Close open records from PREVIOUS days only
           const { data: oldOpenRecords } = await admin
             .from("attendance_records")
@@ -404,7 +402,7 @@ Deno.serve(async (req) => {
             is_late: isLate,
           });
         } else {
-          console.log("[submit-scan] Already has open record for today, skipping duplicate:", todayOpen.id);
+          console.log("[submit-scan] Already has record for today, skipping duplicate:", todayRecord.id);
         }
       } else if (event_type === "check_out") {
         const { data: openRecord, error: findErr } = await admin
