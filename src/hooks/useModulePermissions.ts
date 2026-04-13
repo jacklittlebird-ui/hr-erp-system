@@ -65,7 +65,7 @@ export const PATH_TO_MODULE: Record<string, ModuleKey> = {
 };
 
 // Modules HR cannot access (salary-related)
-const HR_BLOCKED_MODULES: ModuleKey[] = ['salaries', 'salary-reports'];
+const HR_BLOCKED_MODULES: ModuleKey[] = ['salaries', 'salary-reports', 'property-taxes'];
 
 export function useModulePermissions() {
   const { session, user } = useAuth();
