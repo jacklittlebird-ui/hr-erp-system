@@ -61,6 +61,7 @@ interface CourseOption {
   nameEn: string;
   nameAr: string;
   validityYears: number;
+  provider: string;
 }
 
 const jobFunctionLabels: Record<string, { en: string; ar: string }> = {
@@ -112,7 +113,7 @@ export const TrainingRecords = ({ activeTab }: { activeTab?: string }) => {
   useEffect(() => {
     const fetchCourses = async () => {
       const { data } = await supabase.from('training_courses').select('id, name_en, name_ar, provider, validity_years').eq('is_active', true);
-      setCourseOptions((data || []).map((c: any) => ({ id: c.id, nameEn: c.name_en, nameAr: c.name_ar, validityYears: c.validity_years || 1 })));
+      setCourseOptions((data || []).map((c: any) => ({ id: c.id, nameEn: c.name_en, nameAr: c.name_ar, validityYears: c.validity_years || 1, provider: c.provider || '' })));
       const providers = [...new Set((data || []).map((c: any) => c.provider).filter(Boolean))] as string[];
       setProviderOptions(providers);
     };
