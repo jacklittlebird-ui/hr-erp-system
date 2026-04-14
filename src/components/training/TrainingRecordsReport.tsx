@@ -318,74 +318,6 @@ export const TrainingRecordsReport = () => {
     });
   };
 
-  const renderGroupedTable = () => {
-    if (!groupedData) return null;
-    const groupLabel = filterStations.length > 0 ? (ar ? 'المحطة' : 'Station') : (ar ? 'القسم' : 'Department');
-
-    return (
-      <Card>
-        <CardContent className="p-4 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>{ar ? 'كود الموظف' : 'Code'}</TableHead>
-                <TableHead>{ar ? 'اسم الموظف' : 'Employee'}</TableHead>
-                <TableHead>{ar ? 'الدورة' : 'Course'}</TableHead>
-                <TableHead>{ar ? 'الجهة' : 'Provider'}</TableHead>
-                <TableHead>{ar ? 'تاريخ البداية' : 'Start'}</TableHead>
-                <TableHead>{ar ? 'تاريخ النهاية' : 'End'}</TableHead>
-                <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
-                <TableHead>{ar ? 'الدرجة' : 'Score'}</TableHead>
-                <TableHead>{ar ? 'شهادة' : 'Cert'}</TableHead>
-                <TableHead><Star className="h-4 w-4" /></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {groupedData.length === 0 ? (
-                <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">{ar ? 'لا توجد سجلات' : 'No records found'}</TableCell></TableRow>
-              ) : (
-                groupedData.map(group => {
-                  let empIndex = 0;
-                  return (
-                    <>
-                      {/* Group header row */}
-                      <TableRow key={`group-${group.groupName}`} className="bg-primary/10 hover:bg-primary/10">
-                        <TableCell colSpan={11} className="font-bold text-primary text-sm py-3">
-                          {groupLabel}: {group.groupName} ({group.employees.reduce((sum, e) => sum + e.records.length, 0)} {ar ? 'سجل' : 'records'} • {group.employees.length} {ar ? 'موظف' : 'employees'})
-                        </TableCell>
-                      </TableRow>
-                      {group.employees.map(emp => {
-                        return emp.records.map((r, courseIdx) => {
-                          empIndex++;
-                          const isFirst = courseIdx === 0;
-                          return (
-                            <TableRow key={r.id} className={cn(!isFirst && 'border-t-0')}>
-                              <TableCell className="text-muted-foreground">{empIndex}</TableCell>
-                              <TableCell className="font-mono text-xs">{isFirst ? emp.empCode : ''}</TableCell>
-                              <TableCell className={cn("font-medium", !isFirst && "text-transparent select-none")}>{isFirst ? emp.empName : emp.empName}</TableCell>
-                              <TableCell>{r.courseName}</TableCell>
-                              <TableCell>{r.provider}</TableCell>
-                              <TableCell>{r.startDate}</TableCell>
-                              <TableCell>{r.endDate}</TableCell>
-                              <TableCell>{getStatusBadge(r.status)}</TableCell>
-                              <TableCell>{r.score != null ? `${r.score}%` : '-'}</TableCell>
-                              <TableCell>{r.hasCert ? '✓' : '-'}</TableCell>
-                              <TableCell>{r.isFavorite ? <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> : '-'}</TableCell>
-                            </TableRow>
-                          );
-                        });
-                      })}
-                    </>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    );
-  };
 
   const renderFlatTable = () => (
     <Card>
@@ -556,7 +488,7 @@ export const TrainingRecordsReport = () => {
 
       {/* Table */}
       <div ref={reportRef}>
-        {isGroupedView ? renderGroupedTable() : renderFlatTable()}
+        {renderFlatTable()}
       </div>
 
       {/* Stats Cards */}
