@@ -84,20 +84,17 @@ export const TrainingQualificationReport = () => {
 
   const groupedData = useMemo(() => {
     const empMap = new Map<string, EmployeeTrainingGroup>();
+    const hasAnyFilter = filterStation !== 'all' || filterDepartment !== 'all' || filterCourse !== 'all' || filterEmployee !== 'all';
+    if (!hasAnyFilter) return [];
 
     allRecords.forEach(r => {
       const emp = contextEmployees.find(e => e.id === r.employee_id);
       if (!emp) return;
 
-      if (filterType === 'station' && filterStation !== 'all' && emp.stationId !== filterStation) return;
-      if (filterType === 'department' && filterDepartment !== 'all' && emp.departmentId !== filterDepartment) return;
-      if (filterType === 'course' && filterCourse !== 'all' && r.course_id !== filterCourse) return;
-      if (filterType === 'employee' && filterEmployee !== 'all' && emp.id !== filterEmployee) return;
-
-      if (filterType === 'station' && filterStation === 'all') return;
-      if (filterType === 'department' && filterDepartment === 'all') return;
-      if (filterType === 'course' && filterCourse === 'all') return;
-      if (filterType === 'employee' && filterEmployee === 'all') return;
+      if (filterStation !== 'all' && emp.stationId !== filterStation) return;
+      if (filterDepartment !== 'all' && emp.departmentId !== filterDepartment) return;
+      if (filterCourse !== 'all' && r.course_id !== filterCourse) return;
+      if (filterEmployee !== 'all' && emp.id !== filterEmployee) return;
 
       if (!empMap.has(emp.id)) {
         empMap.set(emp.id, {
@@ -124,26 +121,27 @@ export const TrainingQualificationReport = () => {
     });
 
     return [...empMap.values()].sort((a, b) => a.employeeName.localeCompare(b.employeeName, ar ? 'ar' : 'en'));
-  }, [allRecords, contextEmployees, filterType, filterStation, filterDepartment, filterCourse, filterEmployee, ar]);
+  }, [allRecords, contextEmployees, filterStation, filterDepartment, filterCourse, filterEmployee, ar]);
 
   const getFilterTitle = () => {
-    if (filterType === 'station' && filterStation !== 'all') {
+    const parts: string[] = [];
+    if (filterStation !== 'all') {
       const s = stations.find(s => s.id === filterStation);
-      return s ? (ar ? s.nameAr : s.nameEn) : '';
+      if (s) parts.push(ar ? s.nameAr : s.nameEn);
     }
-    if (filterType === 'department' && filterDepartment !== 'all') {
+    if (filterDepartment !== 'all') {
       const d = departments.find(d => d.id === filterDepartment);
-      return d ? (ar ? d.nameAr : d.nameEn) : '';
+      if (d) parts.push(ar ? d.nameAr : d.nameEn);
     }
-    if (filterType === 'course' && filterCourse !== 'all') {
-      const c = courseOptions.find(c => c.id === filterCourse);
-      return c ? (ar ? c.nameAr : c.nameEn) : '';
-    }
-    if (filterType === 'employee' && filterEmployee !== 'all') {
+    if (filterEmployee !== 'all') {
       const emp = contextEmployees.find(e => e.id === filterEmployee);
-      return emp ? (ar ? emp.nameAr : emp.nameEn) : '';
+      if (emp) parts.push(ar ? emp.nameAr : emp.nameEn);
     }
-    return '';
+    if (filterCourse !== 'all') {
+      const c = courseOptions.find(c => c.id === filterCourse);
+      if (c) parts.push(ar ? c.nameAr : c.nameEn);
+    }
+    return parts.join(' - ') || '';
   };
 
   const filteredEmployees = useMemo(() => {
@@ -203,15 +201,9 @@ export const TrainingQualificationReport = () => {
 
   const reportTitle = ar ? 'سجل التدريب والتأهيل' : 'Training & Qualification Record';
 
-  const filterTypeLabel = filterType === 'station' ? (ar ? 'حسب المحطة' : 'By Airport') :
-    filterType === 'department' ? (ar ? 'حسب القسم' : 'By Department') :
-    filterType === 'course' ? (ar ? 'حسب الدورة' : 'By Course') :
-    (ar ? 'حسب الموظف' : 'By Employee');
+  const filterTypeLabel = getFilterTitle();
 
-  const isFilterActive = (filterType === 'station' && filterStation !== 'all') ||
-    (filterType === 'department' && filterDepartment !== 'all') ||
-    (filterType === 'course' && filterCourse !== 'all') ||
-    (filterType === 'employee' && filterEmployee !== 'all');
+  const isFilterActive = filterStation !== 'all' || filterDepartment !== 'all' || filterCourse !== 'all' || filterEmployee !== 'all';
 
   const handleQualificationPrint = useCallback(() => {
     const logoUrl = `${window.location.origin}/images/company-logo.png`;
