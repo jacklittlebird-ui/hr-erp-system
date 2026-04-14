@@ -335,11 +335,48 @@ export const TrainingRecordsReport = () => {
     }));
   }, [filtered, ar]);
 
+  const getGroupedExportData = useCallback(() => {
+    if (!groupedData) return getExportData();
+    const rows: Record<string, any>[] = [];
+    const groupLabel = filterStations.length > 0 ? (ar ? 'المحطة' : 'Station') : (ar ? 'القسم' : 'Department');
+
+    for (const group of groupedData) {
+      // Group header row
+      rows.push({
+        employeeCode: `${groupLabel}: ${group.groupName}`,
+        employeeName: '', department: '', station: '', courseCode: '', courseName: '',
+        provider: '', startDate: '', endDate: '', statusLabel: '', score: '', certLabel: '',
+        __rowType: 'group-header',
+      });
+
+      for (const emp of group.employees) {
+        emp.records.forEach((r, idx) => {
+          rows.push({
+            employeeCode: idx === 0 ? r.employeeCode : '',
+            employeeName: idx === 0 ? r.employeeName : '',
+            department: idx === 0 ? r.department : '',
+            station: idx === 0 ? r.station : '',
+            courseCode: r.courseCode,
+            courseName: r.courseName,
+            provider: r.provider,
+            startDate: r.startDate,
+            endDate: r.endDate,
+            statusLabel: r.status === 'completed' ? (ar ? 'مكتمل' : 'Completed') : r.status === 'failed' ? (ar ? 'راسب' : 'Failed') : (ar ? 'مسجل' : 'Enrolled'),
+            score: r.score != null ? `${r.score}%` : '-',
+            certLabel: r.hasCert ? (ar ? 'نعم' : 'Yes') : (ar ? 'لا' : 'No'),
+            __rowType: 'detail',
+          });
+        });
+      }
+    }
+    return rows;
+  }, [groupedData, filterStations, ar, getExportData]);
+
   const handleExportPDF = () => {
     exportBilingualPDF({
       titleAr: 'تقرير سجلات التدريب',
       titleEn: 'Training Records Report',
-      data: getExportData(),
+      data: isGroupedView ? getGroupedExportData() : getExportData(),
       columns: exportColumns,
       fileName: 'Training_Records_Report',
     });
@@ -349,7 +386,7 @@ export const TrainingRecordsReport = () => {
     exportBilingualCSV({
       titleAr: 'تقرير سجلات التدريب',
       titleEn: 'Training Records Report',
-      data: getExportData(),
+      data: isGroupedView ? getGroupedExportData() : getExportData(),
       columns: exportColumns,
       fileName: 'Training_Records_Report',
     });
