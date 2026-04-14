@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -9,11 +9,17 @@ import { Trainers } from '@/components/training/Trainers';
 import { CoursesSyllabus } from '@/components/training/CoursesSyllabus';
 import { CoursesList } from '@/components/training/CoursesList';
 import { TrainingPlan } from '@/components/training/TrainingPlan';
-import { TrainingRecordsReport } from '@/components/training/TrainingRecordsReport';
 import { TrainingStatsCards } from '@/components/training/TrainingStatsCards';
 import { EmployeeIdCards } from '@/components/training/EmployeeIdCards';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { GraduationCap, LogOut, BookOpen, Users, FileText, Calendar, BarChart3, Library, RefreshCw, CreditCard, Globe } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const TrainingReports = lazy(() => import('@/components/reports/TrainingReports').then(m => ({ default: m.TrainingReports })));
+const TrainingQualificationReport = lazy(() => import('@/components/reports/TrainingQualificationReport').then(m => ({ default: m.TrainingQualificationReport })));
+const TrainingRecordsReport = lazy(() => import('@/components/training/TrainingRecordsReport').then(m => ({ default: m.TrainingRecordsReport })));
+
+const TabFallback = () => <div className="space-y-4 mt-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-64 w-full" /></div>;
 import { PortalWelcomeBanner } from '@/components/portal/PortalWelcomeBanner';
 
 const TrainingPortal = () => {
@@ -100,11 +106,41 @@ const TrainingPortal = () => {
           <TabsContent value="syllabus" forceMount className="mt-6 data-[state=inactive]:hidden"><CoursesSyllabus key={refreshKey} /></TabsContent>
           <TabsContent value="courses" forceMount className="mt-6 data-[state=inactive]:hidden"><CoursesList key={refreshKey} /></TabsContent>
           <TabsContent value="plan" forceMount className="mt-6 data-[state=inactive]:hidden"><TrainingPlan key={refreshKey} /></TabsContent>
-          <TabsContent value="reports" forceMount className="mt-6 data-[state=inactive]:hidden"><TrainingRecordsReport key={refreshKey} /></TabsContent>
+          <TabsContent value="reports" forceMount className="mt-6 data-[state=inactive]:hidden">
+            <PortalReportsTabs ar={ar} />
+          </TabsContent>
           <TabsContent value="id-cards" forceMount className="mt-6 data-[state=inactive]:hidden"><EmployeeIdCards key={refreshKey} /></TabsContent>
         </Tabs>
       </main>
     </div>
+  );
+};
+
+const PortalReportsTabs = ({ ar }: { ar: boolean }) => {
+  const [subTab, setSubTab] = useState('stats');
+  return (
+    <Tabs value={subTab} onValueChange={setSubTab} className="w-full" dir="rtl">
+      <TabsList className="mb-4 bg-muted/30">
+        <TabsTrigger value="stats" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          {ar ? 'إحصائيات التدريب' : 'Training Stats'}
+        </TabsTrigger>
+        <TabsTrigger value="records" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          {ar ? 'سجلات التدريب' : 'Training Records'}
+        </TabsTrigger>
+        <TabsTrigger value="qualification" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          {ar ? 'سجل التأهيل' : 'Qualification Record'}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="stats">
+        <Suspense fallback={<TabFallback />}><TrainingReports /></Suspense>
+      </TabsContent>
+      <TabsContent value="records">
+        <Suspense fallback={<TabFallback />}><TrainingRecordsReport /></Suspense>
+      </TabsContent>
+      <TabsContent value="qualification">
+        <Suspense fallback={<TabFallback />}><TrainingQualificationReport /></Suspense>
+      </TabsContent>
+    </Tabs>
   );
 };
 
