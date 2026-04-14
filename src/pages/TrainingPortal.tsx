@@ -21,6 +21,7 @@ import { PortalWelcomeBanner } from '@/components/portal/PortalWelcomeBanner';
 const TrainingReports = lazy(() => import('@/components/reports/TrainingReports').then(m => ({ default: m.TrainingReports })));
 const TrainingQualificationReport = lazy(() => import('@/components/reports/TrainingQualificationReport').then(m => ({ default: m.TrainingQualificationReport })));
 const TrainingRecordsReport = lazy(() => import('@/components/training/TrainingRecordsReport').then(m => ({ default: m.TrainingRecordsReport })));
+const MissingCourseRecords = lazy(() => import('@/components/reports/MissingCourseRecords').then(m => ({ default: m.MissingCourseRecords })));
 
 const TabFallback = () => <div className="space-y-4 mt-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-64 w-full" /></div>;
 
@@ -146,6 +147,9 @@ const PortalReportsTabs = ({ ar }: { ar: boolean }) => {
         <TabsTrigger value="qualification" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
           {ar ? 'سجل التأهيل' : 'Qualification Record'}
         </TabsTrigger>
+        <TabsTrigger value="missing" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          {ar ? 'دورات بدون اسم' : 'Missing Courses'}
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="stats">
         <Suspense fallback={<TabFallback />}><TrainingReports /></Suspense>
@@ -156,6 +160,11 @@ const PortalReportsTabs = ({ ar }: { ar: boolean }) => {
       <TabsContent value="qualification">
         <Suspense fallback={<TabFallback />}><TrainingQualificationReport /></Suspense>
       </TabsContent>
+      {subTab === 'missing' && (
+        <TabsContent value="missing">
+          <Suspense fallback={<TabFallback />}><MissingCourseRecords /></Suspense>
+        </TabsContent>
+      )}
     </Tabs>
   );
 };
