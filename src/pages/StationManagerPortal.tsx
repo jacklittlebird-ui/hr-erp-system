@@ -1637,6 +1637,7 @@ const StationManagerPortal = () => {
             </TabsContent>
           )}
         </Tabs>
+        </div>
       </main>
 
       {/* Full Evaluation Dialog - matches PerformanceReviewForm */}
