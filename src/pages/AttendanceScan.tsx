@@ -21,6 +21,7 @@ const AttendanceScan = () => {
   usePreventPullToRefresh(mainRef, isMobile);
   useScrollRestoration(mainRef);
 
+  const [status, setStatus] = useState<"idle" | "scanning" | "validating" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [eventType, setEventType] = useState<"check_in" | "check_out">("check_in");
   const [scanning, setScanning] = useState(false);

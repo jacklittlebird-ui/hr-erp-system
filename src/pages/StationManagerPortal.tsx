@@ -120,6 +120,7 @@ const StationManagerPortal = () => {
   useScrollRestoration(mainRef);
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
   const ar = language === 'ar';
+  const [activeTab, setActiveTab] = useState('employees');
 
   // Violations from Supabase (lazy-loaded)
   const [violations, setViolations] = useState<Violation[]>([]);
