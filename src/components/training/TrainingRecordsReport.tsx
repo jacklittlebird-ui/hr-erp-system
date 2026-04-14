@@ -133,6 +133,29 @@ interface ReportRecord {
   isFavorite: boolean;
 }
 
+// Fetch all records with pagination (Supabase returns max 1000 per query)
+async function fetchAllRecords() {
+  const PAGE_SIZE = 1000;
+  let allData: any[] = [];
+  let from = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('training_records')
+      .select('*, training_courses(name_en, name_ar, course_code, provider)')
+      .order('start_date', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error || !data) break;
+    allData = allData.concat(data);
+    hasMore = data.length === PAGE_SIZE;
+    from += PAGE_SIZE;
+  }
+
+  return allData;
+}
+
 export const TrainingRecordsReport = () => {
   const { t, language, isRTL } = useLanguage();
   const ar = language === 'ar';
@@ -154,11 +177,11 @@ export const TrainingRecordsReport = () => {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [{ data: depts }, { data: stns }, { data: courses }, { data: records }] = await Promise.all([
+      const [{ data: depts }, { data: stns }, { data: courses }, records] = await Promise.all([
         supabase.from('departments').select('id, name_ar, name_en').eq('is_active', true),
         supabase.from('stations').select('id, name_ar, name_en').eq('is_active', true),
         supabase.from('training_courses').select('id, name_en, name_ar, provider, course_code').eq('is_active', true),
-        supabase.from('training_records').select('*, training_courses(name_en, name_ar, course_code, provider)').order('start_date', { ascending: false }),
+        fetchAllRecords(),
       ]);
       setDepartments((depts || []).map((d: any) => ({ id: d.id, nameAr: d.name_ar, nameEn: d.name_en })));
       setStations((stns || []).map((s: any) => ({ id: s.id, nameAr: s.name_ar, nameEn: s.name_en })));
@@ -241,6 +264,45 @@ export const TrainingRecordsReport = () => {
     });
   }, [allRecords, filterStations, filterCourses, filterEmployee, filterDepartments, filterProviders, filterYear, filterFavorite, stations, departments, ar]);
 
+  // Determine if we should use grouped view (station or department filter active)
+  const isGroupedView = filterStations.length > 0 || filterDepartments.length > 0;
+
+  // Build grouped data: group by station/dept → employee (alphabetically) → courses
+  const groupedData = useMemo(() => {
+    if (!isGroupedView) return null;
+
+    const groupKey = filterStations.length > 0 ? 'station' : 'department';
+    const groups = new Map<string, Map<string, ReportRecord[]>>();
+
+    filtered.forEach(r => {
+      const gName = r[groupKey] || (ar ? 'بدون' : 'Unknown');
+      if (!groups.has(gName)) groups.set(gName, new Map());
+      const empMap = groups.get(gName)!;
+      const empKey = `${r.employeeId}||${r.employeeName}||${r.employeeCode}`;
+      if (!empMap.has(empKey)) empMap.set(empKey, []);
+      empMap.get(empKey)!.push(r);
+    });
+
+    // Sort groups, then employees alphabetically within each group
+    const sortedGroups: { groupName: string; employees: { empId: string; empName: string; empCode: string; records: ReportRecord[] }[] }[] = [];
+
+    const sortedGroupNames = [...groups.keys()].sort((a, b) => a.localeCompare(b, ar ? 'ar' : 'en'));
+
+    for (const gName of sortedGroupNames) {
+      const empMap = groups.get(gName)!;
+      const employees = [...empMap.entries()]
+        .map(([key, records]) => {
+          const [empId, empName, empCode] = key.split('||');
+          return { empId, empName, empCode, records };
+        })
+        .sort((a, b) => a.empName.localeCompare(b.empName, ar ? 'ar' : 'en'));
+
+      sortedGroups.push({ groupName: gName, employees });
+    }
+
+    return sortedGroups;
+  }, [filtered, isGroupedView, filterStations, filterDepartments, ar]);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed': return <Badge className="bg-stat-green">{ar ? 'مكتمل' : 'Completed'}</Badge>;
@@ -292,6 +354,122 @@ export const TrainingRecordsReport = () => {
       fileName: 'Training_Records_Report',
     });
   };
+
+  const renderGroupedTable = () => {
+    if (!groupedData) return null;
+    const groupLabel = filterStations.length > 0 ? (ar ? 'المحطة' : 'Station') : (ar ? 'القسم' : 'Department');
+
+    return (
+      <Card>
+        <CardContent className="p-4 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>#</TableHead>
+                <TableHead>{ar ? 'كود الموظف' : 'Code'}</TableHead>
+                <TableHead>{ar ? 'اسم الموظف' : 'Employee'}</TableHead>
+                <TableHead>{ar ? 'الدورة' : 'Course'}</TableHead>
+                <TableHead>{ar ? 'الجهة' : 'Provider'}</TableHead>
+                <TableHead>{ar ? 'تاريخ البداية' : 'Start'}</TableHead>
+                <TableHead>{ar ? 'تاريخ النهاية' : 'End'}</TableHead>
+                <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
+                <TableHead>{ar ? 'الدرجة' : 'Score'}</TableHead>
+                <TableHead>{ar ? 'شهادة' : 'Cert'}</TableHead>
+                <TableHead><Star className="h-4 w-4" /></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {groupedData.length === 0 ? (
+                <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">{ar ? 'لا توجد سجلات' : 'No records found'}</TableCell></TableRow>
+              ) : (
+                groupedData.map(group => {
+                  let empIndex = 0;
+                  return (
+                    <>
+                      {/* Group header row */}
+                      <TableRow key={`group-${group.groupName}`} className="bg-primary/10 hover:bg-primary/10">
+                        <TableCell colSpan={11} className="font-bold text-primary text-sm py-3">
+                          {groupLabel}: {group.groupName} ({group.employees.reduce((sum, e) => sum + e.records.length, 0)} {ar ? 'سجل' : 'records'} • {group.employees.length} {ar ? 'موظف' : 'employees'})
+                        </TableCell>
+                      </TableRow>
+                      {group.employees.map(emp => {
+                        return emp.records.map((r, courseIdx) => {
+                          empIndex++;
+                          const isFirst = courseIdx === 0;
+                          return (
+                            <TableRow key={r.id} className={cn(!isFirst && 'border-t-0')}>
+                              <TableCell className="text-muted-foreground">{empIndex}</TableCell>
+                              <TableCell className="font-mono text-xs">{isFirst ? emp.empCode : ''}</TableCell>
+                              <TableCell className={cn("font-medium", !isFirst && "text-transparent select-none")}>{isFirst ? emp.empName : emp.empName}</TableCell>
+                              <TableCell>{r.courseName}</TableCell>
+                              <TableCell>{r.provider}</TableCell>
+                              <TableCell>{r.startDate}</TableCell>
+                              <TableCell>{r.endDate}</TableCell>
+                              <TableCell>{getStatusBadge(r.status)}</TableCell>
+                              <TableCell>{r.score != null ? `${r.score}%` : '-'}</TableCell>
+                              <TableCell>{r.hasCert ? '✓' : '-'}</TableCell>
+                              <TableCell>{r.isFavorite ? <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> : '-'}</TableCell>
+                            </TableRow>
+                          );
+                        });
+                      })}
+                    </>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderFlatTable = () => (
+    <Card>
+      <CardContent className="p-4 overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>#</TableHead>
+              <TableHead>{ar ? 'كود الموظف' : 'Code'}</TableHead>
+              <TableHead>{ar ? 'اسم الموظف' : 'Employee'}</TableHead>
+              <TableHead>{ar ? 'القسم' : 'Dept'}</TableHead>
+              <TableHead>{ar ? 'المحطة' : 'Station'}</TableHead>
+              <TableHead>{ar ? 'الدورة' : 'Course'}</TableHead>
+              <TableHead>{ar ? 'الجهة' : 'Provider'}</TableHead>
+              <TableHead>{ar ? 'تاريخ البداية' : 'Start'}</TableHead>
+              <TableHead>{ar ? 'تاريخ النهاية' : 'End'}</TableHead>
+              <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
+              <TableHead>{ar ? 'الدرجة' : 'Score'}</TableHead>
+              <TableHead>{ar ? 'شهادة' : 'Cert'}</TableHead>
+              <TableHead><Star className="h-4 w-4" /></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-8">{ar ? 'لا توجد سجلات' : 'No records found'}</TableCell></TableRow>
+            ) : filtered.map((r, i) => (
+              <TableRow key={r.id}>
+                <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                <TableCell className="font-mono text-xs">{r.employeeCode}</TableCell>
+                <TableCell className="font-medium">{r.employeeName}</TableCell>
+                <TableCell>{r.department}</TableCell>
+                <TableCell>{r.station}</TableCell>
+                <TableCell>{r.courseName}</TableCell>
+                <TableCell>{r.provider}</TableCell>
+                <TableCell>{r.startDate}</TableCell>
+                <TableCell>{r.endDate}</TableCell>
+                <TableCell>{getStatusBadge(r.status)}</TableCell>
+                <TableCell>{r.score != null ? `${r.score}%` : '-'}</TableCell>
+                <TableCell>{r.hasCert ? '✓' : '-'}</TableCell>
+                <TableCell>{r.isFavorite ? <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> : '-'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div dir={ar ? 'rtl' : 'ltr'} className="space-y-4">
@@ -413,55 +591,12 @@ export const TrainingRecordsReport = () => {
         </CardContent>
       </Card>
 
-      {/* Table FIRST */}
+      {/* Table */}
       <div ref={reportRef}>
-        <Card>
-          <CardContent className="p-4 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>{ar ? 'كود الموظف' : 'Code'}</TableHead>
-                  <TableHead>{ar ? 'اسم الموظف' : 'Employee'}</TableHead>
-                  <TableHead>{ar ? 'القسم' : 'Dept'}</TableHead>
-                  <TableHead>{ar ? 'المحطة' : 'Station'}</TableHead>
-                  <TableHead>{ar ? 'الدورة' : 'Course'}</TableHead>
-                  <TableHead>{ar ? 'الجهة' : 'Provider'}</TableHead>
-                  <TableHead>{ar ? 'تاريخ البداية' : 'Start'}</TableHead>
-                  <TableHead>{ar ? 'تاريخ النهاية' : 'End'}</TableHead>
-                  <TableHead>{ar ? 'الحالة' : 'Status'}</TableHead>
-                  <TableHead>{ar ? 'الدرجة' : 'Score'}</TableHead>
-                   <TableHead>{ar ? 'شهادة' : 'Cert'}</TableHead>
-                   <TableHead><Star className="h-4 w-4" /></TableHead>
-                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-8">{ar ? 'لا توجد سجلات' : 'No records found'}</TableCell></TableRow>
-                ) : filtered.map((r, i) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                    <TableCell className="font-mono text-xs">{r.employeeCode}</TableCell>
-                    <TableCell className="font-medium">{r.employeeName}</TableCell>
-                    <TableCell>{r.department}</TableCell>
-                    <TableCell>{r.station}</TableCell>
-                    <TableCell>{r.courseName}</TableCell>
-                    <TableCell>{r.provider}</TableCell>
-                    <TableCell>{r.startDate}</TableCell>
-                    <TableCell>{r.endDate}</TableCell>
-                    <TableCell>{getStatusBadge(r.status)}</TableCell>
-                    <TableCell>{r.score != null ? `${r.score}%` : '-'}</TableCell>
-                    <TableCell>{r.hasCert ? '✓' : '-'}</TableCell>
-                    <TableCell>{r.isFavorite ? <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> : '-'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        {isGroupedView ? renderGroupedTable() : renderFlatTable()}
       </div>
 
-      {/* Stats Cards AFTER table */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10"><BookOpen className="h-5 w-5 text-primary" /></div>
