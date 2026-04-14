@@ -306,10 +306,7 @@ export const TrainingQualificationReport = () => {
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 600);
   }, [groupedData, ar, getFilterTitle, filterTypeLabel]);
 
-  const filterTypeLabel = filterType === 'station' ? (ar ? 'حسب المحطة' : 'By Airport') :
-    filterType === 'department' ? (ar ? 'حسب القسم' : 'By Department') :
-    filterType === 'course' ? (ar ? 'حسب الدورة' : 'By Course') :
-    (ar ? 'حسب الموظف' : 'By Employee');
+
 
   return (
     <div dir={ar ? 'rtl' : 'ltr'} className="space-y-4">
