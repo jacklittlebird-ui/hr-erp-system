@@ -106,7 +106,9 @@ const TrainingPortal = () => {
           <TabsContent value="syllabus" forceMount className="mt-6 data-[state=inactive]:hidden"><CoursesSyllabus key={refreshKey} /></TabsContent>
           <TabsContent value="courses" forceMount className="mt-6 data-[state=inactive]:hidden"><CoursesList key={refreshKey} /></TabsContent>
           <TabsContent value="plan" forceMount className="mt-6 data-[state=inactive]:hidden"><TrainingPlan key={refreshKey} /></TabsContent>
-          <TabsContent value="reports" forceMount className="mt-6 data-[state=inactive]:hidden"><TrainingRecordsReport key={refreshKey} /></TabsContent>
+          <TabsContent value="reports" forceMount className="mt-6 data-[state=inactive]:hidden">
+            <PortalReportsTabs ar={ar} />
+          </TabsContent>
           <TabsContent value="id-cards" forceMount className="mt-6 data-[state=inactive]:hidden"><EmployeeIdCards key={refreshKey} /></TabsContent>
         </Tabs>
       </main>
