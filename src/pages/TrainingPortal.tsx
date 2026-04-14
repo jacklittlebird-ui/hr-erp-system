@@ -116,4 +116,32 @@ const TrainingPortal = () => {
   );
 };
 
+const PortalReportsTabs = ({ ar }: { ar: boolean }) => {
+  const [subTab, setSubTab] = useState('stats');
+  return (
+    <Tabs value={subTab} onValueChange={setSubTab} className="w-full" dir="rtl">
+      <TabsList className="mb-4 bg-muted/30">
+        <TabsTrigger value="stats" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          {ar ? 'إحصائيات التدريب' : 'Training Stats'}
+        </TabsTrigger>
+        <TabsTrigger value="records" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          {ar ? 'سجلات التدريب' : 'Training Records'}
+        </TabsTrigger>
+        <TabsTrigger value="qualification" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          {ar ? 'سجل التأهيل' : 'Qualification Record'}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="stats">
+        <Suspense fallback={<TabFallback />}><TrainingReports /></Suspense>
+      </TabsContent>
+      <TabsContent value="records">
+        <Suspense fallback={<TabFallback />}><TrainingRecordsReport /></Suspense>
+      </TabsContent>
+      <TabsContent value="qualification">
+        <Suspense fallback={<TabFallback />}><TrainingQualificationReport /></Suspense>
+      </TabsContent>
+    </Tabs>
+  );
+};
+
 export default TrainingPortal;
