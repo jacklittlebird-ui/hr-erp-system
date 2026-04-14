@@ -49,16 +49,31 @@ export const EmployeeDirectory = () => {
 
   const { paginatedItems, currentPage, setCurrentPage, totalPages } = usePagination(filtered, 30);
 
+  const { paginatedItems, currentPage, setCurrentPage, totalPages, totalItems, startIndex, endIndex } = usePagination(filtered, 30);
+
   const handleExport = () => {
     const rows = filtered.map((e, i) => ({
-      '#': i + 1,
-      [ar ? 'كود الموظف' : 'Employee Code']: e.employeeId,
-      [ar ? 'اسم الموظف' : 'Employee Name']: ar ? e.nameAr : e.nameEn,
-      [ar ? 'القسم' : 'Department']: e.department || '-',
-      [ar ? 'الوظيفة' : 'Job Title']: ar ? (e.jobTitleAr || '-') : (e.jobTitleEn || '-'),
-      [ar ? 'المحطة' : 'Station']: e.stationName || '-',
+      '#': String(i + 1),
+      code: e.employeeId,
+      name: ar ? e.nameAr : e.nameEn,
+      department: e.department || '-',
+      jobTitle: ar ? (e.jobTitleAr || '-') : (e.jobTitleEn || '-'),
+      station: e.stationName || '-',
     }));
-    exportBilingualCSV(rows, ar ? 'دليل الموظفين' : 'Employee Directory');
+    exportBilingualCSV({
+      titleAr: 'دليل الموظفين',
+      titleEn: 'Employee Directory',
+      data: rows,
+      columns: [
+        { headerAr: '#', headerEn: '#', key: '#' },
+        { headerAr: 'كود الموظف', headerEn: 'Code', key: 'code' },
+        { headerAr: 'اسم الموظف', headerEn: 'Name', key: 'name' },
+        { headerAr: 'القسم', headerEn: 'Department', key: 'department' },
+        { headerAr: 'الوظيفة', headerEn: 'Job Title', key: 'jobTitle' },
+        { headerAr: 'المحطة', headerEn: 'Station', key: 'station' },
+      ],
+      fileName: 'employee-directory',
+    });
   };
 
   return (
