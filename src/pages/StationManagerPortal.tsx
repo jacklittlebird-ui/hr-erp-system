@@ -1898,6 +1898,7 @@ const StationManagerPortal = () => {
             <Button onClick={handleSaveEditViol}>{t('حفظ', 'Save')}</Button>
           </DialogFooter>
         </DialogContent>
+      </Dialog>
         </div>
       </main>
     </div>
