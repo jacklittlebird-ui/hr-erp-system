@@ -178,6 +178,28 @@
   }
 }
 
+/* Visible scrollbar for desktop portal/dashboard scroll containers */
+@media (min-width: 768px) {
+  main::-webkit-scrollbar {
+    width: 8px;
+  }
+  main::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+  main::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.35);
+    border-radius: 4px;
+  }
+  main::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.55);
+  }
+  main {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) hsl(var(--muted));
+  }
+}
+
 @layer utilities {
   .font-arabic {
     font-family: 'Baloo Bhaijaan 2', sans-serif !important;
