@@ -220,7 +220,7 @@ export const TrainingQualificationReport = () => {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-lg font-semibold">{reportTitle}</h3>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => handlePrint(reportTitle)} disabled={!isFilterActive}>
+          <Button variant="outline" size="sm" onClick={() => handleQualificationPrint()} disabled={!isFilterActive}>
             <Printer className="h-4 w-4 mr-1" />{ar ? 'طباعة' : 'Print'}
           </Button>
           <Button variant="outline" size="sm" disabled={!isFilterActive} onClick={() => exportBilingualPDF({
