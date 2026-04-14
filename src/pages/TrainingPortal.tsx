@@ -21,6 +21,7 @@ import { PortalWelcomeBanner } from '@/components/portal/PortalWelcomeBanner';
 const TrainingReports = lazy(() => import('@/components/reports/TrainingReports').then(m => ({ default: m.TrainingReports })));
 const TrainingQualificationReport = lazy(() => import('@/components/reports/TrainingQualificationReport').then(m => ({ default: m.TrainingQualificationReport })));
 const TrainingRecordsReport = lazy(() => import('@/components/training/TrainingRecordsReport').then(m => ({ default: m.TrainingRecordsReport })));
+const MissingCourseRecords = lazy(() => import('@/components/reports/MissingCourseRecords').then(m => ({ default: m.MissingCourseRecords })));
 
 const TabFallback = () => <div className="space-y-4 mt-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-64 w-full" /></div>;
 
