@@ -2,12 +2,10 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Printer, FileText, FileSpreadsheet, ChevronDown, Search, CheckSquare } from 'lucide-react';
+import { Printer, FileText, FileSpreadsheet, ChevronDown, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEmployeeData } from '@/contexts/EmployeeDataContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -86,20 +84,17 @@ export const TrainingQualificationReport = () => {
   }, []);
 
   const groupedData = useMemo(() => {
-    // Build employee-course map
     const empMap = new Map<string, EmployeeTrainingGroup>();
 
     allRecords.forEach(r => {
       const emp = contextEmployees.find(e => e.id === r.employee_id);
       if (!emp) return;
 
-      // Apply filters
       if (filterType === 'station' && filterStation !== 'all' && emp.stationId !== filterStation) return;
       if (filterType === 'department' && filterDepartment !== 'all' && emp.departmentId !== filterDepartment) return;
       if (filterType === 'course' && filterCourse !== 'all' && r.course_id !== filterCourse) return;
       if (filterType === 'employee' && filterEmployee !== 'all' && emp.id !== filterEmployee) return;
 
-      // Must have at least one filter selected (not 'all')
       if (filterType === 'station' && filterStation === 'all') return;
       if (filterType === 'department' && filterDepartment === 'all') return;
       if (filterType === 'course' && filterCourse === 'all') return;
@@ -129,7 +124,6 @@ export const TrainingQualificationReport = () => {
       });
     });
 
-    // Sort employees alphabetically
     return [...empMap.values()].sort((a, b) => a.employeeName.localeCompare(b.employeeName, ar ? 'ar' : 'en'));
   }, [allRecords, contextEmployees, filterType, filterStation, filterDepartment, filterCourse, filterEmployee, ar]);
 
@@ -214,6 +208,11 @@ export const TrainingQualificationReport = () => {
     (filterType === 'department' && filterDepartment !== 'all') ||
     (filterType === 'course' && filterCourse !== 'all') ||
     (filterType === 'employee' && filterEmployee !== 'all');
+
+  const filterTypeLabel = filterType === 'station' ? (ar ? 'حسب المحطة' : 'By Airport') :
+    filterType === 'department' ? (ar ? 'حسب القسم' : 'By Department') :
+    filterType === 'course' ? (ar ? 'حسب الدورة' : 'By Course') :
+    (ar ? 'حسب الموظف' : 'By Employee');
 
   return (
     <div dir={ar ? 'rtl' : 'ltr'} className="space-y-4">
@@ -371,67 +370,101 @@ export const TrainingQualificationReport = () => {
           </CardContent>
         </Card>
       ) : (
-        <div ref={reportRef} className="space-y-1">
-          {/* Location Header */}
-          <div className="bg-primary text-primary-foreground text-center py-2 rounded-t-lg">
-            <h2 className="text-lg font-bold">{reportTitle}</h2>
-            <p className="text-sm opacity-90">{getFilterTitle()}</p>
+        <div ref={reportRef} className="border border-border rounded-lg overflow-hidden bg-white">
+          {/* Report Title */}
+          <div className="text-center py-3 border-b border-border">
+            <h2 className="text-xl font-bold text-foreground">
+              {ar ? `سجل التدريب والتأهيل ${filterTypeLabel}` : `Training & Qualification Record ${filterTypeLabel}`}
+            </h2>
           </div>
 
-          {/* Table Header */}
-          <div className="grid grid-cols-12 gap-px bg-primary/80 text-primary-foreground text-xs font-semibold">
-            <div className="col-span-3 p-2">{ar ? 'الاسم' : 'Name'}</div>
-            <div className="col-span-4 p-2">{ar ? 'اسم الدورة التدريبية' : 'Training Course Name'}</div>
-            <div className="col-span-3 p-2">{ar ? 'الجهة المقدمة' : 'Provider & Location'}</div>
-            <div className="col-span-1 p-2 text-center">{ar ? 'التاريخ' : 'Date'}</div>
-            <div className="col-span-1 p-2 text-center">{ar ? 'شهادة' : 'Cert'}</div>
+          {/* Table Header Row */}
+          <div className="grid grid-cols-[25%_30%_25%_12%_8%] border-b-2 border-gray-400 bg-gray-50">
+            <div className="px-3 py-2 text-sm font-bold text-foreground border-r border-gray-300">
+              {ar ? 'الاسم' : 'Name'}
+            </div>
+            <div className="px-3 py-2 text-sm font-bold text-foreground border-r border-gray-300 text-center">
+              {ar ? 'اسم الدورة التدريبية' : 'Training Course Name'}
+            </div>
+            <div className="px-3 py-2 text-sm font-bold text-foreground border-r border-gray-300 text-center">
+              {ar ? 'الجهة المقدمة والموقع' : 'Provider & Location'}
+            </div>
+            <div className="px-3 py-2 text-sm font-bold text-foreground border-r border-gray-300 text-center">
+              {ar ? 'تاريخ التدريب' : 'Training Date'}
+            </div>
+            <div className="px-3 py-2 text-sm font-bold text-foreground text-center">
+              {ar ? 'شهادة' : 'Certificate'}
+            </div>
+          </div>
+
+          {/* Location Header */}
+          <div className="bg-[#4472C4] text-white text-center py-1.5 border-b border-gray-300">
+            <span className="text-sm font-bold tracking-wide">{getFilterTitle()}</span>
           </div>
 
           {groupedData.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center text-muted-foreground">
-                {ar ? 'لا توجد سجلات تدريب' : 'No training records found'}
-              </CardContent>
-            </Card>
+            <div className="p-8 text-center text-muted-foreground">
+              {ar ? 'لا توجد سجلات تدريب' : 'No training records found'}
+            </div>
           ) : (
             groupedData.map(emp => (
-              <div key={emp.employeeId} className="border border-border rounded-sm mb-2 overflow-hidden">
-                {/* Employee Header */}
-                <div className="bg-muted/60 border-b border-border">
-                  <div className="grid grid-cols-12 gap-2 items-center p-2">
-                    <div className="col-span-3">
-                      <span className="font-bold text-sm text-foreground">{emp.employeeName}</span>
+              <div key={emp.employeeId}>
+                {/* Employee Header - Dark row with name, hire date, job title */}
+                <div className="bg-[#2E3B4E] text-white">
+                  <div className="grid grid-cols-[25%_30%_25%_20%] items-center">
+                    <div className="px-3 py-1.5 text-sm font-bold truncate border-r border-gray-500">
+                      {emp.employeeName}
                     </div>
-                    <div className="col-span-3 flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{ar ? 'تاريخ التعيين' : 'Hire Date'}</span>
-                      <Badge variant="outline" className="bg-primary/10 text-primary font-bold text-xs">{emp.hireDate || '-'}</Badge>
+                    <div className="px-3 py-1.5 flex items-center gap-2 border-r border-gray-500">
+                      <span className="text-xs text-gray-300">{ar ? 'تاريخ التعيين' : 'Hire Date'}</span>
+                      <span className="text-sm font-bold text-[#FF6B6B]">{emp.hireDate || '-'}</span>
                     </div>
-                    <div className="col-span-3 flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{ar ? 'الوظيفة' : 'Job Title'}</span>
-                      <span className="text-xs font-semibold text-foreground">{emp.jobTitle || '-'}</span>
+                    <div className="px-3 py-1.5 flex items-center gap-2 border-r border-gray-500">
+                      <span className="text-xs text-gray-300">{ar ? 'الوظيفة' : 'Job Title'}</span>
                     </div>
-                    <div className="col-span-3" />
+                    <div className="px-3 py-1.5 text-sm font-semibold text-right">
+                      {emp.jobTitle || '-'}
+                    </div>
                   </div>
-                  {/* Dept Codes */}
-                  <div className="px-2 pb-2 flex flex-wrap gap-x-3 gap-y-1">
+                </div>
+
+                {/* Dept Codes Row */}
+                <div className="bg-gray-50 border-b border-gray-200 px-3 py-1.5">
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                     {DEPT_CODES.map(code => (
-                      <label key={code} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <label key={code} className="flex items-center gap-0.5 text-[11px] text-gray-600">
                         <span className="font-mono font-semibold">{code}</span>
-                        <Checkbox checked={emp.deptCode === code} disabled className="h-3.5 w-3.5" />
+                        <input
+                          type="checkbox"
+                          checked={emp.deptCode === code}
+                          readOnly
+                          className="h-3 w-3 accent-blue-600 pointer-events-none"
+                        />
                       </label>
                     ))}
                   </div>
                 </div>
 
-                {/* Courses */}
+                {/* Course Rows */}
                 {emp.courses.map(c => (
-                  <div key={c.id} className="grid grid-cols-12 gap-px border-b last:border-b-0 border-border/50 hover:bg-muted/30 text-sm">
-                    <div className="col-span-3 p-2" />
-                    <div className="col-span-4 p-2 text-foreground">{c.courseName}</div>
-                    <div className="col-span-3 p-2 text-muted-foreground">{c.provider}</div>
-                    <div className="col-span-1 p-2 text-center text-xs">{c.trainingDate}</div>
-                    <div className="col-span-1 p-2 text-center">
-                      <Checkbox checked={c.hasCert} disabled className="h-3.5 w-3.5" />
+                  <div key={c.id} className="grid grid-cols-[25%_30%_25%_12%_8%] border-b border-gray-200 hover:bg-blue-50/30">
+                    <div className="px-3 py-1.5 border-r border-gray-200" />
+                    <div className="px-3 py-1.5 text-sm text-[#2B7CD3] border-r border-gray-200">
+                      {c.courseName}
+                    </div>
+                    <div className="px-3 py-1.5 text-sm text-[#2B7CD3] border-r border-gray-200">
+                      {c.provider}
+                    </div>
+                    <div className="px-3 py-1.5 text-sm text-foreground text-center border-r border-gray-200">
+                      {c.trainingDate}
+                    </div>
+                    <div className="px-3 py-1.5 text-center">
+                      <input
+                        type="checkbox"
+                        checked={c.hasCert}
+                        readOnly
+                        className="h-3.5 w-3.5 accent-blue-600 pointer-events-none"
+                      />
                     </div>
                   </div>
                 ))}
