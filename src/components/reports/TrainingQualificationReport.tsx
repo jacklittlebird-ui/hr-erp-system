@@ -204,6 +204,11 @@ export const TrainingQualificationReport = () => {
 
   const reportTitle = ar ? 'سجل التدريب والتأهيل' : 'Training & Qualification Record';
 
+  const filterTypeLabel = filterType === 'station' ? (ar ? 'حسب المحطة' : 'By Airport') :
+    filterType === 'department' ? (ar ? 'حسب القسم' : 'By Department') :
+    filterType === 'course' ? (ar ? 'حسب الدورة' : 'By Course') :
+    (ar ? 'حسب الموظف' : 'By Employee');
+
   const isFilterActive = (filterType === 'station' && filterStation !== 'all') ||
     (filterType === 'department' && filterDepartment !== 'all') ||
     (filterType === 'course' && filterCourse !== 'all') ||
