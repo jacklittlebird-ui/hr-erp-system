@@ -10,6 +10,9 @@ import { RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
+const TrainingReports = lazy(() => import('@/components/reports/TrainingReports').then(m => ({ default: m.TrainingReports })));
+const TrainingQualificationReport = lazy(() => import('@/components/reports/TrainingQualificationReport').then(m => ({ default: m.TrainingQualificationReport })));
+
 const Trainers = lazy(() => import('@/components/training/Trainers').then(m => ({ default: m.Trainers })));
 const CoursesSyllabus = lazy(() => import('@/components/training/CoursesSyllabus').then(m => ({ default: m.CoursesSyllabus })));
 const CoursesList = lazy(() => import('@/components/training/CoursesList').then(m => ({ default: m.CoursesList })));
